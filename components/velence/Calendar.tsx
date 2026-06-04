@@ -15,8 +15,18 @@ const wd = (d: Date) => (d.getDay() + 6) % 7
 
 const MONTHS = ['január', 'február', 'március', 'április', 'május', 'június', 'július', 'augusztus', 'szeptember', 'október', 'november', 'december']
 const DOW = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']
+const fmtDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}.`
 
 type Range = { during: string; kind: string }
+
+type DayMeta = {
+  isPast: boolean
+  isOccupied: boolean
+  isStart: boolean
+  isEnd: boolean
+  inRange: boolean
+  selectable: boolean
+}
 
 export function Calendar({
   listingId,
@@ -33,6 +43,7 @@ export function Calendar({
   const [view, setView] = useState<Date>(() => startOfMonth(new Date()))
   const [occupied, setOccupied] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [hover, setHover] = useState<Date | null>(null) // live range preview while choosing checkout
 
   useEffect(() => {
     // loading starts true (initial state); all setState is in promise callbacks,
@@ -66,34 +77,57 @@ export function Calendar({
     return true
   }
 
+  // First booked day strictly after the check-in (caps the selectable checkout —
+  // that booked day is itself still a valid checkout via same-day turnover).
+  const firstBookedAfter = (a: Date): Date | null => {
+    for (let i = 1; i <= 366; i++) {
+      const d = addDays(a, i)
+      if (occupied.has(toISO(d))) return d
+    }
+    return null
+  }
+
+  // Range end actually shown: committed checkout, else a valid hover preview.
+  const previewEnd: Date | null =
+    co ?? (ci && hover && hover > ci && spanFree(ci, hover) ? hover : null)
+
   function clickDay(day: Date) {
     const iso = toISO(day)
     // choosing a START (nothing selected, or a full range already chosen)
     if (!ci || (ci && co)) {
+      setHover(null)
       onSelect(iso, null)
       return
     }
     // choosing an END
-    if (day <= ci) { onSelect(iso, null); return }      // earlier → restart
-    if (spanFree(ci, day)) { onSelect(checkIn, iso); return } // valid end (day may be a booked turnover day)
-    onSelect(iso, null)                                  // can't bridge a booked night → restart
+    if (day <= ci) { onSelect(iso, null); return }              // earlier → restart from here
+    if (spanFree(ci, day)) { onSelect(checkIn, iso); return }   // valid end (day may be a booked turnover day)
+    onSelect(iso, null)                                         // can't bridge a booked night → restart
   }
 
-  function dayMeta(day: Date) {
+  function dayMeta(day: Date): DayMeta {
     const iso = toISO(day)
     const isPast = day < today
     const isOccupied = occupied.has(iso)
-    const isStart = ci && sameDay(day, ci)
-    const isEnd = co && sameDay(day, co)
-    const inRange = ci && co && day > ci && day < co
-    // selectable?
+    const isStart = !!ci && sameDay(day, ci)
+    const isEnd = !!previewEnd && sameDay(day, previewEnd)
+    const inRange = !!ci && !!previewEnd && day > ci && day < previewEnd
     let selectable: boolean
-    if (ci && !co && day > ci) selectable = spanFree(ci, day)         // picking end (turnover day allowed)
-    else selectable = !isPast && !isOccupied                          // picking start
-    return { iso, isPast, isOccupied, isStart, isEnd, inRange, selectable }
+    if (ci && !co && day > ci) selectable = spanFree(ci, day)   // picking end (turnover day allowed)
+    else selectable = !isPast && !isOccupied                    // picking start
+    return { isPast, isOccupied, isStart, isEnd, inRange, selectable }
   }
 
   const canPrev = startOfMonth(today) < view
+
+  // Proactive inline guidance while a checkout is still being chosen.
+  const choosingEnd = !!ci && !co
+  const cap = ci ? firstBookedAfter(ci) : null
+  const guidance = !choosingEnd
+    ? null
+    : cap
+      ? `A távozás legkésőbb ${fmtDay(cap)} lehet — utána foglalt időszak következik. Válassz korábbi távozást vagy másik érkezést.`
+      : 'Válaszd ki a távozás napját.'
 
   return (
     <div>
@@ -117,17 +151,29 @@ export function Calendar({
         >›</button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <MonthGrid month={view} today={today} dayMeta={dayMeta} onPick={clickDay} />
+      <div className="grid gap-6 md:grid-cols-2" onMouseLeave={() => setHover(null)}>
+        <MonthGrid month={view} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
         <div className="hidden md:block">
-          <MonthGrid month={addMonths(view, 1)} today={today} dayMeta={dayMeta} onPick={clickDay} />
+          <MonthGrid month={addMonths(view, 1)} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
         </div>
       </div>
+
+      {/* Proactive guidance — appears while choosing checkout, clears once a valid range is set. */}
+      {guidance && (
+        <p
+          role="status"
+          aria-live="polite"
+          className={`mt-3 rounded-[var(--radius-md)] px-3 py-2 text-sm ${cap ? 'bg-clay/10 text-clay-600' : 'bg-sand-2 text-pine'}`}
+        >
+          {guidance}
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-reed">
         <Legend swatch="bg-cream border border-line" label="szabad" />
         <Legend swatch="bg-clay" label="kiválasztva" />
         <Legend swatch="bg-sand-2 line-through" label="foglalt" />
+        <Legend swatch="bg-transparent text-reed/40 border border-dashed border-line" label="nem foglalható" />
         {loading && <span aria-live="polite">elérhetőség betöltése…</span>}
       </div>
     </div>
@@ -147,11 +193,14 @@ function MonthGrid({
   month,
   dayMeta,
   onPick,
+  onHover,
+  choosingEnd,
 }: {
   month: Date
-  today: Date
-  dayMeta: (d: Date) => { iso: string; isPast: boolean; isOccupied: boolean; isStart: boolean | null; isEnd: boolean | null; inRange: boolean | null; selectable: boolean }
+  dayMeta: (d: Date) => DayMeta
   onPick: (d: Date) => void
+  onHover: (d: Date | null) => void
+  choosingEnd: boolean
 }) {
   const first = startOfMonth(month)
   const lead = wd(first)
@@ -172,18 +221,19 @@ function MonthGrid({
           const base = 'flex h-10 items-center justify-center rounded-[8px] text-sm tnum transition-colors'
           let cls = `${base} `
           if (m.isStart || m.isEnd) cls += 'bg-clay text-cream font-semibold'
-          else if (m.inRange) cls += 'bg-clay/20 text-ink'
+          else if (m.inRange) cls += 'bg-clay/25 text-ink'
           else if (m.isOccupied) cls += 'bg-sand-2 text-reed line-through'
-          else if (m.isPast) cls += 'text-reed/40'
+          else if (!m.selectable) cls += 'text-reed/35'                    // past OR blocked future → clearly inactive
           else cls += 'bg-cream border border-line text-ink hover:border-water'
           return (
             <button
               key={i}
               type="button"
               onClick={() => onPick(day)}
+              onMouseEnter={() => choosingEnd && m.selectable && onHover(day)}
               disabled={!m.selectable}
-              aria-pressed={!!(m.isStart || m.isEnd)}
-              aria-label={`${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? ' — foglalt' : ''}`}
+              aria-pressed={m.isStart || m.isEnd}
+              aria-label={`${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? ' — foglalt' : !m.selectable ? ' — nem foglalható' : ''}`}
               title={m.isOccupied ? 'Foglalt' : undefined}
               className={`${cls} disabled:cursor-not-allowed`}
             >
