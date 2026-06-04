@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Garden Vendeghaz — "warm lakeside" identity.
+   Deep lake-pine + terracotta clay on warm sand paper.
+   Display: Fraunces (soft old-style serif). Body: Hanken Grotesk.
+   ============================================================ */
+@theme {
+  /* Ink & greens (the lake) */
+  --color-ink:        #18241F;
+  --color-pine:       #1E4339;
+  --color-pine-600:   #295A4C;
+  --color-pine-700:   #16332B;
+  --color-water:      #356B5B;
+  --color-reed:       #7E9384;
+
+  /* Warmth (clay, gold) */
+  --color-clay:       #C16A41;
+  --color-clay-600:   #A8552F;
+  --color-gold:       #CDA047;
+
+  /* Paper & surfaces — never pure white */
+  --color-sand:       #F2E8D6;
+  --color-sand-2:     #ECDFC8;
+  --color-cream:      #FBF5EA;
+  --color-line:       #DBC9AC;
+
+  /* Status */
+  --color-success:    #4C7A52;
+  --color-danger:     #B5462F;
+
+  /* Fonts (system-ui only as last-resort fallback) */
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans:    var(--font-hanken), system-ui, sans-serif;
+
+  /* Organic, warm rounding */
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-sand);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  position: relative;
+}
+
+/* Atmosphere: a faint, fixed film grain over the whole page. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* keep real content above the grain */
+body > * { position: relative; z-index: 2; }
+
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 500; }
+
+::selection { background-color: var(--color-gold); color: var(--color-ink); }
+
+/* Accessible focus ring everywhere */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-water);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.label-caps {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-clay-600);
+}
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ---- Scroll / load reveal (staggered) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .reveal.is-in { opacity: 1; transform: none; }
+
+  @keyframes floatIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .hero-stagger > * { opacity: 0; animation: floatIn 0.9s cubic-bezier(0.22,1,0.36,1) forwards; }
+  .hero-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+  .hero-stagger > *:nth-child(2) { animation-delay: 0.18s; }
+  .hero-stagger > *:nth-child(3) { animation-delay: 0.31s; }
+  .hero-stagger > *:nth-child(4) { animation-delay: 0.44s; }
+  .hero-stagger > *:nth-child(5) { animation-delay: 0.57s; }
+}
+
+/* ---- Reusable component classes ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  font-weight: 600; font-size: 0.98rem; line-height: 1;
+  padding: 0.95rem 1.5rem; border-radius: 999px;
+  min-height: 48px; cursor: pointer; transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  border: 1px solid transparent;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--color-clay); color: var(--color-cream); }
+.btn-primary:hover:not(:disabled) { background: var(--color-clay-600); }
+.btn-dark { background: var(--color-pine); color: var(--color-cream); }
+.btn-dark:hover:not(:disabled) { background: var(--color-pine-700); }
+.btn-ghost { background: transparent; color: var(--color-pine); border-color: var(--color-line); }
+.btn-ghost:hover:not(:disabled) { background: var(--color-sand-2); }
+
+.field { display: flex; flex-direction: column; gap: 0.4rem; }
+.field > label { font-size: 0.82rem; font-weight: 600; color: var(--color-pine); }
+.input {
+  width: 100%; background: var(--color-cream); color: var(--color-ink);
+  border: 1px solid var(--color-line); border-radius: var(--radius-md);
+  padding: 0.8rem 0.9rem; font: inherit; min-height: 48px;
+}
+.input::placeholder { color: color-mix(in oklab, var(--color-reed) 90%, transparent); }
+.input:focus { border-color: var(--color-water); }
+.input[aria-invalid="true"] { border-color: var(--color-danger); }
+.err { color: var(--color-danger); font-size: 0.8rem; }
+
+.card {
+  background: var(--color-cream);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 24px 48px -32px rgba(24,36,31,0.45);
+}

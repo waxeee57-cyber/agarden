@@ -1,0 +1,19 @@
+# dependencies
+/node_modules
+
+# next
+/.next/
+/out/
+
+# env
+.env
+.env*.local
+
+# supabase local
+/supabase/.branches
+/supabase/.temp
+/supabase/.env.test
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
