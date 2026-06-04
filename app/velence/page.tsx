@@ -145,13 +145,15 @@ export default async function VelencePage() {
         </div>
       </section>
 
-      {/* ---------------- GALLERY ---------------- */}
-      <section className="bg-cream">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-          <Reveal><p className="label-caps">Galéria</p><h2 className="mt-3 text-3xl md:text-4xl">Nézz körül a házban</h2></Reveal>
-          <div className="mt-10"><Gallery items={gallery.items} /></div>
-        </div>
-      </section>
+      {/* ---------------- GALLERY (only when real photos exist) ---------------- */}
+      {gallery.items.length > 0 && (
+        <section className="bg-cream">
+          <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+            <Reveal><p className="label-caps">Galéria</p><h2 className="mt-3 text-3xl md:text-4xl">Nézz körül a házban</h2></Reveal>
+            <div className="mt-10"><Gallery items={gallery.items} /></div>
+          </div>
+        </section>
+      )}
 
       {/* ---------------- BOOKING ---------------- */}
       <section id="foglalas" className="scroll-mt-6 bg-sand">
