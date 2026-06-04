@@ -31,13 +31,17 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "tailwindcss": "^4.3.0",
     "eslint-config-next": "16.2.6",
+    "pg": "^8.21.0",
     "supabase": "^2.105.0",
+    "tailwindcss": "^4.3.0",
     "tsx": "^4.19.2",
     "typescript": "^5"
   },
   "pnpm": {
-    "ignoredBuiltDependencies": ["sharp", "unrs-resolver"]
+    "ignoredBuiltDependencies": [
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
