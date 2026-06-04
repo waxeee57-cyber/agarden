@@ -99,10 +99,16 @@ export function Calendar({
       onSelect(iso, null)
       return
     }
-    // choosing an END
-    if (day <= ci) { onSelect(iso, null); return }              // earlier → restart from here
+    // choosing an END (check-in set, no checkout yet)
+    if (sameDay(day, ci)) { setHover(null); onSelect(null, null); return } // click the check-in again → DESELECT
+    if (day < ci) { onSelect(iso, null); return }              // earlier day → move check-in there
     if (spanFree(ci, day)) { onSelect(checkIn, iso); return }   // valid end (day may be a booked turnover day)
     onSelect(iso, null)                                         // can't bridge a booked night → restart
+  }
+
+  function clearSelection() {
+    setHover(null)
+    onSelect(null, null)
   }
 
   function dayMeta(day: Date): DayMeta {
@@ -150,6 +156,18 @@ export function Calendar({
           className="btn btn-ghost !min-h-10 !px-3 !py-2"
         >›</button>
       </div>
+
+      {/* Selection summary + one-click clear — only while something is selected. */}
+      {(checkIn || checkOut) && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-line bg-sand/60 px-3 py-2 text-sm">
+          <span className="text-ink/80">
+            {ci ? <><span className="font-semibold">{fmtDay(ci)}</span>{co ? <> – <span className="font-semibold">{fmtDay(co)}</span></> : <span className="text-reed"> → távozás kiválasztása</span>}</> : null}
+          </span>
+          <button type="button" onClick={clearSelection} className="shrink-0 font-semibold text-clay-600 underline underline-offset-2 hover:text-clay">
+            Dátum törlése
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2" onMouseLeave={() => setHover(null)}>
         <MonthGrid month={view} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
