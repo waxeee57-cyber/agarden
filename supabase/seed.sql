@@ -43,9 +43,9 @@ on conflict (id) do nothing;
 
 -- Velence surcharges (DEMO amounts)
 insert into listing_surcharges (listing_id, code, label, amount_huf, calc, active) values
-  ('22222222-2222-2222-2222-222222222222', 'single_night', '1 ejszakas felar',        15000, 'per_stay', true),
-  ('22222222-2222-2222-2222-222222222222', 'pet',          'Kisallat (kistestu)',       8000, 'per_stay', true),
-  ('22222222-2222-2222-2222-222222222222', 'event',        'Rendezveny/bucsu',         50000, 'per_stay', true)
+  ('22222222-2222-2222-2222-222222222222', 'single_night', '1 éjszakás felár',        15000, 'per_stay', true),
+  ('22222222-2222-2222-2222-222222222222', 'pet',          'Kisállat (kistestű)',       8000, 'per_stay', true),
+  ('22222222-2222-2222-2222-222222222222', 'event',        'Rendezvény / búcsú',       50000, 'per_stay', true)
 on conflict (listing_id, code) do nothing;
 
 -- A couple of external blocks so the availability lock is demonstrable.
