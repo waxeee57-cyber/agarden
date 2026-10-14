@@ -35,7 +35,7 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
             key={item.id}
             type="button"
             onClick={() => setOpen(idx)}
-            className="group mb-3 block w-full overflow-hidden rounded-[var(--radius-lg)] border border-line md:mb-4"
+            className="group mb-3 block w-full overflow-hidden rounded-[var(--radius-lg)] border border-rule md:mb-4"
             aria-label={`${item.alt || 'Fotó'}, nagyítás`}
           >
             <Image
@@ -51,9 +51,9 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
       </div>
 
       {current && (
-        <div role="dialog" aria-modal="true" aria-label={current.alt || 'Fotó'} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4" onClick={close}>
-          <button type="button" onClick={close} aria-label="Bezárás" autoFocus className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center text-3xl leading-none text-cream/85 hover:text-cream">×</button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); step(-1) }} aria-label="Előző fotó" className="absolute left-1 flex h-12 w-12 items-center justify-center text-4xl leading-none text-cream/80 hover:text-cream md:left-6">‹</button>
+        <div role="dialog" aria-modal="true" aria-label={current.alt || 'Fotó'} className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(6_10_9/0.93)] p-4" onClick={close}>
+          <button type="button" onClick={close} aria-label="Bezárás" autoFocus className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center text-3xl leading-none text-[#F4EFE6]/85 hover:text-[#F4EFE6]">×</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); step(-1) }} aria-label="Előző fotó" className="absolute left-1 flex h-12 w-12 items-center justify-center text-4xl leading-none text-[#F4EFE6]/80 hover:text-[#F4EFE6] md:left-6">‹</button>
           <Image
             src={current.url}
             alt={current.alt}
@@ -63,8 +63,8 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
             onClick={(e) => e.stopPropagation()}
             className="max-h-[84vh] w-auto max-w-[92vw] rounded-[var(--radius-md)] object-contain shadow-2xl"
           />
-          <button type="button" onClick={(e) => { e.stopPropagation(); step(1) }} aria-label="Következő fotó" className="absolute right-1 flex h-12 w-12 items-center justify-center text-4xl leading-none text-cream/80 hover:text-cream md:right-6">›</button>
-          <span className="absolute bottom-4 left-0 right-0 px-6 text-center text-sm text-cream/85">
+          <button type="button" onClick={(e) => { e.stopPropagation(); step(1) }} aria-label="Következő fotó" className="absolute right-1 flex h-12 w-12 items-center justify-center text-4xl leading-none text-[#F4EFE6]/80 hover:text-[#F4EFE6] md:right-6">›</button>
+          <span className="absolute bottom-4 left-0 right-0 px-6 text-center text-sm text-[#F4EFE6]/85">
             {current.alt} · {open! + 1}/{len}
           </span>
         </div>

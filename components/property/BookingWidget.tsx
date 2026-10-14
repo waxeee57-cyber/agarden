@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { Calendar, addDays, parseISO, toISO, fmtDay } from './Calendar'
 import { formatHuf } from '@/lib/format'
 import { telHref } from '@/lib/brand'
+import { ShareButton } from './ShareButton'
 
 // Booking + quote request for the CURRENT host's house. The client never sends
 // a listing id: every /api route resolves the house from the request host.
@@ -47,19 +48,22 @@ function humanError(code: string | null | undefined, minNights: number): string 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
 
-export function BookingWidget({ listing, sister }: { listing: WidgetListing; sister: SisterInfo }) {
+export type ShareInfo = { title: string; lines: string[]; origin: string }
+
+export function BookingWidget({ listing, sister, share }: { listing: WidgetListing; sister: SisterInfo; share?: ShareInfo }) {
   const maxGuests = listing.capacityMax + listing.capacityExtra
   const params = useSearchParams()
   const initIn = params.get('checkIn')
   const initOut = params.get('checkOut')
   const valid = (s: string | null) => !!s && ISO_RE.test(s) && s >= toISO(new Date())
 
-  const [mode, setMode] = useState<'book' | 'inquiry'>('book')
+  // ?ajanlat=1 opens the quote tab, ?rendezveny=1 pre-ticks the event flag (links from the event section)
+  const [mode, setMode] = useState<'book' | 'inquiry'>(params.get('ajanlat') === '1' ? 'inquiry' : 'book')
   const [checkIn, setCheckIn] = useState<string | null>(valid(initIn) ? initIn : null)
   const [checkOut, setCheckOut] = useState<string | null>(valid(initIn) && valid(initOut) && initOut! > initIn! ? initOut : null)
   const [guests, setGuests] = useState(Math.min(4, maxGuests))
   const [pet, setPet] = useState(false)
-  const [isEvent, setIsEvent] = useState(false)
+  const [isEvent, setIsEvent] = useState(params.get('rendezveny') === '1')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -157,10 +161,10 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
 
   if (success) {
     return (
-      <div className="card p-7 md:p-9" role="status">
-        <div className="label-caps">{success.kind === 'book' ? 'Foglalási kérelem rögzítve' : 'Ajánlatkérés elküldve'}</div>
+      <div className="panel p-7 md:p-9" role="status">
+        <div className="kicker">{success.kind === 'book' ? 'Foglalási kérelem rögzítve' : 'Ajánlatkérés elküldve'}</div>
         <h3 className="mt-2 text-2xl">{success.kind === 'book' ? 'Köszönjük, megkaptuk!' : 'Köszönjük, hamarosan jelentkezünk.'}</h3>
-        <p className="mt-3 text-ink/85">
+        <p className="mt-3 text-fg/90">
           {success.kind === 'book'
             ? 'A dátumokat fenntartjuk, amíg e-mailben visszaigazoljuk a foglalást. Most nem vontunk le pénzt, a fizetés a helyszínen történik.'
             : 'Az ajánlatkérés nem foglal le dátumot. A részletekkel e-mailben vagy telefonon keresünk.'}
@@ -169,7 +173,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
           {success.id && <Row dt="Azonosító" dd={<span className="tnum">{success.id.slice(0, 8)}</span>} />}
           {success.kind === 'book' && success.total != null && <Row dt="Tájékoztató végösszeg" dd={<span className="tnum">{formatHuf(success.total)}</span>} />}
         </dl>
-        <p className="mt-5 text-sm text-muted">
+        <p className="mt-5 text-sm text-soft">
           <a className="underline underline-offset-2" href={telHref(listing.phone)}>{listing.phone}</a>
           {listing.email && <> · <a className="underline underline-offset-2" href={`mailto:${listing.email}`}>{listing.email}</a></>}
         </p>
@@ -178,8 +182,8 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   }
 
   return (
-    <form className="card overflow-hidden" onSubmit={submit} noValidate>
-      <div className="grid grid-cols-2 border-b border-line" role="tablist" aria-label="Foglalás típusa">
+    <form className="panel overflow-hidden" onSubmit={submit} noValidate>
+      <div className="grid grid-cols-2 border-b border-rule" role="tablist" aria-label="Foglalás típusa">
         {(['book', 'inquiry'] as const).map((m) => (
           <button
             key={m}
@@ -187,7 +191,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
             role="tab"
             aria-selected={mode === m}
             onClick={() => { setMode(m); setSubmitError(null); setErrors({}) }}
-            className={`min-h-14 px-4 py-4 text-sm font-semibold transition-colors ${mode === m ? 'bg-deep text-cream' : 'bg-cream text-deep hover:bg-paper-2'}`}
+            className={`min-h-14 px-4 py-4 text-sm font-semibold transition-colors ${mode === m ? 'bg-act text-act-fg' : 'bg-surface text-fg hover:bg-surface-2'}`}
           >
             {m === 'book' ? 'Foglalási kérelem' : 'Ajánlatkérés'}
           </button>
@@ -197,7 +201,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
       <div className="grid gap-7 p-5 md:grid-cols-[1.1fr_0.9fr] md:p-8">
         <div>
           <div className="field-label">Dátum</div>
-          <p className="mb-3 mt-1 text-sm text-muted">
+          <p className="mb-3 mt-1 text-sm text-soft">
             {mode === 'book' ? 'Válaszd ki az érkezést és a távozást.' : 'A dátum opcionális: írd meg, mire gondoltok.'} A távozás napja másnak már érkezési nap lehet.
           </p>
           <Calendar
@@ -208,14 +212,17 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
             onSelect={(ci, co) => { setCheckIn(ci); setCheckOut(co); setSisterOffer(null); setErrors((e) => ({ ...e, dates: '' })) }}
           />
           {errors.dates && <p className="err mt-2">{errors.dates}</p>}
+          {share && checkIn && checkOut && (
+            <div className="mt-4"><ShareButton {...share} checkIn={checkIn} checkOut={checkOut} label="Elküldöm ezeket a dátumokat a társaságnak" /></div>
+          )}
 
           {sisterOffer && (
-            <div className="mt-4 rounded-[var(--radius-lg)] border border-accent/60 bg-accent/10 p-4" role="status">
-              <p className="text-sm font-semibold text-deep">
+            <div className="mt-4 rounded-[var(--radius-lg)] border border-band bg-band/15 p-4" role="status">
+              <p className="text-sm font-semibold text-fg">
                 Ezek a napok nálunk foglaltak, de a testvérházunk szabad: {fmtDay(parseISO(sisterOffer.from))} – {fmtDay(parseISO(sisterOffer.to))}
               </p>
-              <p className="mt-1 text-sm text-ink/80">{sister.pitch}</p>
-              <a href={sisterOffer.href} className="btn btn-dark btn-sm mt-3">Megnézem: {sister.name}</a>
+              <p className="mt-1 text-sm text-fg/85">{sister.pitch}</p>
+              <a href={sisterOffer.href} className="btn btn-act btn-sm mt-3">Megnézem: {sister.name}</a>
             </div>
           )}
 
@@ -224,7 +231,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
               <div className="field-label" id="guests-label">Létszám</div>
               <div className="mt-2 flex items-center gap-3">
                 <Stepper value={guests} min={1} max={maxGuests} onChange={setGuests} labelledBy="guests-label" />
-                <span className="text-sm text-muted">max {listing.capacityMax}+{listing.capacityExtra} fő</span>
+                <span className="text-sm text-soft">max {listing.capacityMax}+{listing.capacityExtra} fő</span>
               </div>
               {errors.guests && <p className="err mt-1">{errors.guests}</p>}
             </div>
@@ -254,25 +261,25 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
                 {errors.email && <p id="bw-email-err" className="err">{errors.email}</p>}
               </div>
               <div className="field">
-                <label htmlFor="bw-phone">Telefon <span className="font-normal text-muted">(opcionális)</span></label>
+                <label htmlFor="bw-phone">Telefon <span className="font-normal text-soft">(opcionális)</span></label>
                 <input id="bw-phone" type="tel" inputMode="tel" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} aria-invalid={!!errors.phone} autoComplete="tel" />
                 {errors.phone && <p className="err">{errors.phone}</p>}
               </div>
             </div>
             <div className="field">
-              <label htmlFor="bw-msg">Üzenet <span className="font-normal text-muted">(opcionális)</span></label>
+              <label htmlFor="bw-msg">Üzenet <span className="font-normal text-soft">(opcionális)</span></label>
               <textarea id="bw-msg" className="input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={mode === 'book' ? 'Pl. érkezés időpontja, kérdések' : 'Pl. hétvége 8 főre, érdeklődünk az árról'} />
             </div>
           </div>
 
           {submitError && <p className="err" role="alert">{submitError}</p>}
 
-          <button type="submit" className={`btn ${mode === 'book' ? 'btn-primary' : 'btn-dark'}`} disabled={submitting}>
+          <button type="submit" className="btn btn-act" disabled={submitting}>
             {submitting ? 'Küldés…' : mode === 'book' ? 'Foglalási kérelem küldése' : 'Ajánlatkérés küldése'}
           </button>
-          <p className="text-center text-sm text-muted">
+          <p className="text-center text-sm text-soft">
             {mode === 'book'
-              ? 'Most nem vonunk le pénzt — visszaigazolás e-mailben, fizetés a helyszínen.'
+              ? 'Most nem vonunk le pénzt. Visszaigazolás e-mailben, fizetés a helyszínen.'
               : 'Az ajánlatkérés nem foglal le dátumot.'}
           </p>
         </div>
@@ -285,7 +292,7 @@ function QuotePanel({ quote, loading, hasDates, mode, listing }: { quote: Quote 
   const priced = listing.pricingMode === 'fixed'
   if (!hasDates) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-dashed border-line p-5 text-sm text-muted">
+      <div className="rounded-[var(--radius-lg)] border border-dashed border-rule p-5 text-sm text-soft">
         {priced
           ? 'Válassz dátumot, és megmutatjuk a tájékoztató végösszeget.'
           : 'Az árat egyedi ajánlatban küldjük: válassz dátumot a foglalási kérelemhez, vagy kérj ajánlatot.'}
@@ -293,40 +300,40 @@ function QuotePanel({ quote, loading, hasDates, mode, listing }: { quote: Quote 
       </div>
     )
   }
-  if (loading && !quote) return <div className="rounded-[var(--radius-lg)] border border-line p-5 text-sm text-muted" aria-live="polite">Ellenőrzés…</div>
+  if (loading && !quote) return <div className="rounded-[var(--radius-lg)] border border-rule p-5 text-sm text-soft" aria-live="polite">Ellenőrzés…</div>
   if (!quote) return null
   if (!quote.valid) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-clay/40 bg-clay/10 p-5" role="status">
-        <p className="text-sm text-ink/90">{humanError(quote.reason, listing.minNights)}</p>
+      <div className="rounded-[var(--radius-lg)] border border-bad/40 bg-bad/10 p-5" role="status">
+        <p className="text-sm text-fg/90">{humanError(quote.reason, listing.minNights)}</p>
       </div>
     )
   }
   if (quote.total == null) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-line bg-paper/60 p-5" role="status">
+      <div className="rounded-[var(--radius-lg)] border border-rule bg-surface-2 p-5" role="status">
         <div className="flex items-baseline justify-between">
-          <span className="label-caps">{mode === 'book' ? 'Foglalható' : 'Ajánlatkérés'}</span>
-          <span className="text-sm text-muted tnum">{quote.nights} éj</span>
+          <span className="kicker">{mode === 'book' ? 'Foglalható' : 'Ajánlatkérés'}</span>
+          <span className="text-sm text-soft tnum">{quote.nights} éj</span>
         </div>
-        <p className="mt-2 text-sm text-ink/85">A dátumok szabadok. Az árat a visszaigazolással együtt küldjük el.</p>
+        <p className="mt-2 text-sm text-fg/90">A dátumok szabadok. Az árat a visszaigazolással együtt küldjük el.</p>
       </div>
     )
   }
   const nightly = quote.nights && quote.subtotal != null ? Math.round(quote.subtotal / quote.nights) : null
   return (
-    <div className="rounded-[var(--radius-lg)] border border-line bg-paper/60 p-5" role="status">
+    <div className="rounded-[var(--radius-lg)] border border-rule bg-surface-2 p-5" role="status">
       <div className="flex items-baseline justify-between">
-        <div className="label-caps">Tájékoztató ár</div>
-        <div className="text-sm text-muted tnum">{quote.nights} éj</div>
+        <div className="kicker">Tájékoztató ár</div>
+        <div className="text-sm text-soft tnum">{quote.nights} éj</div>
       </div>
       <dl className="mt-3 space-y-1.5 text-sm">
         <Row dt={<span className="tnum">{quote.nights} éj × {formatHuf(nightly)}</span>} dd={<span className="tnum">{formatHuf(quote.subtotal)}</span>} />
         {quote.surcharges.map((s) => <Row key={s.code} dt={s.label} dd={<span className="tnum">+{formatHuf(s.amount)}</span>} />)}
       </dl>
-      <div className="mt-3 flex items-baseline justify-between border-t border-line pt-3">
+      <div className="mt-3 flex items-baseline justify-between border-t border-rule pt-3">
         <span className="font-display text-lg">Végösszeg</span>
-        <span className="font-display text-2xl tnum text-deep">{formatHuf(quote.total)}</span>
+        <span className="font-display text-2xl tnum text-fg">{formatHuf(quote.total)}</span>
       </div>
     </div>
   )
@@ -335,7 +342,7 @@ function QuotePanel({ quote, loading, hasDates, mode, listing }: { quote: Quote 
 function Row({ dt, dd }: { dt: React.ReactNode; dd: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-ink/80">{dt}</dt>
+      <dt className="text-fg/85">{dt}</dt>
       <dd className="font-medium">{dd}</dd>
     </div>
   )
@@ -343,10 +350,10 @@ function Row({ dt, dd }: { dt: React.ReactNode; dd: React.ReactNode }) {
 
 function Stepper({ value, min, max, onChange, labelledBy }: { value: number; min: number; max: number; onChange: (n: number) => void; labelledBy: string }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-line bg-cream p-1" role="group" aria-labelledby={labelledBy}>
-      <button type="button" aria-label="Kevesebb fő" className="btn btn-ghost !h-11 !min-h-11 !w-11 !border-0 !p-0" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}>−</button>
+    <div className="inline-flex items-center gap-1 rounded-full border border-rule bg-surface p-1" role="group" aria-labelledby={labelledBy}>
+      <button type="button" aria-label="Kevesebb fő" className="btn btn-line !h-11 !min-h-11 !w-11 !border-0 !p-0" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}>−</button>
       <span className="w-8 text-center font-semibold tnum" aria-live="polite">{value}</span>
-      <button type="button" aria-label="Több fő" className="btn btn-ghost !h-11 !min-h-11 !w-11 !border-0 !p-0" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>+</button>
+      <button type="button" aria-label="Több fő" className="btn btn-line !h-11 !min-h-11 !w-11 !border-0 !p-0" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>+</button>
     </div>
   )
 }
@@ -355,8 +362,8 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (b: 
   return (
     <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
       <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span aria-hidden="true" className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-water ${checked ? 'bg-action' : 'bg-line'}`}>
-        <span className={`inline-block h-5 w-5 rounded-full bg-cream transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
+      <span aria-hidden="true" className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus ${checked ? 'bg-act' : 'bg-rule'}`}>
+        <span className={`inline-block h-5 w-5 rounded-full border border-rule bg-surface transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
       </span>
       <span>{label}</span>
     </label>

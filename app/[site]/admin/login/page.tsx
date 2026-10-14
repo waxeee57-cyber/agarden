@@ -13,7 +13,7 @@ export default async function LoginPage({ params }: { params: Promise<{ site: st
   if (!isSite(site)) notFound()
   if (await getAdminSession(site)) redirect('/admin')
   return (
-    <main className="flex min-h-svh items-center justify-center px-4 py-12">
+    <main data-admin className="flex min-h-svh items-center justify-center bg-paper px-4 py-12 text-ink">
       <div className="w-full max-w-sm">
         <Wordmark site={site} size={44} />
         <h1 className="mt-8 text-3xl">Tulajdonosi belépés</h1>

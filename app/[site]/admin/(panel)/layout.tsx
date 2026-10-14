@@ -12,7 +12,7 @@ export default async function PanelLayout({ children, params }: { children: Reac
   const session = await requireAdminPage(params)
   const sister = sisterOf(session.site)
   return (
-    <div className="min-h-svh bg-paper">
+    <div data-admin className="min-h-svh bg-paper text-ink">
       <header className="border-b border-line bg-cream">
         <div className="mx-auto max-w-6xl px-4 pt-3 md:px-8">
           <div className="flex items-center justify-between gap-3">

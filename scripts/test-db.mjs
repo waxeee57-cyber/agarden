@@ -68,7 +68,7 @@ async function run() {
   await t('migrations idempotent (second run is a no-op)', async () => {
     await migrate(testDatabaseUrl(), { log: () => {} })
     const n = await one('select count(*)::int as n from applied_migrations')
-    assert.equal(n.n, 5)
+    assert.equal(n.n, 6)
   })
 
   await t('napsugar is active, real data, quote-only, demo-free', async () => {

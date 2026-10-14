@@ -117,33 +117,33 @@ export function Calendar({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <button type="button" onClick={() => canPrev && setView(addMonths(view, -1))} disabled={!canPrev} aria-label="Előző hónap" className="btn btn-ghost !h-11 !min-h-11 !w-11 !p-0">‹</button>
+        <button type="button" onClick={() => canPrev && setView(addMonths(view, -1))} disabled={!canPrev} aria-label="Előző hónap" className="btn btn-line btn-sm !h-11 !min-h-11 !w-11 !p-0">‹</button>
         <div className="text-center font-display text-lg" aria-live="polite">
           {view.getFullYear()}. {MONTHS[view.getMonth()]}
           <span className="hidden md:inline"> – {addMonths(view, 1).getFullYear()}. {MONTHS[addMonths(view, 1).getMonth()]}</span>
         </div>
-        <button type="button" onClick={() => setView(addMonths(view, 1))} aria-label="Következő hónap" className="btn btn-ghost !h-11 !min-h-11 !w-11 !p-0">›</button>
+        <button type="button" onClick={() => setView(addMonths(view, 1))} aria-label="Következő hónap" className="btn btn-line btn-sm !h-11 !min-h-11 !w-11 !p-0">›</button>
       </div>
 
       {state === 'error' && (
-        <div role="alert" className="mb-3 rounded-[var(--radius-md)] border border-danger/30 bg-danger/5 px-4 py-3 text-sm">
-          <p className="font-semibold text-danger">A foglaltságot most nem sikerült betölteni.</p>
-          <p className="mt-1 text-ink/80">
+        <div role="alert" className="mb-3 rounded-[var(--radius-md)] border border-bad/40 bg-bad/10 px-4 py-3 text-sm">
+          <p className="font-semibold text-bad">A foglaltságot most nem sikerült betölteni.</p>
+          <p className="mt-1 text-fg/85">
             Hívj minket: <a className="font-semibold underline underline-offset-2" href={telHref(contact.phone)}>{contact.phone}</a>
             {contact.email && <> · <a className="font-semibold underline underline-offset-2" href={`mailto:${contact.email}`}>{contact.email}</a></>}
           </p>
-          <button type="button" className="mt-2 font-semibold text-action underline underline-offset-2" onClick={() => { setState('loading'); setAttempt((n) => n + 1) }}>
+          <button type="button" className="mt-2 font-semibold text-pop underline underline-offset-2" onClick={() => { setState('loading'); setAttempt((n) => n + 1) }}>
             Újrapróbálom
           </button>
         </div>
       )}
 
       {(checkIn || checkOut) && (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-line bg-paper/60 px-3 py-2 text-sm">
-          <span className="text-ink/85">
-            {ci && <><span className="font-semibold">{fmtDay(ci)}</span>{co ? <> – <span className="font-semibold">{fmtDay(co)}</span></> : <span className="text-muted"> → válaszd ki a távozást</span>}</>}
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-rule bg-surface-2 px-3 py-2 text-sm">
+          <span className="text-fg/90">
+            {ci && <><span className="font-semibold">{fmtDay(ci)}</span>{co ? <> – <span className="font-semibold">{fmtDay(co)}</span></> : <span className="text-soft"> → válaszd ki a távozást</span>}</>}
           </span>
-          <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 shrink-0 px-1 font-semibold text-action underline underline-offset-2">
+          <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 shrink-0 px-1 font-semibold text-pop underline underline-offset-2">
             Dátum törlése
           </button>
         </div>
@@ -157,15 +157,15 @@ export function Calendar({
       </div>
 
       {guidance && (
-        <p role="status" aria-live="polite" className={`mt-3 rounded-[var(--radius-md)] px-3 py-2 text-sm ${cap ? 'bg-clay/10 text-action-hover' : 'bg-paper-2 text-deep'}`}>
+        <p role="status" aria-live="polite" className={`mt-3 rounded-[var(--radius-md)] px-3 py-2 text-sm ${cap ? 'bg-band/15 text-fg' : 'bg-surface-2 text-fg'}`}>
           {guidance}
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-        <Legend swatch="bg-cream border border-line" label="szabad" />
-        <Legend swatch="bg-action" label="kiválasztva" />
-        <Legend swatch="bg-paper-2" label="foglalt" />
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-soft">
+        <Legend swatch="bg-surface border border-rule" label="szabad" />
+        <Legend swatch="bg-sel" label="kiválasztva" />
+        <Legend swatch="bg-taken" label="foglalt" />
         {state === 'loading' && <span aria-live="polite">foglaltság betöltése…</span>}
       </div>
     </div>
@@ -199,7 +199,7 @@ function MonthGrid({
 
   return (
     <div>
-      <div className="mb-1 grid grid-cols-7 text-center text-[0.72rem] font-semibold text-muted" aria-hidden="true">
+      <div className="mb-1 grid grid-cols-7 text-center text-[0.72rem] font-semibold text-soft" aria-hidden="true">
         {DOW.map((d) => <div key={d} className="py-1">{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-1">
@@ -207,11 +207,11 @@ function MonthGrid({
           if (!day) return <div key={i} />
           const m = dayMeta(day)
           let cls = 'flex h-11 items-center justify-center rounded-[8px] text-sm tnum transition-colors '
-          if (m.isStart || m.isEnd) cls += 'bg-action text-cream font-semibold'
-          else if (m.inRange) cls += 'bg-clay/25 text-ink'
-          else if (m.isOccupied && !m.isPast) cls += 'bg-paper-2 text-muted line-through cursor-help'
-          else if (!m.selectable) cls += 'text-ink/30 cursor-not-allowed'
-          else cls += 'bg-cream border border-line text-ink hover:border-water'
+          if (m.isStart || m.isEnd) cls += 'bg-sel text-sel-fg font-semibold'
+          else if (m.inRange) cls += 'bg-range text-fg'
+          else if (m.isOccupied && !m.isPast) cls += 'bg-taken text-taken-fg line-through cursor-help'
+          else if (!m.selectable) cls += 'text-fg/30 cursor-not-allowed'
+          else cls += 'bg-surface border border-rule text-fg hover:border-focus'
           const label = `${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? ', foglalt (testvérházunk ellenőrzése)' : !m.selectable ? ', nem választható' : ''}`
           return (
             <button

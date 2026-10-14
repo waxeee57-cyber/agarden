@@ -23,18 +23,18 @@ export async function loadLegal(params: Promise<{ site: string }>): Promise<{ si
 export function LegalPage({ site, listing, title, path, updated, children }: { site: Site; listing: Listing; title: string; path: string; updated: string; children: React.ReactNode }) {
   const origin = siteOrigin(site)
   return (
-    <>
+    <div data-skin={site === 'velence' ? 'garden' : 'napsugar'} className="skin-root">
       <JsonLd data={breadcrumbJsonLd(origin, [{ name: BRANDS[site].fullName, path: '/' }, { name: title, path }])} />
       <SiteHeader site={site} sisterOrigin={siteOrigin(sisterOf(site))} />
-      <main id="tartalom" className="bg-cream">
+      <main id="tartalom">
         <article className="prose-legal mx-auto max-w-3xl px-4 py-14 md:px-8 md:py-20">
-          <p className="label-caps">{BRANDS[site].fullName}</p>
-          <h1 className="mt-3 text-4xl md:text-5xl">{title}</h1>
-          <p className="mt-3 text-sm text-muted">Hatályos: {updated}. Sablon jellegű dokumentum; a jelölt üzemeltetői adatok pótlásra várnak.</p>
+          <p className="kicker">{BRANDS[site].fullName}</p>
+          <h1 className="mt-3 text-5xl md:text-7xl">{title}</h1>
+          <p className="mt-3 text-sm text-soft">Hatályos: {updated}. Sablon jellegű dokumentum; a jelölt üzemeltetői adatok pótlásra várnak.</p>
           {children}
         </article>
       </main>
       <SiteFooter listing={listing} sisterOrigin={siteOrigin(sisterOf(site))} />
-    </>
+    </div>
   )
 }

@@ -20,7 +20,7 @@ export default function LocationMapInner({ lat, lng, label }: { lat: number; lng
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       />
-      <CircleMarker center={[lat, lng]} radius={11} pathOptions={{ color: '#22485A', weight: 3, fillColor: '#E8973A', fillOpacity: 0.95 }}>
+      <CircleMarker center={[lat, lng]} radius={11} pathOptions={{ color: '#0E6070', weight: 3, fillColor: '#F2A23C', fillOpacity: 0.95 }}>
         <Tooltip permanent direction="top" offset={[0, -10]}>{label}</Tooltip>
       </CircleMarker>
     </MapContainer>

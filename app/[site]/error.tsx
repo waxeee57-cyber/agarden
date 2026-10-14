@@ -9,15 +9,15 @@ export default function SiteError({ reset }: { error: Error & { digest?: string 
   const params = useParams<{ site: string }>()
   const b = BRANDS[isSite(params.site) ? params.site : 'velence']
   return (
-    <main className="mx-auto flex min-h-[70svh] max-w-xl flex-col justify-center px-4 py-16">
-      <p className="label-caps">{b.fullName}</p>
+    <main data-skin={isSite(params.site) && params.site === 'napsugar' ? 'napsugar' : 'garden'} className="skin-root"><div className="mx-auto flex min-h-[70svh] max-w-xl flex-col justify-center px-4 py-16">
+      <p className="kicker">{b.fullName}</p>
       <h1 className="mt-3 text-4xl">Az oldal most nem tölt be teljesen.</h1>
-      <p className="mt-4 text-ink/85">Foglaláshoz és kérdésekhez hívj minket, vagy próbáld újra pár perc múlva.</p>
+      <p className="mt-4 text-fg/85">Foglaláshoz és kérdésekhez hívj minket, vagy próbáld újra pár perc múlva.</p>
       <div className="mt-7 flex flex-wrap gap-3">
-        <a className="btn btn-primary" href={telHref(b.phone)}>{b.phone}</a>
-        {b.email && <a className="btn btn-ghost" href={`mailto:${b.email}`}>{b.email}</a>}
-        <button type="button" className="btn btn-ghost" onClick={reset}>Újrapróbálom</button>
+        <a className="btn btn-act" href={telHref(b.phone)}>{b.phone}</a>
+        {b.email && <a className="btn btn-line" href={`mailto:${b.email}`}>{b.email}</a>}
+        <button type="button" className="btn btn-line" onClick={reset}>Újrapróbálom</button>
       </div>
-    </main>
+    </div></main>
   )
 }

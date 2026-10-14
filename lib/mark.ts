@@ -3,7 +3,7 @@ import type { Site } from './sites'
 
 // Single source of the hand-built 64×64 house marks. Rendered as React SVG by
 // components/property/ui.tsx <Mark/> and serialized to a favicon by
-// app/brand/icon. Garden: leaf over lake ripples. Napsugár: rising sun over ripples.
+// app/brand/icon. Garden: steam over a tub. Napsugár: rising sun over pool waves.
 
 export type Shape = { tag: 'circle' | 'path' | 'line'; attrs: Record<string, string | number> }
 
@@ -17,12 +17,15 @@ export function markShapes(site: Site): Shape[] {
     attrs: { d, stroke: c.cream, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round', opacity: op },
   })
   if (site === 'velence') {
+    // steam rising from a tub: the wellness is the point, not the lake
+    const wisp = (x: number): Shape => ({
+      tag: 'path',
+      attrs: { d: `M${x} 34 c-3.2 -3.6 3.2 -6 0 -9.6 c-3.2 -3.6 3.2 -6 0 -9.4`, stroke: c.cream, 'stroke-width': 2.4, fill: 'none', 'stroke-linecap': 'round' },
+    })
     return [
       ...base,
-      { tag: 'path', attrs: { d: 'M32 11 C 45 19, 45 34, 32 42 C 19 34, 19 19, 32 11 Z', fill: c.accent } },
-      { tag: 'path', attrs: { d: 'M32 16 V 41', stroke: c.deep, 'stroke-width': 1.6, 'stroke-linecap': 'round' } },
-      ripple('M14 48 q 4.5 -3.2 9 0 t 9 0 t 9 0 t 9 0', 2.2),
-      ripple('M19 54 q 4.5 -3.2 9 0 t 9 0 t 9 0', 1.8, 0.6),
+      wisp(24), wisp(32), wisp(40),
+      { tag: 'path', attrs: { d: 'M13 38 H51 V41 A11 11 0 0 1 40 52 H24 A11 11 0 0 1 13 41 Z', fill: c.accent } },
     ]
   }
   const rays: Shape[] = [165, 135, 105, 75, 45, 15].map((deg) => {
