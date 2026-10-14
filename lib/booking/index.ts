@@ -1,30 +1,24 @@
-// Garden Vendeghaz — booking app layer (slice 2).
-//
-// Thin orchestration over the slice-1/slice-2 SECURITY DEFINER RPCs. These
-// functions ONLY: (1) validate input shape (zod), (2) call the RPC, (3)
-// normalize the result/error to a stable shape. The booking LOGIC (min-nights,
-// overlap, surcharge math) stays in the DB — it is never re-implemented here.
-//
-// Least privilege: everything runs on the anon client through the definer
-// RPCs. No service_role in this slice.
+import 'server-only'
 
-import { supabase } from '../supabase'
+// Booking app layer — thin orchestration over the SQL functions in
+// db/migrations/02–03. These functions ONLY validate input shape (zod), call
+// the DB function, and normalize the result to a stable shape. Booking LOGIC
+// (min-nights, overlap, surcharge math) stays in Postgres.
+//
+// Every function takes the listingId resolved from the request HOST
+// (lib/site.ts) — a client can never choose which house it books.
+
+import { query, queryOne } from '../db'
 import { normalizeReason, normalizeThrown, type BookingErrorCode } from './errors'
 import {
-  availabilitySchema,
-  quoteSchema,
-  createBookingSchema,
-  requestQuoteSchema,
-  type AvailabilityInput,
-  type QuoteInput,
-  type CreateBookingInput,
-  type RequestQuoteInput,
+  availabilitySchema, quoteSchema, createBookingSchema, requestQuoteSchema,
+  type AvailabilityInput, type QuoteInput, type CreateBookingInput, type RequestQuoteInput,
 } from './schemas'
 
 export type Surcharge = { code: string; label: string; amount: number }
 
 export type AvailabilityResult =
-  | { ok: true; ranges: { during: string; kind: string }[] }
+  | { ok: true; ranges: { from: string; to: string; kind: string }[] }
   | { ok: false; reason: BookingErrorCode }
 
 export type QuoteBreakdown = {
@@ -38,145 +32,126 @@ export type QuoteBreakdown = {
   pricingMode: string | null
 }
 
-export type CreateBookingResult = {
-  ok: boolean
-  bookingId?: string
-  total?: number | null
-  reason?: BookingErrorCode
+export type CreateBookingResult = { ok: boolean; bookingId?: string; total?: number | null; reason?: BookingErrorCode }
+export type RequestQuoteResult = { ok: boolean; bookingId?: string; status?: 'quote_request'; reason?: BookingErrorCode }
+
+type Json = Record<string, unknown>
+
+// daterange text "[2027-07-10,2027-07-14)" -> { from, to } (to exclusive)
+function parseRange(r: string): { from: string; to: string } | null {
+  const m = r.match(/(\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})/)
+  return m ? { from: m[1], to: m[2] } : null
 }
 
-export type RequestQuoteResult = {
-  ok: boolean
-  bookingId?: string
-  status?: 'quote_request'
-  reason?: BookingErrorCode
-}
-
-// ------------------------------------------------------------
-// a) getAvailability — booked ranges only, no PII.
-// ------------------------------------------------------------
-export async function getAvailability(input: AvailabilityInput): Promise<AvailabilityResult> {
+export async function getAvailability(listingId: string, input: AvailabilityInput): Promise<AvailabilityResult> {
   const parsed = availabilitySchema.safeParse(input)
-  if (!parsed.success) return { ok: false, reason: 'validation_error' }
-  const { listingId, from, to } = parsed.data
+  if (!parsed.success || parsed.data.to <= parsed.data.from) return { ok: false, reason: 'validation_error' }
   try {
-    const { data, error } = await supabase.rpc('get_listing_availability', {
-      p_listing_id: listingId,
-      p_from: from,
-      p_to: to,
+    const rows = await query<{ during: string; kind: string }>(
+      'select during::text as during, kind from get_listing_availability($1, $2, $3)',
+      [listingId, parsed.data.from, parsed.data.to]
+    )
+    const ranges = rows.flatMap((r) => {
+      const p = parseRange(r.during)
+      return p ? [{ ...p, kind: r.kind }] : []
     })
-    if (error) return { ok: false, reason: normalizeThrown(error, 'getAvailability') }
-    const ranges = (data ?? []).map((r: { during: string; kind: string }) => ({ during: r.during, kind: r.kind }))
     return { ok: true, ranges }
   } catch (e) {
     return { ok: false, reason: normalizeThrown(e, 'getAvailability') }
   }
 }
 
-// ------------------------------------------------------------
-// b) getQuote — pure price breakdown (writes nothing). Calls quote_booking.
-// ------------------------------------------------------------
+/** True when [checkIn, checkOut) has no occupancy on the listing. */
+export async function isFree(listingId: string, checkIn: string, checkOut: string): Promise<boolean> {
+  const row = await queryOne<{ taken: boolean }>(
+    `select exists (select 1 from occupancy where listing_id = $1 and during && daterange($2::date, $3::date, '[)')) as taken`,
+    [listingId, checkIn, checkOut]
+  )
+  return row ? !row.taken : false
+}
+
 function emptyBreakdown(reason: string): QuoteBreakdown {
   return { valid: false, reason, nights: 0, subtotal: null, surcharges: [], total: null, currency: 'HUF', pricingMode: null }
 }
 
-export async function getQuote(input: QuoteInput): Promise<QuoteBreakdown> {
+export async function getQuote(listingId: string, input: QuoteInput): Promise<QuoteBreakdown> {
   const parsed = quoteSchema.safeParse(input)
   if (!parsed.success) return emptyBreakdown('validation_error')
-  const { listingId, checkIn, checkOut, pet, isEvent } = parsed.data
+  const { checkIn, checkOut, pet, isEvent, guests } = parsed.data
   try {
-    const { data, error } = await supabase.rpc('quote_booking', {
-      p_listing_id: listingId,
-      p_check_in: checkIn,
-      p_check_out: checkOut,
-      p_pet: pet,
-      p_is_event: isEvent,
-    })
-    if (error || !data) return emptyBreakdown(normalizeThrown(error, 'getQuote'))
-
-    const surcharges: Surcharge[] = (data.applied_surcharges ?? []).map(
-      (s: { code: string; label: string; amount_huf: number }) => ({ code: s.code, label: s.label, amount: s.amount_huf })
-    )
+    const cap = await capacityCheck(listingId, guests)
+    if (cap) return emptyBreakdown(cap)
+    const row = await queryOne<{ r: Json }>('select quote_booking($1, $2, $3, $4, $5) as r', [listingId, checkIn, checkOut, pet, isEvent])
+    const data = row?.r
+    if (!data) return emptyBreakdown('unknown')
+    const applied = (data.applied_surcharges as { code: string; label: string; amount_huf: number }[] | undefined) ?? []
     return {
       valid: !!data.valid,
       reason: data.valid ? null : normalizeReason(data.reason),
-      nights: data.nights ?? 0,
-      subtotal: data.subtotal_huf ?? null,
-      surcharges,
-      total: data.total_huf ?? null,
-      currency: data.currency ?? 'HUF',
-      pricingMode: data.pricing_mode ?? null,
+      nights: (data.nights as number) ?? 0,
+      subtotal: (data.subtotal_huf as number | null) ?? null,
+      surcharges: applied.map((s) => ({ code: s.code, label: s.label, amount: s.amount_huf })),
+      total: (data.total_huf as number | null) ?? null,
+      currency: 'HUF',
+      pricingMode: (data.pricing_mode as string) ?? null,
     }
   } catch (e) {
     return emptyBreakdown(normalizeThrown(e, 'getQuote'))
   }
 }
 
-// ------------------------------------------------------------
-// c) createBooking — fixed-price booking. App-level capacity check, then
-//    book_listing (status 'pending'); the DB owns overlap + occupancy.
-// ------------------------------------------------------------
-export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
+async function capacityCheck(listingId: string, guests: number): Promise<BookingErrorCode | null> {
+  const meta = await queryOne<{ capacity_max: number | null; capacity_extra: number | null }>(
+    `select capacity_max, capacity_extra from listings where id = $1 and status = 'active'`,
+    [listingId]
+  )
+  if (!meta) return 'listing_not_found'
+  if (meta.capacity_max == null) return 'capacity_unavailable'
+  if (guests > meta.capacity_max + (meta.capacity_extra ?? 0)) return 'capacity_unavailable'
+  return null
+}
+
+/** Booking request: status 'pending', dates held until the owner confirms or cancels. */
+export async function createBooking(
+  listingId: string,
+  input: CreateBookingInput,
+  opts: { status?: 'pending' | 'confirmed'; source?: 'web' | 'manual' } = {}
+): Promise<CreateBookingResult> {
   const parsed = createBookingSchema.safeParse(input)
   if (!parsed.success) return { ok: false, reason: 'validation_error' }
-  const { listingId, checkIn, checkOut, guests, pet, isEvent, guestName, guestEmail, guestPhone } = parsed.data
-
+  const d = parsed.data
   try {
-    // App-level capacity check (data from a PII-free definer RPC so placeholders
-    // — hidden from anon RLS — are still resolvable).
-    const { data: meta, error: metaErr } = await supabase.rpc('get_listing_booking_meta', { p_listing_id: listingId })
-    if (metaErr || !meta) return { ok: false, reason: normalizeThrown(metaErr, 'createBooking') }
-    if (!meta.found) return { ok: false, reason: 'listing_not_found' }
-    // Placeholder / quote-only (no fixed capacity) cannot take a fixed booking.
-    if (meta.capacity_max == null) return { ok: false, reason: 'capacity_unavailable' }
-    if (guests > meta.capacity_max + (meta.capacity_extra ?? 0)) return { ok: false, reason: 'capacity_unavailable' }
-
-    const { data, error } = await supabase.rpc('book_listing', {
-      p_listing_id: listingId,
-      p_check_in: checkIn,
-      p_check_out: checkOut,
-      p_guest_name: guestName,
-      p_guest_email: guestEmail,
-      p_guests_count: guests,
-      p_guest_phone: guestPhone ?? null,
-      p_pet: pet,
-      p_is_event: isEvent,
-      p_notes: null,
-      p_status: 'pending',
-    })
-    if (error || !data) return { ok: false, reason: normalizeThrown(error, 'createBooking') }
+    const cap = await capacityCheck(listingId, d.guests)
+    if (cap) return { ok: false, reason: cap }
+    const row = await queryOne<{ r: Json }>(
+      'select book_listing($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) as r',
+      [listingId, d.checkIn, d.checkOut, d.guestName, d.guestEmail, d.guests, d.guestPhone ?? null,
+        d.pet, d.isEvent, d.message ?? null, opts.status ?? 'pending', opts.source ?? 'web']
+    )
+    const data = row?.r
+    if (!data) return { ok: false, reason: 'unknown' }
     if (!data.ok) return { ok: false, reason: normalizeReason(data.reason) }
-    return { ok: true, bookingId: data.booking_id, total: data.total_huf ?? null }
+    return { ok: true, bookingId: data.booking_id as string, total: (data.total_huf as number | null) ?? null }
   } catch (e) {
     return { ok: false, reason: normalizeThrown(e, 'createBooking') }
   }
 }
 
-// ------------------------------------------------------------
-// d) requestQuote — lead capture (the brief's quote path). No price, no
-//    payment, and NO occupancy block. Works for any listing (incl. #2/#3).
-// ------------------------------------------------------------
-export async function requestQuote(input: RequestQuoteInput): Promise<RequestQuoteResult> {
+/** Quote request (lead): no price, no payment, does NOT hold dates. */
+export async function requestQuote(listingId: string, input: RequestQuoteInput): Promise<RequestQuoteResult> {
   const parsed = requestQuoteSchema.safeParse(input)
   if (!parsed.success) return { ok: false, reason: 'validation_error' }
-  const { listingId, checkIn, checkOut, guests, pet, isEvent, guestName, guestEmail, guestPhone, message } = parsed.data
-
+  const d = parsed.data
   try {
-    const { data, error } = await supabase.rpc('request_quote', {
-      p_listing_id: listingId,
-      p_guest_name: guestName,
-      p_guest_email: guestEmail,
-      p_check_in: checkIn ?? null,
-      p_check_out: checkOut ?? null,
-      p_guest_phone: guestPhone ?? null,
-      p_guests_count: guests ?? null,
-      p_pet: pet,
-      p_is_event: isEvent,
-      p_message: message ?? null,
-    })
-    if (error || !data) return { ok: false, reason: normalizeThrown(error, 'requestQuote') }
+    const row = await queryOne<{ r: Json }>(
+      'select request_quote($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) as r',
+      [listingId, d.guestName, d.guestEmail, d.checkIn ?? null, d.checkOut ?? null, d.guestPhone ?? null,
+        d.guests ?? null, d.pet, d.isEvent, d.message ?? null]
+    )
+    const data = row?.r
+    if (!data) return { ok: false, reason: 'unknown' }
     if (!data.ok) return { ok: false, reason: normalizeReason(data.reason) }
-    return { ok: true, bookingId: data.booking_id, status: 'quote_request' }
+    return { ok: true, bookingId: data.booking_id as string, status: 'quote_request' }
   } catch (e) {
     return { ok: false, reason: normalizeThrown(e, 'requestQuote') }
   }

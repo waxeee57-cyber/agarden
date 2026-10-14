@@ -11,10 +11,11 @@
 !.env.example
 .env*.local
 
-# supabase local
-/supabase/.branches
-/supabase/.temp
-/supabase/.env.test
+# admin credentials written by `pnpm admin:create` — NEVER commit
+.admin-credentials
+
+# legacy supabase local state (Supabase removed 2026-10-14)
+/supabase/
 
 # misc
 *.tsbuildinfo
@@ -27,6 +28,8 @@ next-env.d.ts
 
 # tests / logs / OS
 coverage/
+test-results/
+playwright-report/
 *.log
 .DS_Store
 Thumbs.db

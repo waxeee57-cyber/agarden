@@ -7,8 +7,9 @@
 //
 //   RULE 1 — Guarded secret modules
 //     Any SHARED module (under lib/ or components/, i.e. importable from
-//     anywhere) that references a high-value secret env var (service_role key,
-//     Stripe secret/webhook secret, generic *_SECRET / *_TOKEN / password) MUST
+//     anywhere) that references a high-value secret env var (DATABASE_URL*,
+//     BLOB_READ_WRITE_TOKEN, ADMIN_SESSION_SECRET, RESEND_API_KEY, generic
+//     *_SECRET / *_TOKEN / *_API_KEY / password) MUST
 //     start with `import 'server-only'`. Route handlers (app/api/**) and pages
 //     are never client-bundled by Next unless marked 'use client', so they are
 //     exempt from this rule (but still subject to RULE 2).
@@ -22,9 +23,9 @@
 //     This is the hard guarantee: it mirrors what Next.js itself would do at
 //     bundle time, but reports a precise import chain instead of a cryptic error.
 //
-//   RULE 3 — No anon + admin client mix
-//     A single module must not value-import both the anon client (@/lib/supabase)
-//     and the service-role admin client (@/lib/supabase-admin).
+//   RULE 3 — No server-only packages in the client bundle
+//     A client-reachable module must not value-import a server-only package
+//     (pg, @vercel/blob, sharp, resend, jose, node:*). Belt-and-braces to RULE 2.
 //
 // Usage:
 //   node scripts/secret-guard.mjs            # scan repo root, exit 1 on violation
@@ -42,7 +43,9 @@ const EXT_ORDER = ['.ts', '.tsx', '.mts', '.js', '.jsx', '.mjs']
 const IGNORE_SEGMENTS = new Set(['node_modules', '.next', '.git', '.agents', 'coverage'])
 
 // High-value secrets that must never sit in an unguarded shared module (RULE 1).
-const HIGH_SECRET_RE = /SERVICE_ROLE|STRIPE_SECRET|STRIPE_WEBHOOK_SECRET|_SECRET\b|_TOKEN\b|PASSWORD/
+const HIGH_SECRET_RE = /^DATABASE_URL|^POSTGRES_|^PG(PASSWORD|USER|HOST)|SERVICE_ROLE|_SECRET\b|_TOKEN\b|_API_KEY\b|PASSWORD/
+// Packages that must never be bundled for the browser (RULE 3).
+const SERVER_PKG_RE = /^(pg|@vercel\/blob|sharp|resend|jose|node:.+|fs|crypto|child_process)$/
 
 // ---------------------------------------------------------------------------
 // File collection
@@ -221,20 +224,6 @@ export function analyzeProject(rootDir) {
     }
   }
 
-  // ---- RULE 3: anon + admin client mix in one module ----
-  for (const info of byPath.values()) {
-    const specs = info.imports.filter((i) => !i.typeOnly).map((i) => i.spec)
-    const hasAnon = specs.some((s) => /(^|\/)lib\/supabase$/.test(s) || s === '@/lib/supabase' || /\.\.?\/supabase$/.test(s))
-    const hasAdmin = specs.some((s) => /lib\/supabase-admin$/.test(s) || /\.\.?\/supabase-admin$/.test(s))
-    if (hasAnon && hasAdmin) {
-      violations.push({
-        rule: 'RULE3',
-        file: rel(info.absPath),
-        message: 'imports BOTH the anon client (lib/supabase) and the admin client (lib/supabase-admin) in one module',
-      })
-    }
-  }
-
   // ---- RULE 2: client-reachable closure must contain no secret ----
   // BFS over value-import edges starting from every 'use client' file.
   const parent = new Map() // child absPath -> { from, spec }
@@ -283,6 +272,11 @@ export function analyzeProject(rootDir) {
         file: rel(absPath),
         message: `server-only module is reachable from a client component. Chain: ${chain(absPath)}`,
       })
+    }
+    for (const imp of info.imports) {
+      if (!imp.typeOnly && SERVER_PKG_RE.test(imp.spec)) {
+        violations.push({ rule: 'RULE3', file: rel(absPath), message: `client-reachable module imports server-only package '${imp.spec}'. Chain: ${chain(absPath)}` })
+      }
     }
     if (secrets.length) {
       violations.push({

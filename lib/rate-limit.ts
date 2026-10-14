@@ -1,49 +1,23 @@
-// Simple in-memory sliding window rate limiter.
-//
-// State is scoped to a single Vercel function instance. Different warm
-// instances do not share state, so this isn't a perfect distributed limiter —
-// but it reliably blocks sequential/scripted spam from a single IP hitting the
-// same instance, which covers the realistic threat model for this app.
-// No external dependencies required.
+import 'server-only'
+import { queryOne } from './db'
 
-const store = new Map<string, number[]>()
-let callCount = 0
+// DB-backed fixed-window rate limiter (rate_limit_hit() in 05_production.sql).
+// Shared across all serverless instances, unlike the old in-memory Map.
+// Fails OPEN on a DB error for public reads would be wrong for login, so the
+// caller picks: `failClosed` for auth, default fail-open for guest forms (the
+// DB being down already makes the form fail on its own write).
 
-function prune() {
-  const now = Date.now()
-  for (const [key, hits] of store.entries()) {
-    if (hits.length === 0 || now - hits[hits.length - 1] > 3_600_000) {
-      store.delete(key)
-    }
+export async function rateLimit(key: string, limit: number, windowSeconds: number, failClosed = false): Promise<boolean> {
+  try {
+    const row = await queryOne<{ ok: boolean }>('select rate_limit_hit($1, $2, $3) as ok', [key, limit, windowSeconds])
+    return row?.ok ?? !failClosed
+  } catch (e) {
+    console.error('[rate-limit]', e instanceof Error ? e.message : e)
+    return !failClosed
   }
 }
 
-/**
- * Returns true if the request is allowed, false if it exceeds the rate limit.
- *
- * @param key      Typically the client IP address
- * @param limit    Maximum number of requests allowed within the window
- * @param windowMs Window duration in milliseconds
- */
-export function rateLimit(key: string, limit: number, windowMs: number): boolean {
-  // Prune stale entries every 500 calls to prevent unbounded Map growth
-  if (++callCount % 500 === 0) prune()
-
-  const now = Date.now()
-  const cutoff = now - windowMs
-  const hits = (store.get(key) ?? []).filter(t => t > cutoff)
-
-  if (hits.length >= limit) return false
-
-  hits.push(now)
-  store.set(key, hits)
-  return true
-}
-
-/**
- * Extracts the real client IP from Vercel/proxy headers.
- * Falls back to 'anonymous' so the rate limiter still functions.
- */
+/** Real client IP from Vercel/proxy headers; 'anonymous' as last resort. */
 export function getClientIp(req: { headers: { get(name: string): string | null } }): string {
   const forwarded = req.headers.get('x-forwarded-for')
   if (forwarded) return forwarded.split(',')[0].trim()

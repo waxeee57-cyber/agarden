@@ -1,0 +1,103 @@
+import 'server-only'
+import { query, queryOne } from '../db'
+
+// Admin reads. EVERY query is scoped by the listing id from the verified
+// session (lib/admin/auth.ts) — never by a client-supplied id.
+
+export type BookingStatus = 'quote_request' | 'pending' | 'confirmed' | 'cancelled'
+export type AdminBooking = {
+  id: string
+  status: BookingStatus
+  source: 'web' | 'manual'
+  guestName: string
+  guestEmail: string
+  guestPhone: string | null
+  checkIn: string | null
+  checkOut: string | null
+  nights: number | null
+  guests: number | null
+  pet: boolean
+  isEvent: boolean
+  total: number | null
+  notes: string | null
+  createdAt: string
+}
+
+export const FILTERS = {
+  uj: { label: 'Új', statuses: ['pending', 'quote_request'] as BookingStatus[] },
+  visszaigazolt: { label: 'Visszaigazolt', statuses: ['confirmed'] as BookingStatus[] },
+  lemondott: { label: 'Lemondott', statuses: ['cancelled'] as BookingStatus[] },
+  mind: { label: 'Mind', statuses: ['pending', 'quote_request', 'confirmed', 'cancelled'] as BookingStatus[] },
+} as const
+export type FilterKey = keyof typeof FILTERS
+
+export async function listBookings(listingId: string, filter: FilterKey): Promise<AdminBooking[]> {
+  const rows = await query<{
+    id: string; status: BookingStatus; source: 'web' | 'manual'; guest_name: string; guest_email: string; guest_phone: string | null
+    check_in: string | null; check_out: string | null; nights: number | null; guests_count: number | null
+    pet: boolean; is_event: boolean; total_huf: number | null; notes: string | null; created_at: string
+  }>(
+    `select id, status, source, guest_name, guest_email, guest_phone,
+            to_char(check_in, 'YYYY-MM-DD') as check_in, to_char(check_out, 'YYYY-MM-DD') as check_out,
+            nights, guests_count, pet, is_event, total_huf, notes, created_at::text as created_at
+       from bookings
+      where listing_id = $1 and status = any($2::text[])
+      order by case when status in ('pending', 'quote_request') then 0 else 1 end, coalesce(check_in, created_at::date) asc, created_at desc
+      limit 300`,
+    [listingId, FILTERS[filter].statuses]
+  )
+  return rows.map((r) => ({
+    id: r.id, status: r.status, source: r.source, guestName: r.guest_name, guestEmail: r.guest_email, guestPhone: r.guest_phone,
+    checkIn: r.check_in, checkOut: r.check_out, nights: r.nights, guests: r.guests_count, pet: r.pet, isEvent: r.is_event,
+    total: r.total_huf, notes: r.notes, createdAt: r.created_at,
+  }))
+}
+
+export async function bookingCounts(listingId: string): Promise<Record<BookingStatus, number>> {
+  const rows = await query<{ status: BookingStatus; n: number }>(
+    'select status, count(*)::int as n from bookings where listing_id = $1 group by status',
+    [listingId]
+  )
+  const out: Record<BookingStatus, number> = { quote_request: 0, pending: 0, confirmed: 0, cancelled: 0 }
+  for (const r of rows) out[r.status] = r.n
+  return out
+}
+
+export type OccupancyRow = { id: string; from: string; to: string; kind: 'booking' | 'manual' | 'external'; note: string | null; bookingId: string | null; guestName: string | null; status: BookingStatus | null }
+
+export async function listOccupancy(listingId: string, from: string, to: string): Promise<OccupancyRow[]> {
+  const rows = await query<{ id: string; f: string; t: string; kind: OccupancyRow['kind']; note: string | null; booking_id: string | null; guest_name: string | null; status: BookingStatus | null }>(
+    `select o.id, to_char(lower(o.during), 'YYYY-MM-DD') as f, to_char(upper(o.during), 'YYYY-MM-DD') as t,
+            o.kind, o.note, o.booking_id, b.guest_name, b.status
+       from occupancy o left join bookings b on b.id = o.booking_id
+      where o.listing_id = $1 and o.during && daterange($2::date, $3::date, '[)')
+      order by lower(o.during)`,
+    [listingId, from, to]
+  )
+  return rows.map((r) => ({ id: r.id, from: r.f, to: r.t, kind: r.kind, note: r.note, bookingId: r.booking_id, guestName: r.guest_name, status: r.status }))
+}
+
+export type AdminListing = {
+  id: string; name: string; nightlyRate: number | null; pricingMode: string; tagline: string | null
+  contactEmail: string | null; contactPhone: string | null
+  lead: string; introBody: string; houseRules: { t: string; d: string }[]
+  surcharges: { code: 'single_night' | 'pet' | 'event'; label: string; amount: number; calc: 'per_stay' | 'per_night' | 'flat'; active: boolean }[]
+}
+
+export async function getAdminListing(listingId: string): Promise<AdminListing | null> {
+  const l = await queryOne<{ id: string; name: string; nightly_rate_huf: number | null; pricing_mode: string; tagline: string | null; contact_email: string | null; contact_phone: string | null; content: { lead?: string; intro_body?: string }; house_rules: { t: string; d: string }[] }>(
+    'select id, name, nightly_rate_huf, pricing_mode, tagline, contact_email, contact_phone, content, house_rules from listings where id = $1',
+    [listingId]
+  )
+  if (!l) return null
+  const s = await query<{ code: AdminListing['surcharges'][number]['code']; label: string; amount_huf: number; calc: AdminListing['surcharges'][number]['calc']; active: boolean }>(
+    'select code, label, amount_huf, calc, active from listing_surcharges where listing_id = $1 order by code',
+    [listingId]
+  )
+  return {
+    id: l.id, name: l.name, nightlyRate: l.nightly_rate_huf, pricingMode: l.pricing_mode, tagline: l.tagline,
+    contactEmail: l.contact_email, contactPhone: l.contact_phone,
+    lead: l.content?.lead ?? '', introBody: l.content?.intro_body ?? '', houseRules: l.house_rules ?? [],
+    surcharges: s.map((x) => ({ code: x.code, label: x.label, amount: x.amount_huf, calc: x.calc, active: x.active })),
+  }
+}
