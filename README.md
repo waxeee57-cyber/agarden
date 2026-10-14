@@ -232,3 +232,20 @@ the availability route (same `getAvailability` call) for the calendar.
   invented data until the owner provides it.
 - A couple of `external` occupancy blocks on Velence so the availability lock is
   demonstrable.
+
+---
+
+## Deploy
+
+Vercel. Bizonyíték: `.vercel/project.json` — `projectName: "agarden"`.
+
+Kötelező environment változók (lásd `.env.example`):
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY` (server only, soha ne `NEXT_PUBLIC_` prefixszel).
+
+A `pnpm build` a `scripts/secret-guard.mjs`-t futtatja először — ha titok szivárogna a
+kliens bundle-be, a build szándékosan elbukik.
+
+**Live URL:**
+
+> TODO: ismeretlen — pótolni
