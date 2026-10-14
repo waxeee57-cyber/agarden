@@ -49,7 +49,7 @@
   --color-reed:      #8A9AA0;
   --color-muted:     #55666D;
 
-  --color-accent:    #E8973A;
+  --color-accent:    #F0A24A;   /* 4.67:1 on deep — text-safe */
   --color-action:    #A94F1B;
   --color-action-hover: #8C4014;
   --color-clay:      #D77A35;
