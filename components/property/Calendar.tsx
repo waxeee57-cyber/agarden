@@ -212,7 +212,7 @@ function MonthGrid({
           else if (m.isOccupied && !m.isPast) cls += 'bg-paper-2 text-muted line-through cursor-help'
           else if (!m.selectable) cls += 'text-ink/30 cursor-not-allowed'
           else cls += 'bg-cream border border-line text-ink hover:border-water'
-          const label = `${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? ', foglalt' : !m.selectable ? ', nem választható' : ''}`
+          const label = `${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? ', foglalt (testvérházunk ellenőrzése)' : !m.selectable ? ', nem választható' : ''}`
           return (
             <button
               key={i}
@@ -220,7 +220,7 @@ function MonthGrid({
               onClick={() => onPick(day, m)}
               onMouseEnter={() => choosingEnd && m.selectable && onHover(day)}
               disabled={m.isPast && !m.selectable}
-              aria-disabled={!m.selectable || undefined}
+              aria-disabled={(!m.selectable && !(m.isOccupied && !m.isPast)) || undefined}
               aria-pressed={m.isStart || m.isEnd}
               aria-label={label}
               className={cls}

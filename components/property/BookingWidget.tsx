@@ -212,7 +212,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
           {sisterOffer && (
             <div className="mt-4 rounded-[var(--radius-lg)] border border-accent/60 bg-accent/10 p-4" role="status">
               <p className="text-sm font-semibold text-deep">
-                Ezek a napok nálunk foglaltak, de a testvérházunk szabad: {fmtDay(parseISO(sisterOffer.from))} – {fmtDay(parseISO(sisterOffer.to))}.
+                Ezek a napok nálunk foglaltak, de a testvérházunk szabad: {fmtDay(parseISO(sisterOffer.from))} – {fmtDay(parseISO(sisterOffer.to))}
               </p>
               <p className="mt-1 text-sm text-ink/80">{sister.pitch}</p>
               <a href={sisterOffer.href} className="btn btn-dark btn-sm mt-3">Megnézem: {sister.name}</a>
