@@ -29,7 +29,7 @@
   --color-act:       #0E6070;
   --color-act-fg:    #FFF7E8;
   --color-act-hover: #0A4B58;
-  --color-pop:       #B4531A;
+  --color-pop:       #A44A15;
   --color-band:      #F2A23C;
   --color-band-fg:   #1C2930;
   --color-band-2:    #0E6070;
@@ -107,7 +107,7 @@
   --color-bg: #FBF1DF; --color-surface: #FFF9EE; --color-surface-2: #F5E6CB;
   --color-fg: #1C2930; --color-soft: #4E5D64; --color-rule: #E2CCA6;
   --color-act: #0E6070; --color-act-fg: #FFF7E8; --color-act-hover: #0A4B58;
-  --color-pop: #B4531A;
+  --color-pop: #A44A15;
   --color-band: #F2A23C; --color-band-fg: #1C2930;
   --color-band-2: #0E6070; --color-band-2-fg: #FFF7E8;
   --color-sel: #0E6070; --color-sel-fg: #FFF7E8; --color-range: #CFE6E6;
@@ -131,7 +131,6 @@ body {
 .site-root { min-height: 100dvh; }
 
 h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 500; }
-p { text-wrap: pretty; }
 
 /* display style comes from the NEAREST skin (vars inherit), so nested skins never bleed */
 [data-skin] :is(h1, h2, h3, .display) { text-transform: var(--display-case); font-weight: var(--display-weight); line-height: var(--display-lh); letter-spacing: var(--display-track); }

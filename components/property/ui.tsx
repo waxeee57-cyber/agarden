@@ -28,7 +28,7 @@ export function Wordmark({ site, size = 38 }: { site: Site; size?: number }) {
         <span className={site === 'velence' ? 'font-display text-[1.6rem] font-extrabold uppercase tracking-[0.04em] text-fg' : 'font-display text-[1.5rem] text-fg'}>
           {b.name}
         </span>
-        <span className="mt-1 whitespace-nowrap text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-soft">Vendégház · Velence</span>
+        <span className="mt-1 whitespace-nowrap text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-fg/80">Vendégház · Velence</span>
       </span>
     </span>
   )
