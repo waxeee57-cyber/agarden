@@ -127,6 +127,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+/* Below-the-fold sections skip style/layout/paint until they near the viewport
+   (measured: ~1 s Style & Layout on mobile delaying the hero paint). The hero is
+   the first child of <main> and is never deferred. */
+[data-skin] main > :not(:first-child), [data-skin] > footer { content-visibility: auto; contain-intrinsic-size: auto 900px; }
 .skin-root { min-height: 100dvh; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); }
 .site-root { min-height: 100dvh; }
 
