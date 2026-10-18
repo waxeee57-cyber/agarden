@@ -19,16 +19,19 @@ export function Mark({ site, size = 40, className = '' }: { site: Site; size?: n
   )
 }
 
-export function Wordmark({ site, size = 38 }: { site: Site; size?: number }) {
+/** tone="band": on the footer band (band-2), whose foreground differs from the page fg. */
+export function Wordmark({ site, size = 38, tone = "page" }: { site: Site; size?: number; tone?: "page" | "band" }) {
+  const fg = tone === "band" ? "text-band-2-fg" : "text-fg"
+  const sub = tone === "band" ? "text-band-2-fg/80" : "text-fg/80"
   const b = BRANDS[site]
   return (
     <span className="inline-flex items-center gap-2.5">
       <Mark site={site} size={size} />
       <span className="flex flex-col leading-none">
-        <span className={site === 'velence' ? 'font-display text-[1.6rem] font-extrabold uppercase tracking-[0.04em] text-fg' : 'font-display text-[1.5rem] text-fg'}>
+        <span className={`${site === 'velence' ? 'font-display text-[1.6rem] font-extrabold uppercase tracking-[0.04em]' : 'font-display text-[1.5rem]'} ${fg}`}>
           {b.name}
         </span>
-        <span className="mt-1 whitespace-nowrap text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-fg/80">Vendégház · Velence</span>
+        <span className={`mt-1 whitespace-nowrap text-[0.62rem] font-semibold uppercase tracking-[0.2em] ${sub}`}>Vendégház · Velence</span>
       </span>
     </span>
   )

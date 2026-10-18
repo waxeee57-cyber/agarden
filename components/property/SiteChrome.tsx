@@ -45,7 +45,7 @@ export function SiteFooter({ listing, sisterOrigin }: { listing: Listing; sister
       <div className="mx-auto max-w-7xl px-4 py-14 md:px-8 md:py-20">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
-            <span className="[&_.text-fg]:text-band-2-fg [&_.text-fg/80]:text-band-2-fg/80"><Wordmark site={site} size={44} /></span>
+            <Wordmark site={site} size={44} tone="band" />
             {listing.address && <p className="mt-5 opacity-85">{listing.address}</p>}
             {listing.ntakId && <p className="mt-1 text-sm opacity-75">NTAK: {listing.ntakId}</p>}
           </div>
