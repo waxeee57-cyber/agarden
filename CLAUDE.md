@@ -26,4 +26,4 @@ rendszerrel és tulajdonosi adminnal. Részletek: `README.md`, `PRODUCT.md`.
 - Tesztek az `agarden_test` DB-n futnak (minden futáskor eldobva + migrálva), nem a prod `neondb`-n.
 - `.admin-credentials` (gitignore) — tulaj jelszó. Soha ne commitold, ne írd ki.
 - `.env.local` — `vercel env pull`-ból + helyi `ADMIN_SESSION_SECRET`. Soha ne commitold.
-- E-mail ki van kapcsolva (`EMAIL_ENABLED=false`), amíg nincs Resend-hitelesített küldő domain.
+- E-mail: Resend, feladó `foglalas@domrol.com` (házanként saját feladónév), kulcs: `agarden-foglalas-v2` (csak küldés, domrol.com-ra korlátozva), Vercelen sensitive. `EMAIL_ENABLED=false`, amíg a domrol.com DNS-e (dns24.hu) nincs hitelesítve; utána true + redeploy. A válaszcím a ház/tulaj postafiókja, a feladócímen nincs postafiók.
