@@ -110,3 +110,29 @@ ${b.message ? `<p style="margin:8px 0 0;font-size:14px;line-height:1.6;font-styl
     html: layout(house.site, house, body),
   }
 }
+
+export type StatusExtras = { checkinWindow: string | null; checkoutTime: string | null; address: string | null; sister: { name: string; origin: string } }
+
+/** Sent automatically when the owner confirms or cancels in /admin. */
+export function guestStatusEmail(house: MailHouse, b: MailBooking, status: 'confirmed' | 'cancelled', x: StatusExtras): { subject: string; html: string } {
+  const first = esc(b.guestName.trim().split(/\s+/)[0] || b.guestName)
+  const name = BRANDS[house.site].name
+  const accent = BRANDS[house.site].deep
+  const call = house.phone ? `, vagy hívj: ${esc(house.phone)}` : ''
+  if (status === 'confirmed') {
+    const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}, visszaigazoltuk!</h1>
+<p style="margin:0;font-size:15px;line-height:1.6;">A foglalásod rendben van, várunk titeket. A fizetés a helyszínen történik.</p>${details(b)}
+${rows([
+  ['Bejelentkezés', x.checkinWindow ? esc(x.checkinWindow) : null],
+  ['Kijelentkezés', x.checkoutTime ? `${esc(x.checkoutTime)}-ig` : null],
+  ['Cím', x.address ? esc(x.address) : null],
+])}
+<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#5F6F64;">Ha bármi változik, válaszolj erre a levélre${call}.</p>`
+    return { subject: `Foglalás visszaigazolva – ${name}`, html: layout(house.site, house, body) }
+  }
+  const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}!</h1>
+<p style="margin:0;font-size:15px;line-height:1.6;">Sajnos ezt a foglalást nem tudjuk teljesíteni, ezért lemondtuk. Pénzt nem vontunk le.</p>${details(b)}
+<p style="margin:16px 0 0;font-size:15px;line-height:1.6;">Másik időpontot keresel? Írj vagy hívj, segítünk${call ? call.replace(', vagy hívj', '. Telefon') : ''}.</p>
+<p style="margin:20px 0 0;font-size:14px;line-height:1.6;">A testvérházunkban is lehet szabad hely: <a href="${esc(x.sister.origin)}" style="color:${accent};font-weight:700;">${esc(x.sister.name)}</a></p>`
+  return { subject: `Foglalás lemondva – ${name}`, html: layout(house.site, house, body) }
+}

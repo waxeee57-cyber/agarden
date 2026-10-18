@@ -160,6 +160,19 @@ async function main() {
     assert.deepEqual(res, [true, true, true, true, true, false])
   })
 
+  await t("status e-mail: off when disabled; never for the other house's booking", async () => {
+    const { sendStatusEmail } = await import('../lib/email/send')
+    const b = await booking.createBooking(napsugar, { ...guest, checkIn: '2028-11-10', checkOut: '2028-11-13' })
+    delete process.env.EMAIL_ENABLED
+    assert.deepEqual(await sendStatusEmail('napsugar', napsugar, b.bookingId!, 'confirmed'), { sent: false, reason: 'disabled' })
+    process.env.EMAIL_ENABLED = 'true'; process.env.RESEND_API_KEY = 're_test_not_used'; process.env.EMAIL_FROM = 'foglalas@example.invalid'
+    // Garden session (listing = garden) asking about a Napsugár booking: rejected before any network call
+    assert.deepEqual(await sendStatusEmail('velence', garden, b.bookingId!, 'cancelled'), { sent: false, reason: 'not_found' })
+    // status must match what the DB holds (pending != confirmed) -> no mail
+    assert.deepEqual(await sendStatusEmail('napsugar', napsugar, b.bookingId!, 'confirmed'), { sent: false, reason: 'not_found' })
+    delete process.env.EMAIL_ENABLED; delete process.env.RESEND_API_KEY; delete process.env.EMAIL_FROM
+  })
+
   console.log(`app tests: ${passed} passed`)
   process.exit(0)
 }

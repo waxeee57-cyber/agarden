@@ -24,7 +24,7 @@ const d = (iso: string | null) => {
   return `${y}. ${MONTHS[m - 1]} ${day}.`
 }
 
-export function BookingsBoard({ bookings, filters, current }: { bookings: AdminBooking[]; filters: { key: string; label: string; count: number | null }[]; current: string }) {
+export function BookingsBoard({ bookings, filters, current, emailOn }: { bookings: AdminBooking[]; filters: { key: string; label: string; count: number | null }[]; current: string; emailOn: boolean }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
     <div>
@@ -61,7 +61,7 @@ export function BookingsBoard({ bookings, filters, current }: { bookings: AdminB
                   {b.total != null ? ` · ${formatHuf(b.total)}` : ''}
                 </p>
               </button>
-              {open === b.id && <BookingDetail b={b} />}
+              {open === b.id && <BookingDetail b={b} emailOn={emailOn} />}
             </li>
           ))}
         </ul>
@@ -70,7 +70,7 @@ export function BookingsBoard({ bookings, filters, current }: { bookings: AdminB
   )
 }
 
-function BookingDetail({ b }: { b: AdminBooking }) {
+function BookingDetail({ b, emailOn }: { b: AdminBooking; emailOn: boolean }) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -107,7 +107,11 @@ function BookingDetail({ b }: { b: AdminBooking }) {
         <button type="button" className="btn btn-ghost btn-sm !text-danger" disabled={!!busy} onClick={() => act('delete')}>{busy === 'delete' ? '…' : 'Törlés'}</button>
       </div>
       {msg && <p className="err mt-3" role="alert">{msg}</p>}
-      <p className="mt-3 text-xs text-muted">A visszaigazolásról a vendégnek e-mailt küldj a fenti címre (automatikus visszaigazoló e-mail a küldő domain beállítása után).</p>
+      <p className="mt-3 text-xs text-muted">
+        {emailOn
+          ? 'Visszaigazoláskor és lemondáskor a vendég automatikusan e-mailt kap. Törléskor nem.'
+          : 'Az automatikus e-mail még nincs bekapcsolva: a döntésről most a fenti elérhetőségen értesítsd a vendéget.'}
+      </p>
     </div>
   )
 }

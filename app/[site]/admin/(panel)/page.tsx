@@ -3,6 +3,7 @@ import { listBookings, bookingCounts, FILTERS, type FilterKey } from '@/lib/admi
 import { getListing } from '@/lib/listing'
 import { BookingsBoard } from '@/components/admin/BookingsBoard'
 import { ManualBookingForm } from '@/components/admin/ManualBookingForm'
+import { emailEnabled } from '@/lib/email/send'
 
 export default async function AdminBookings({ params, searchParams }: { params: Promise<{ site: string }>; searchParams: Promise<{ szuro?: string }> }) {
   const session = await requireAdminPage(params)
@@ -27,7 +28,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
         </div>
         <ManualBookingForm maxGuests={(listing?.capacityMax ?? 1) + (listing?.capacityExtra ?? 0)} />
       </div>
-      <BookingsBoard bookings={bookings} filters={filters} current={filter} />
+      <BookingsBoard bookings={bookings} filters={filters} current={filter} emailOn={emailEnabled()} />
     </div>
   )
 }
