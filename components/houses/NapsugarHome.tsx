@@ -33,7 +33,7 @@ export function NapsugarHome({ d, season }: { d: HomeData; season: Season }) {
       <section className="relative overflow-hidden bg-band text-band-fg" aria-labelledby="hero-title">
         <SunRays />
         <div className="relative mx-auto grid max-w-7xl gap-14 px-4 pb-16 pt-28 md:px-8 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pb-24 lg:pt-32">
-          <div className="rise">
+          <div>
             <h1 id="hero-title">
               <span className="block font-sans text-sm font-bold uppercase tracking-[0.14em]">Napsugár Vendégház · Velence</span>
               <span className="mt-4 block text-[clamp(3.2rem,8vw,6.6rem)]">Nyáron medence, télen jakuzzi.</span>

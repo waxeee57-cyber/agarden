@@ -32,7 +32,7 @@ export function GardenHome({ d }: { d: HomeData }) {
       {/* ---------------- HERO: type left, the steaming night tub right ---------------- */}
       <section className="relative overflow-hidden" aria-labelledby="hero-title">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-28 md:px-8 lg:grid-cols-[1.25fr_1fr] lg:items-end lg:pb-24 lg:pt-36">
-          <div className="rise order-2 lg:order-1">
+          <div className="order-2 lg:order-1">
             <h1 id="hero-title">
               <span className="block font-sans text-sm font-semibold normal-case tracking-[0.14em] text-pop">Garden Vendégház · Velence</span>
               <span className="mt-4 block text-[clamp(3.4rem,9.5vw,8.6rem)] leading-[0.86]">
