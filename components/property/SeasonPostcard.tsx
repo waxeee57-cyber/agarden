@@ -24,11 +24,11 @@ export function SeasonPostcard({ initial, summer, winter, facts }: {
       <div className="relative rotate-[-1.6deg] bg-[#FFFDF8] p-3 pb-12 shadow-[0_30px_60px_-30px_rgb(28_41_48/0.55)] sm:p-4 sm:pb-14">
         <div className="relative aspect-[4/3] overflow-hidden bg-surface-2">
           {summer && (
-            <Image src={summer.url} alt={summer.alt} fill preload={initial === 'nyar' || !winter} sizes="(min-width: 1024px) 560px, 92vw" quality={70}
+            <Image src={summer.url} alt={summer.alt} fill fetchPriority={initial === 'nyar' || !winter ? 'high' : 'low'} loading={initial === 'nyar' || !winter ? 'eager' : 'lazy'} sizes="(min-width: 1024px) 560px, 92vw" quality={70}
               className={`object-cover transition-opacity duration-500 ${shot === summer ? 'opacity-100' : 'opacity-0'}`} />
           )}
           {winter && (
-            <Image src={winter.url} alt={winter.alt} fill preload={initial === 'tel'} sizes="(min-width: 1024px) 560px, 92vw" quality={70}
+            <Image src={winter.url} alt={winter.alt} fill fetchPriority={initial === 'tel' ? 'high' : 'low'} loading={initial === 'tel' ? 'eager' : 'lazy'} sizes="(min-width: 1024px) 560px, 92vw" quality={70}
               className={`object-cover transition-opacity duration-500 ${shot === winter ? 'opacity-100' : 'opacity-0'}`} />
           )}
         </div>

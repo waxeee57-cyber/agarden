@@ -52,7 +52,7 @@ export function GardenHome({ d }: { d: HomeData }) {
           <div className="relative order-1 lg:order-2">
             {cover && (
               <div className="relative ml-auto aspect-[4/3] w-full sm:aspect-[4/5] max-w-[520px] overflow-hidden rounded-[4px] shadow-[0_0_120px_-20px_rgb(228_163_92/0.35)]">
-                <Image src={cover.url} alt={cover.alt} fill preload sizes="(min-width: 1024px) 520px, 92vw" quality={70} className="object-cover" />
+                <Image src={cover.url} alt={cover.alt} fill fetchPriority="high" loading="eager" sizes="(min-width: 1024px) 520px, 92vw" quality={70} className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-bg/70 via-transparent to-transparent" aria-hidden="true" />
               </div>
             )}
