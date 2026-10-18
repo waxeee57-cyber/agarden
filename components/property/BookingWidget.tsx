@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Calendar, addDays, parseISO, toISO, fmtDay } from './Calendar'
 import { formatHuf } from '@/lib/format'
@@ -281,6 +282,10 @@ export function BookingWidget({ listing, sister, share }: { listing: WidgetListi
             {mode === 'book'
               ? 'Most nem vonunk le pénzt. Visszaigazolás e-mailben, fizetés a helyszínen.'
               : 'Az ajánlatkérés nem foglal le dátumot.'}
+          </p>
+          <p className="text-center text-xs text-soft">
+            Az adataidat csak a kérés intézéséhez használjuk.{' '}
+            <Link href="/adatvedelem" className="underline underline-offset-2 hover:text-fg">Adatkezelési tájékoztató</Link>
           </p>
         </div>
       </div>

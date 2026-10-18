@@ -68,7 +68,7 @@ async function run() {
   await t('migrations idempotent (second run is a no-op)', async () => {
     await migrate(testDatabaseUrl(), { log: () => {} })
     const n = await one('select count(*)::int as n from applied_migrations')
-    assert.equal(n.n, 6)
+    assert.equal(n.n, 7)
   })
 
   await t('napsugar is active, real data, quote-only, demo-free', async () => {
@@ -179,6 +179,13 @@ async function run() {
     const res = []
     for (let i = 0; i < 4; i++) res.push((await one("select rate_limit_hit('t:k', 3, 60) as ok")).ok)
     assert.deepEqual(res, [true, true, true, false])
+  })
+
+  await t('rate_limits: rows older than 24h are pruned (privacy notice promise)', async () => {
+    await q("insert into rate_limits (key, window_start, hits) values ('old:ip', now() - interval '25 hours', 1)")
+    for (let i = 0; i < 400; i++) await q("select rate_limit_hit('p:' || $1::text, 1000, 60)", [String(i % 3)])
+    const left = await one("select count(*)::int as n from rate_limits where key = 'old:ip'")
+    assert.equal(left.n, 0)
   })
 
   await db.end()

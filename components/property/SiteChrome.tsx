@@ -27,7 +27,7 @@ export function SiteHeader({ site, sisterOrigin, nav = [], overlay = false }: { 
             <Mark site={sisterSite} size={22} />
             <span><span className="hidden sm:inline">Testvérház: </span>{BRANDS[sisterSite].name}</span>
           </a>
-          <a href="#foglalas" className="btn btn-act btn-sm ml-1 hidden md:inline-flex">Szabad dátumok</a>
+          <Link href={overlay ? '#foglalas' : '/#foglalas'} className="btn btn-act btn-sm ml-1 hidden md:inline-flex">Szabad dátumok</Link>
         </nav>
       </div>
     </header>

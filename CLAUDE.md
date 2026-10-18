@@ -18,7 +18,9 @@ rendszerrel és tulajdonosi adminnal. Részletek: `README.md`, `PRODUCT.md`.
 - Foglalási logika SQL-ben (`db/migrations`), TS-ben nincs duplikálva.
 - Árak HUF-ban (magyar piac). Nincs kitalált adat: ismeretlen = null/TBD, nem renderelődik.
 - `pnpm build` előtt `scripts/secret-guard.mjs` fut — ha elbukik, NE kerüld meg.
-- Logó/OG: kézi SVG + valódi font (Fraunces/Hanken TTF az `assets/fonts`-ban, ő/ű ellenőrizve). AI-szöveges kép tilos.
+- Két arculat, egy token-nyelvtan (`app/globals.css`, `[data-skin]`): Garden = sötét esti wellness-ház (Big Shoulders + Schibsted Grotesk), Napsugár = 70-es évekbeli üdülő-képeslap (Shrikhand + Rethink Sans). Beágyazott skin CSS-változókból örököl, nem szivárog.
+- Logó/OG: kézi SVG (`lib/mark.ts`) + valódi font (TTF az `assets/fonts`-ban, ő/ű ellenőrizve). AI-szöveges kép tilos.
+- Jogi oldalak: ismeretlen üzemeltetői adat = `<Pending>` („pótlásra vár”), soha nem kitalált.
 
 ## FIGYELEM
 - Tesztek az `agarden_test` DB-n futnak (minden futáskor eldobva + migrálva), nem a prod `neondb`-n.

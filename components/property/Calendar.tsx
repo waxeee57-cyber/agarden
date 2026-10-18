@@ -165,7 +165,7 @@ export function Calendar({
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-soft">
         <Legend swatch="bg-surface border border-rule" label="szabad" />
         <Legend swatch="bg-sel" label="kiválasztva" />
-        <Legend swatch="bg-taken" label="foglalt" />
+        <Legend swatch="bg-taken border border-taken-fg/50" label="foglalt (kattints: testvérházunk szabad-e)" />
         {state === 'loading' && <span aria-live="polite">foglaltság betöltése…</span>}
       </div>
     </div>

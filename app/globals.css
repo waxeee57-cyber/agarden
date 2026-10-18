@@ -94,11 +94,13 @@
   --color-band: #E4A35C; --color-band-fg: #0D1813;
   --color-band-2: #07100C; --color-band-2-fg: #EFEADF;
   --color-sel: #E4A35C; --color-sel-fg: #0D1813; --color-range: #3A3122;
-  --color-taken: #1A2620; --color-taken-fg: #6E7F74;
+  --color-taken: #22352C; --color-taken-fg: #9AAA9F;
   --color-focus: #E4A35C; --color-ok: #8FD19E; --color-bad: #FF9C85;
 }
 [data-skin="napsugar"] {
   color-scheme: light;
+  /* Rethink Sans "liga" turns (1)…(8) into circled digits and (R) into ® — wrong in legal citations */
+  font-variant-ligatures: no-common-ligatures;
   --display-case: none; --display-weight: 400; --display-lh: 1.02; --display-track: 0.005em;
   --btn-radius: 999px; --btn-case: none; --btn-track: normal; --btn-size: 1rem;
   /* explicit (not inherited from :root) so a Napsugár block nested in the Garden page keeps its own colours */

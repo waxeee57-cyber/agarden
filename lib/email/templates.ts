@@ -6,8 +6,8 @@ import type { Site } from '../site-map'
 // EVERY interpolated guest value goes through esc() — guest input is untrusted.
 
 const BRANDS: Record<Site, { name: string; deep: string; accent: string; paper: string }> = {
-  velence: { name: 'Garden Vendégház Velence', deep: '#1E4339', accent: '#CDA047', paper: '#F2E8D6' },
-  napsugar: { name: 'Napsugár Vendégház Velence', deep: '#22485A', accent: '#E8973A', paper: '#F7EBD8' },
+  velence: { name: 'Garden Vendégház Velence', deep: '#0D1813', accent: '#E4A35C', paper: '#EFEADF' },
+  napsugar: { name: 'Napsugár Vendégház Velence', deep: '#0E6070', accent: '#F2A23C', paper: '#FBF1DF' },
 }
 
 export function esc(s: unknown): string {
