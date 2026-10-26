@@ -9,7 +9,7 @@
 //
 // Exports testDatabaseUrl()/resetTestDatabase() for tests/app.test.ts.
 
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
@@ -68,7 +68,8 @@ async function run() {
   await t('migrations idempotent (second run is a no-op)', async () => {
     await migrate(testDatabaseUrl(), { log: () => {} })
     const n = await one('select count(*)::int as n from applied_migrations')
-    assert.equal(n.n, 7)
+    const files = readdirSync(join(root, 'db', 'migrations')).filter((f) => /^\d+_.+\.sql$/.test(f))
+    assert.equal(n.n, files.length)
   })
 
   await t('napsugar is active, real data, quote-only, demo-free', async () => {
