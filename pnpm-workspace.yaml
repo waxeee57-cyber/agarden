@@ -3,3 +3,6 @@ allowBuilds:
   sharp: set this to true or false
   unrs-resolver: set this to true or false
 verifyDepsBeforeRun: false
+
+overrides:
+  zod: ^4.6.7

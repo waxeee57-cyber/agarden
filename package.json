@@ -18,37 +18,38 @@
     "test:app": "tsx --conditions react-server tests/app.test.ts"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.1",
-    "jose": "^6.2.12",
+    "@vercel/blob": "^2.8.2",
+    "jose": "^6.2.13",
     "leaflet": "^1.9.4",
-    "next": "16.2.6",
-    "pg": "^8.21.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "next": "16.4.3",
+    "pg": "^8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-leaflet": "^5.0.0",
-    "resend": "^6.32.1",
+    "resend": "^6.34.1",
     "server-only": "^0.0.1",
     "sharp": "^0.35.5",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/leaflet": "^1.9.22",
-    "@types/node": "^20",
+    "@types/node": "^20.19.43",
     "@types/pg": "^8.23.1",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
-    "playwright": "^1.64.0",
-    "tailwindcss": "^4.3.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.4.3",
+    "playwright": "^1.64.1",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   },
   "pnpm": {
     "ignoredBuiltDependencies": [
       "sharp",
       "unrs-resolver"
     ]
-  }
+  },
+  "packageManager": "pnpm@10.28.0"
 }
