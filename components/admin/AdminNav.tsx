@@ -9,6 +9,7 @@ const ITEMS = [
   ['/admin/arak', 'Árak'],
   ['/admin/tartalom', 'Tartalom'],
   ['/admin/fotok', 'Fotók'],
+  ['/admin/adatok', 'Adatok'],
 ] as const
 
 export function AdminNav() {

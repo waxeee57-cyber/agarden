@@ -2,6 +2,7 @@ import 'server-only'
 import { cache } from 'react'
 import { query, queryOne } from './db'
 import type { Site } from './site-map'
+import { legalFromDb, type LegalData } from './legal'
 
 // Listing data for the public sites + admin. Replaces lib/velence.ts: there are
 // NO fallback constants — if the DB is unreachable the page errors (app/error.tsx
@@ -53,6 +54,7 @@ export type Listing = {
   houseRules: { t: string; d: string }[]
   content: ListingContent
   surcharges: Surcharge[]
+  legal: LegalData
 }
 
 export type Photo = { id: string; url: string; width: number; height: number; alt: string; sortOrder: number; isCover: boolean }
@@ -64,14 +66,14 @@ type ListingRow = {
   nightly_rate_huf: number | null; pricing_mode: Listing['pricingMode']
   address: string | null; geo_lat: number | null; geo_lng: number | null
   checkin_window: string | null; checkout_time: string | null
-  house_rules: Listing['houseRules']; content: ListingContent
+  house_rules: Listing['houseRules']; content: ListingContent; legal: unknown
 }
 
 export const getListing = cache(async (slug: Site): Promise<Listing | null> => {
   const row = await queryOne<ListingRow>(
     `select id, slug, name, site_name, tagline, capacity_max, capacity_extra, min_nights, ntak_id,
             contact_email, contact_phone, nightly_rate_huf, pricing_mode, address, geo_lat, geo_lng,
-            checkin_window, checkout_time, house_rules, content
+            checkin_window, checkout_time, house_rules, content, legal
        from listings where slug = $1 and status = 'active'`,
     [slug]
   )
@@ -101,6 +103,7 @@ export const getListing = cache(async (slug: Site): Promise<Listing | null> => {
     houseRules: row.house_rules ?? [],
     content: row.content ?? {},
     surcharges: surcharges.map((s) => ({ code: s.code, label: s.label, amount: s.amount_huf, calc: s.calc, active: s.active })),
+    legal: legalFromDb(row.legal),
   }
 })
 

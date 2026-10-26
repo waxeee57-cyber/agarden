@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { isSite, siteOrigin, sisterOf, type Site } from '@/lib/site-map'
 import { getListing, type Listing } from '@/lib/listing'
 import { BRANDS } from '@/lib/brand'
+import { huDate, missingLegal } from '@/lib/legal'
 import { SiteHeader, SiteFooter } from './SiteChrome'
 import { JsonLd, breadcrumbJsonLd } from './JsonLd'
 
@@ -32,7 +33,10 @@ export function LegalPage({ site, listing, title, path, children }: { site: Site
         <article className="prose-legal mx-auto max-w-3xl px-4 py-14 md:px-8 md:py-20">
           <p className="kicker">{BRANDS[site].fullName}</p>
           <h1 className="mt-3 text-5xl md:text-7xl">{title}</h1>
-          <p className="mt-3 text-sm text-soft">Hatályos: {LEGAL_UPDATED} A kiemelt üzemeltetői adatok a tulajdonos megerősítése után kerülnek be.</p>
+          <p className="mt-3 text-sm text-soft">
+            Hatályos: {listing.legal.updatedAt && listing.legal.updatedAt > '2026-10-18' ? huDate(listing.legal.updatedAt) : LEGAL_UPDATED}
+            {missingLegal(listing.legal, listing).length > 0 && ' A kiemelt üzemeltetői adatok a tulajdonos megerősítése után kerülnek be.'}
+          </p>
           {children}
         </article>
       </main>

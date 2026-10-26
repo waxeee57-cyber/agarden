@@ -1,5 +1,6 @@
 import 'server-only'
 import { query, queryOne } from '../db'
+import { legalFromDb, type LegalData } from '../legal'
 
 // Admin reads. EVERY query is scoped by the listing id from the verified
 // session (lib/admin/auth.ts) — never by a client-supplied id.
@@ -81,12 +82,13 @@ export type AdminListing = {
   id: string; name: string; nightlyRate: number | null; pricingMode: string; tagline: string | null
   contactEmail: string | null; contactPhone: string | null
   lead: string; introBody: string; houseRules: { t: string; d: string }[]
+  checkinWindow: string | null; checkoutTime: string | null; legal: LegalData
   surcharges: { code: 'single_night' | 'pet' | 'event'; label: string; amount: number; calc: 'per_stay' | 'per_night' | 'flat'; active: boolean }[]
 }
 
 export async function getAdminListing(listingId: string): Promise<AdminListing | null> {
-  const l = await queryOne<{ id: string; name: string; nightly_rate_huf: number | null; pricing_mode: string; tagline: string | null; contact_email: string | null; contact_phone: string | null; content: { lead?: string; intro_body?: string }; house_rules: { t: string; d: string }[] }>(
-    'select id, name, nightly_rate_huf, pricing_mode, tagline, contact_email, contact_phone, content, house_rules from listings where id = $1',
+  const l = await queryOne<{ id: string; name: string; nightly_rate_huf: number | null; pricing_mode: string; tagline: string | null; contact_email: string | null; contact_phone: string | null; content: { lead?: string; intro_body?: string }; house_rules: { t: string; d: string }[]; checkin_window: string | null; checkout_time: string | null; legal: unknown }>(
+    'select id, name, nightly_rate_huf, pricing_mode, tagline, contact_email, contact_phone, content, house_rules, checkin_window, checkout_time, legal from listings where id = $1',
     [listingId]
   )
   if (!l) return null
@@ -98,6 +100,7 @@ export async function getAdminListing(listingId: string): Promise<AdminListing |
     id: l.id, name: l.name, nightlyRate: l.nightly_rate_huf, pricingMode: l.pricing_mode, tagline: l.tagline,
     contactEmail: l.contact_email, contactPhone: l.contact_phone,
     lead: l.content?.lead ?? '', introBody: l.content?.intro_body ?? '', houseRules: l.house_rules ?? [],
+    checkinWindow: l.checkin_window, checkoutTime: l.checkout_time, legal: legalFromDb(l.legal),
     surcharges: s.map((x) => ({ code: x.code, label: x.label, amount: x.amount_huf, calc: x.calc, active: x.active })),
   }
 }

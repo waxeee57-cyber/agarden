@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { query, queryOne, tx } from '../db'
 import type { AdminSession } from './auth'
+import { legalToDb } from '../legal'
 
 // Admin mutations. The session (already verified for the request host) is the
 // ONLY source of listingId. Inputs are validated with zod; DB functions keep
@@ -107,6 +108,46 @@ export async function updateContent(s: AdminSession, body: unknown): Promise<Res
   )
   refresh(s)
   return { ok: true }
+}
+
+// Operator / legal data ("Adatok" tab). Every field may be left empty — the
+// owner fills it in over time; empty fields stay "pótlásra vár" on the site.
+const optText = (max: number) => z.string().trim().max(max).default('')
+const legalSchema = z.object({
+  operatorName: optText(160),
+  operatorAddress: optText(200),
+  taxNumber: z.string().trim().refine((v) => v === '' || /^[0-9][0-9 -]{6,18}[0-9]$/.test(v)).default(''),
+  paymentTerms: optText(2000),
+  cancellation: optText(2000),
+  retention: optText(600),
+  processorsConfirmed: z.boolean().default(false),
+  checkinWindow: optText(40),
+  checkoutTime: optText(40),
+})
+
+/** DB write without cache revalidation (testable outside Next). */
+export async function saveLegal(listingId: string, body: unknown): Promise<Result> {
+  const p = legalSchema.safeParse(body)
+  if (!p.success) return { ok: false, reason: 'validation_error' }
+  const d = p.data
+  await query(
+    `update listings
+        set legal = $2::jsonb || jsonb_build_object('updated_at', to_char(now() at time zone 'Europe/Budapest', 'YYYY-MM-DD')),
+            checkin_window = $3, checkout_time = $4
+      where id = $1`,
+    [listingId, JSON.stringify(legalToDb(d)), d.checkinWindow || null, d.checkoutTime || null]
+  )
+  return { ok: true }
+}
+
+export async function updateLegal(s: AdminSession, body: unknown): Promise<Result> {
+  const r = await saveLegal(s.listingId, body)
+  if (r.ok) {
+    refresh(s)
+    revalidatePath(`/${s.site}/aszf`)
+    revalidatePath(`/${s.site}/adatvedelem`)
+  }
+  return r
 }
 
 export async function createManualBooking(s: AdminSession, body: unknown) {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { LegalPage, loadLegal, Pending } from '@/components/property/LegalPage'
+import { operatorLine } from '@/lib/legal'
 
 export const revalidate = 3600
 export const metadata: Metadata = {
@@ -14,11 +15,12 @@ export const metadata: Metadata = {
 export default async function Page({ params }: { params: Promise<{ site: string }> }) {
   const { site, listing } = await loadLegal(params)
   void site
+  const operator = operatorLine(listing.legal)
   return (
     <LegalPage site={site} listing={listing} title="Adatkezelési tájékoztató" path="/adatvedelem">
       <h2>1. Adatkezelő</h2>
       <ul>
-        <li>Név, székhely, adószám: <Pending>üzemeltetői adatok</Pending></li>
+        <li>Adatkezelő: {operator ?? <Pending>üzemeltetői adatok (név, székhely, adószám)</Pending>}</li>
         <li>Szálláshely: {listing.name}{listing.ntakId ? `, NTAK: ${listing.ntakId}` : ''}</li>
         <li>Kapcsolat adatkezelési ügyekben: {listing.contactPhone}{listing.contactEmail ? `, ${listing.contactEmail}` : ''}</li>
       </ul>
@@ -40,7 +42,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
       <p>Az adatok megadása önkéntes, de név és e-mail cím nélkül nem tudjuk a kérést visszaigazolni. Automatizált döntéshozatal és profilalkotás nem történik.</p>
 
       <h2>4. Megőrzési idő</h2>
-      <p>Foglalási és ajánlatkérési adatok: <Pending>megőrzési idő (pl. a tartózkodást követő időszak; számviteli bizonylatnál a törvényi határidő)</Pending>. A tulajdonos a nem teljesült kéréseket a kezelőfelületről bármikor törölheti.</p>
+      <p>Foglalási és ajánlatkérési adatok: {listing.legal.retention ?? <Pending>megőrzési idő</Pending>}{listing.legal.retention && !/[.!?]$/.test(listing.legal.retention) ? '.' : ''} A tulajdonos a nem teljesült kéréseket a kezelőfelületről bármikor törölheti.</p>
 
       <h2>5. Ki fér hozzá az adatokhoz</h2>
       <p>Az adatokat csak a szálláshely tulajdonosa látja, jelszóval védett kezelőfelületen. Adatfeldolgozók:</p>
@@ -52,7 +54,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
       <p>
         Az adatokat az Európai Unióban tároljuk. Mivel a szolgáltatók anyavállalata az Egyesült Államokban működik,
         harmadik országba történő hozzáférés az adatfeldolgozói szerződésekben rögzített garanciák mellett lehetséges
-        (pl. az Európai Bizottság általános szerződési feltételei). <Pending>a garanciák tulajdonosi ellenőrzése</Pending>
+        (pl. az Európai Bizottság általános szerződési feltételei).{!listing.legal.processorsConfirmed && <> <Pending>a garanciák tulajdonosi ellenőrzése</Pending></>}
       </p>
       <p>A Napsugár oldalán a térkép csempéit a böngésződ közvetlenül az OpenStreetMap szervereiről tölti le; ehhez az IP-címed az OSM-hez jut. Az OSM nem a mi adatfeldolgozónk.</p>
 

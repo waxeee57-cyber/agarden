@@ -173,6 +173,40 @@ async function main() {
     delete process.env.EMAIL_ENABLED; delete process.env.RESEND_API_KEY; delete process.env.EMAIL_FROM
   })
 
+  await t('legal data: napsugar payment terms seeded; save is scoped, validated, partial-friendly', async () => {
+    const { saveLegal } = await import('../lib/admin/actions')
+    const { legalFromDb, missingLegal, operatorLine, lines } = await import('../lib/legal')
+    const read = async (id: string) => {
+      const [r] = await query<{ legal: unknown; checkin_window: string | null; checkout_time: string | null }>(
+        'select legal, checkin_window, checkout_time from listings where id = $1', [id])
+      return { legal: legalFromDb(r.legal), checkinWindow: r.checkin_window, checkoutTime: r.checkout_time }
+    }
+    const before = await read(napsugar)
+    assert.equal(lines(before.legal.paymentTerms).length, 4)
+    assert.ok(before.legal.paymentTerms!.includes('80 000 Ft'))
+
+    // bad tax number rejected, nothing written
+    assert.deepEqual(await saveLegal(garden, { taxNumber: 'abc' }), { ok: false, reason: 'validation_error' })
+    // partial save: only the operator block
+    assert.deepEqual(await saveLegal(garden, { operatorName: 'Teszt Üzemeltető', operatorAddress: '2481 Velence, Teszt u. 1.', taxNumber: '12345678-1-07' }), { ok: true })
+    const g = await read(garden)
+    assert.equal(operatorLine(g.legal), 'Teszt Üzemeltető, 2481 Velence, Teszt u. 1., adószám: 12345678-1-07')
+    assert.match(g.legal.updatedAt ?? '', /^\d{4}-\d{2}-\d{2}$/)
+    assert.deepEqual(missingLegal(g.legal, g).map((m) => m.key), ['paymentTerms', 'cancellation', 'checkinWindow', 'checkoutTime', 'retention', 'processorsConfirmed'])
+    // the other house is untouched
+    assert.equal((await read(napsugar)).legal.operatorName, undefined)
+
+    // complete save -> nothing missing; empty strings clear back to null
+    const full = { operatorName: 'Teszt Üzemeltető', operatorAddress: '2481 Velence, Teszt u. 1.', taxNumber: '12345678-1-07', paymentTerms: 'a\nb', cancellation: 'c', retention: '1 év', processorsConfirmed: true, checkinWindow: '15:00–19:00', checkoutTime: '10:00' }
+    assert.deepEqual(await saveLegal(garden, full), { ok: true })
+    const g2 = await read(garden)
+    assert.equal(missingLegal(g2.legal, g2).length, 0)
+    assert.deepEqual(await saveLegal(garden, { ...full, checkoutTime: '', cancellation: '' }), { ok: true })
+    const g3 = await read(garden)
+    assert.equal(g3.checkoutTime, null)
+    assert.equal(g3.legal.cancellation, undefined)
+  })
+
   console.log(`app tests: ${passed} passed`)
   process.exit(0)
 }
