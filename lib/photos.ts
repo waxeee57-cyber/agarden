@@ -11,7 +11,7 @@ import { query, queryOne, tx } from './db'
 
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
-export async function storePhoto(listingId: string, slug: string, input: Buffer, alt: string) {
+export async function storePhoto(listingId: string, slug: string, input: Buffer, alt: string, category = 'egyeb') {
   const { data, info } = await sharp(input, { failOn: 'error' })
     .rotate()
     .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
@@ -26,18 +26,24 @@ export async function storePhoto(listingId: string, slug: string, input: Buffer,
   const next = await queryOne<{ n: number }>('select coalesce(max(sort_order), -1) + 1 as n from listing_photos where listing_id = $1', [listingId])
   const hasCover = await queryOne<{ c: boolean }>('select exists(select 1 from listing_photos where listing_id = $1 and is_cover) as c', [listingId])
   const row = await queryOne<{ id: string }>(
-    `insert into listing_photos (listing_id, blob_url, width, height, alt, sort_order, is_cover)
-     values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-    [listingId, blob.url, info.width, info.height, alt.trim(), next?.n ?? 0, !hasCover?.c]
+    `insert into listing_photos (listing_id, blob_url, width, height, alt, sort_order, is_cover, category)
+     values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+    [listingId, blob.url, info.width, info.height, alt.trim(), next?.n ?? 0, !hasCover?.c, category]
   )
   return { id: row!.id, url: blob.url, width: info.width, height: info.height }
 }
 
-export async function updatePhoto(listingId: string, photoId: string, patch: { alt?: string; isCover?: boolean }) {
+export async function updatePhoto(listingId: string, photoId: string, patch: { alt?: string; isCover?: boolean; category?: string; featured?: number | null }) {
   return tx(async (c) => {
     const own = await c.query('select 1 from listing_photos where id = $1 and listing_id = $2', [photoId, listingId])
     if (!own.rowCount) return false
     if (patch.alt !== undefined) await c.query('update listing_photos set alt = $1 where id = $2', [patch.alt.trim(), photoId])
+    if (patch.category !== undefined) await c.query('update listing_photos set category = $1 where id = $2', [patch.category, photoId])
+    if (patch.featured !== undefined) {
+      // a slot holds one photo: free it first (partial unique index), then take it
+      if (patch.featured != null) await c.query('update listing_photos set featured = null where listing_id = $1 and featured = $2', [listingId, patch.featured])
+      await c.query('update listing_photos set featured = $1 where id = $2', [patch.featured, photoId])
+    }
     if (patch.isCover) {
       await c.query('update listing_photos set is_cover = false where listing_id = $1 and is_cover', [listingId])
       await c.query('update listing_photos set is_cover = true where id = $1', [photoId])

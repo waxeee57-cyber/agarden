@@ -1,16 +1,6 @@
-import { notFound } from 'next/navigation'
-import { requireAdminPage } from '@/lib/admin/guard'
-import { getAdminListing } from '@/lib/admin/data'
-import { ContentForm } from '@/components/admin/ContentForm'
+import { redirect } from 'next/navigation'
 
-export default async function AdminContent({ params }: { params: Promise<{ site: string }> }) {
-  const session = await requireAdminPage(params)
-  const listing = await getAdminListing(session.listingId)
-  if (!listing) notFound()
-  return (
-    <div>
-      <h1 className="mb-6 text-3xl">Tartalom</h1>
-      <ContentForm listing={listing} />
-    </div>
-  )
+// "Tartalom" became "Szövegek" (2026-10-30); old bookmarks keep working.
+export default function Page() {
+  redirect('/admin/szovegek?doc=bemutatkozas')
 }

@@ -1,22 +1,16 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Two houses, two skins, one token grammar.
+   One system, two houses (owner consultation 2026-10-30).
 
-   PUBLIC SKINS ([data-skin]) — semantic tokens, every pair checked ≥4.5:1:
-     bg / surface / surface-2 / fg / soft / rule      page + text
-     act / act-fg / act-hover                         primary action
-     pop                                              brand accent (text-safe on bg)
-     band / band-fg, band-2 / band-2-fg               art-directed full-bleed sections
-     sel / sel-fg / range / taken / taken-fg          calendar states
+   Every public page shares layout, type and components. Per house only the
+   accent, the hand-built mark and the photos differ ([data-skin=velence|napsugar]).
+   Scene: an organiser on the sofa in the evening, phone in hand, comparing
+   several houses -> light, calm, photo-led; the accent marks only actions.
 
-   Garden   — night wellness house. Drenched night-pine, copper lamplight, steam white.
-              (fg 15:1, soft 8.3:1, pop 8.4:1 on bg; act-fg on act 8.4:1)
-   Napsugár — 1970s Hungarian holiday postcard. Sun-orange, pool-blue, postcard paper.
-              (fg 13:1, soft 6:1 on bg; act-fg on act 6.4:1; fg on sun band 7.3:1)
-
-   ADMIN ([data-site] without a skin) keeps the light legacy tokens below:
-   it is a tool, not a brand surface.
+   Contrast (checked): fg 15:1, soft 6.2:1 on bg; act-fg on act ≥6.5:1 for both
+   accents; pop on bg ≥6:1; band-fg on band 14:1.
+   ADMIN ([data-site] without a skin) keeps the legacy tokens below.
    ============================================================ */
 @theme {
   /* skin tokens (defaults = Napsugár) */
@@ -74,47 +68,33 @@
 /* ---------- admin (legacy, light) ---------- */
 [data-site="velence"]  { --font-display: var(--font-schibsted), system-ui, sans-serif; --font-sans: var(--font-schibsted), system-ui, sans-serif; }
 [data-site="napsugar"] {
-  --font-display: var(--font-rethink), system-ui, sans-serif; --font-sans: var(--font-rethink), system-ui, sans-serif;
+  --font-display: var(--font-schibsted), system-ui, sans-serif; --font-sans: var(--font-schibsted), system-ui, sans-serif;
   --color-deep: #0E6070; --color-deep-700: #0A4B58; --color-water: #0E6070;
   --color-accent: #F2A23C; --color-action: #A94F1B; --color-action-hover: #8C4014;
   --color-paper: #F7EBD8; --color-paper-2: #F1E0C6; --color-cream: #FDF7EC; --color-line: #E3CFAE;
 }
 
-/* ---------- public skins ---------- */
-[data-skin="garden"] {
-  color-scheme: dark;
-  --display-case: uppercase; --display-weight: 800; --display-lh: 0.92; --display-track: 0.005em;
-  --btn-radius: 4px; --btn-case: uppercase; --btn-track: 0.08em; --btn-size: 0.9rem;
-  --font-display: var(--font-bigshoulders), "Arial Narrow", sans-serif;
+/* ---------- public skin (shared) + house accents ---------- */
+[data-skin] {
+  color-scheme: light;
+  --font-display: var(--font-young), Georgia, serif;
   --font-sans: var(--font-schibsted), system-ui, sans-serif;
-  --color-bg: #0D1813; --color-surface: #15261E; --color-surface-2: #1C3128;
-  --color-fg: #EFEADF; --color-soft: #A3B3A8; --color-rule: #2C4639;
-  --color-act: #E4A35C; --color-act-fg: #0D1813; --color-act-hover: #F0B877;
-  --color-pop: #E4A35C;
-  --color-band: #E4A35C; --color-band-fg: #0D1813;
-  --color-band-2: #07100C; --color-band-2-fg: #EFEADF;
-  --color-sel: #E4A35C; --color-sel-fg: #0D1813; --color-range: #3A3122;
-  --color-taken: #22352C; --color-taken-fg: #9AAA9F;
-  --color-focus: #E4A35C; --color-ok: #8FD19E; --color-bad: #FF9C85;
+  --color-bg: #F5F6F2; --color-surface: #FCFCFA; --color-surface-2: #EBEEE7;
+  --color-fg: #1B231F; --color-soft: #56605A; --color-rule: #D7DCD3;
+  --color-band: #1B231F; --color-band-fg: #EEF0EA;
+  --color-band-2: #1B231F; --color-band-2-fg: #EEF0EA;
+  --color-taken: #E4E7E0; --color-taken-fg: #6E766F;
+  --color-ok: #2D6B3F; --color-bad: #A63D27;
+}
+[data-skin="velence"] {
+  --color-act: #556126; --color-act-fg: #FCFCFA; --color-act-hover: #434D1D;
+  --color-pop: #556126; --color-focus: #556126;
+  --color-sel: #556126; --color-sel-fg: #FCFCFA; --color-range: #E3E8CF;
 }
 [data-skin="napsugar"] {
-  color-scheme: light;
-  /* Rethink Sans "liga" turns (1)…(8) into circled digits and (R) into ® — wrong in legal citations */
-  font-variant-ligatures: no-common-ligatures;
-  --display-case: none; --display-weight: 400; --display-lh: 1.02; --display-track: 0.005em;
-  --btn-radius: 999px; --btn-case: none; --btn-track: normal; --btn-size: 1rem;
-  /* explicit (not inherited from :root) so a Napsugár block nested in the Garden page keeps its own colours */
-  --color-bg: #FBF1DF; --color-surface: #FFF9EE; --color-surface-2: #F5E6CB;
-  --color-fg: #1C2930; --color-soft: #4E5D64; --color-rule: #E2CCA6;
-  --color-act: #0E6070; --color-act-fg: #FFF7E8; --color-act-hover: #0A4B58;
-  --color-pop: #A44A15;
-  --color-band: #F2A23C; --color-band-fg: #1C2930;
-  --color-band-2: #0E6070; --color-band-2-fg: #FFF7E8;
-  --color-sel: #0E6070; --color-sel-fg: #FFF7E8; --color-range: #CFE6E6;
-  --color-taken: #EADBC0; --color-taken-fg: #6B6152;
-  --color-focus: #0E6070; --color-ok: #2F6B3C; --color-bad: #A63D27;
-  --font-display: var(--font-shrikhand), Georgia, serif;
-  --font-sans: var(--font-rethink), system-ui, sans-serif;
+  --color-act: #0E6070; --color-act-fg: #FCFCFA; --color-act-hover: #0A4B58;
+  --color-pop: #0E6070; --color-focus: #0E6070;
+  --color-sel: #0E6070; --color-sel-fg: #FCFCFA; --color-range: #D3E6E8;
 }
 
 * { box-sizing: border-box; }
@@ -135,9 +115,8 @@ body {
 .site-root { min-height: 100dvh; }
 
 h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 500; }
-
-/* display style comes from the NEAREST skin (vars inherit), so nested skins never bleed */
-[data-skin] :is(h1, h2, h3, .display) { text-transform: var(--display-case); font-weight: var(--display-weight); line-height: var(--display-lh); letter-spacing: var(--display-track); }
+/* Young Serif has one weight: hierarchy comes from size, never faux bold */
+[data-skin] :is(h1, h2, h3, .display) { font-weight: 400; line-height: 1.08; letter-spacing: -0.01em; }
 
 ::selection { background-color: var(--color-band); color: var(--color-band-fg); }
 
@@ -145,22 +124,6 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   outline: 2px solid var(--color-focus);
   outline-offset: 3px;
   border-radius: 4px;
-}
-
-/* ---- Reveal: content is VISIBLE by default; JS opts in to the effect ---- */
-@media (prefers-reduced-motion: no-preference) {
-  .js .reveal:not(.is-in) { opacity: 0; transform: translateY(16px); }
-  .js .reveal { transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
-  @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-  .rise > * { animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .rise > *:nth-child(2) { animation-delay: 0.1s; }
-  .rise > *:nth-child(3) { animation-delay: 0.2s; }
-  .rise > *:nth-child(4) { animation-delay: 0.3s; }
-  .rise > *:nth-child(5) { animation-delay: 0.4s; }
-  @keyframes steam { 0% { transform: translateY(0) scaleX(1); opacity: 0; } 25% { opacity: 0.55; } 100% { transform: translateY(-46px) scaleX(1.25); opacity: 0; } }
-  .steam path { animation: steam 4.8s ease-out infinite; transform-box: fill-box; transform-origin: center bottom; }
-  .steam path:nth-child(2) { animation-delay: 1.6s; }
-  .steam path:nth-child(3) { animation-delay: 3.2s; }
 }
 
 @layer components {
@@ -184,7 +147,9 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   .btn-line { background: transparent; color: var(--color-fg); border-color: color-mix(in oklab, var(--color-fg) 35%, transparent); }
   .btn-line:hover:not(:disabled) { border-color: var(--color-fg); }
   .btn-sm { min-height: 44px; padding: 0.55rem 1rem; font-size: 0.92rem; }
-  [data-skin] .btn { border-radius: var(--btn-radius); text-transform: var(--btn-case); letter-spacing: var(--btn-track); font-size: var(--btn-size); }
+  .btn-light { background: transparent; color: #FCFCFA; border-color: rgb(252 252 250 / 0.7); }
+  .btn-light:hover:not(:disabled) { background: rgb(252 252 250 / 0.12); border-color: #FCFCFA; }
+  [data-skin] .btn { border-radius: 999px; }
 
   .field { display: flex; flex-direction: column; gap: 0.4rem; }
   .field > label, .field-label { font-size: 0.88rem; font-weight: 600; color: var(--color-fg); }
@@ -212,6 +177,21 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   [data-admin] .input { background: var(--color-cream); color: var(--color-ink); border-color: var(--color-line); }
   [data-admin] .field > label, [data-admin] .field-label { color: var(--color-deep); }
   [data-admin] .err { color: var(--color-danger); }
+
+  /* owner-edited documents (markdown-lite) */
+  .doc > * + * { margin-top: 1rem; }
+  .doc h2 { font-size: clamp(1.45rem, 2.6vw, 1.85rem); margin-top: 2.6rem; }
+  .doc p, .doc li { line-height: 1.7; color: color-mix(in oklab, var(--color-fg) 90%, transparent); }
+  .doc ul { padding-left: 1.2rem; list-style: disc; }
+  .doc li + li { margin-top: 0.35rem; }
+  .doc a { color: var(--color-pop); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+  .doc strong { font-weight: 700; color: var(--color-fg); }
+
+  /* menu sheet: slides in from the right; no motion when reduced */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes sheet-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+    #site-menu:not([hidden]) .menu-sheet { animation: sheet-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  }
 
   /* legal prose */
   .prose-legal h2 { font-size: 1.6rem; margin: 2.4rem 0 0.6rem; }

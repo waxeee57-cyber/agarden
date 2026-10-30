@@ -7,8 +7,8 @@ export default async function AdminPhotos({ params }: { params: Promise<{ site: 
   const photos = await getPhotos(session.listingId)
   return (
     <div>
-      <h1 className="text-3xl">Fotók</h1>
-      <p className="mb-6 mt-1 text-sm text-muted">{photos.length} fotó. A borítókép a főkép, a többi a galériában jelenik meg, ebben a sorrendben.</p>
+      <h1 className="text-3xl">Képek</h1>
+      <p className="mb-6 mt-1 text-sm text-muted">{photos.length} fotó. A borítókép a főoldal nagy képe, a „Főoldalon 1–3.” jelölésűek alatta látszanak, a többi a Képek oldalon, kategóriánként, ebben a sorrendben. Sorrend: húzd a képet, vagy használd a ↑ ↓ gombokat.</p>
       <PhotoManager photos={photos} />
     </div>
   )

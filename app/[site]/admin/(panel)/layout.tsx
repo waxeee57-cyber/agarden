@@ -4,7 +4,7 @@ import { requireAdminPage } from '@/lib/admin/guard'
 import { siteOrigin, sisterOf } from '@/lib/site-map'
 import { BRANDS } from '@/lib/brand'
 import { Wordmark } from '@/components/property/ui'
-import { AdminNav, LogoutButton } from '@/components/admin/AdminNav'
+import { AdminNav, AdminTabBar, LogoutButton } from '@/components/admin/AdminNav'
 
 export const metadata: Metadata = { title: 'Admin', robots: { index: false, follow: false } }
 
@@ -12,9 +12,9 @@ export default async function PanelLayout({ children, params }: { children: Reac
   const session = await requireAdminPage(params)
   const sister = sisterOf(session.site)
   return (
-    <div data-admin className="min-h-svh bg-paper text-ink">
+    <div data-admin className="min-h-svh bg-paper pb-24 text-ink md:pb-0">
       <header className="border-b border-line bg-cream">
-        <div className="mx-auto max-w-6xl px-4 pt-3 md:px-8">
+        <div className="mx-auto max-w-6xl px-4 py-3 md:px-8 md:pb-0">
           <div className="flex items-center justify-between gap-3">
             <Wordmark site={session.site} size={34} />
             <div className="flex items-center gap-2 text-sm">
@@ -24,7 +24,7 @@ export default async function PanelLayout({ children, params }: { children: Reac
               <LogoutButton />
             </div>
           </div>
-          <div className="mt-2 pb-2"><AdminNav /></div>
+          <div className="mt-2 pb-2 max-md:hidden"><AdminNav /></div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 md:px-8">{children}</main>
@@ -32,6 +32,7 @@ export default async function PanelLayout({ children, params }: { children: Reac
         Belépve: {session.email} · <Link href="/" className="underline underline-offset-2">Weboldal megnyitása</Link> ·{' '}
         <a href={`${siteOrigin(sister)}/admin`} className="underline underline-offset-2 sm:hidden">{BRANDS[sister].name} admin ↗</a>
       </footer>
+      <AdminTabBar />
     </div>
   )
 }

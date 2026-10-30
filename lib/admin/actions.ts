@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { query, queryOne, tx } from '../db'
 import type { AdminSession } from './auth'
 import { legalToDb } from '../legal'
+import { DOC_KINDS, termsToDb } from '../terms'
+import { SOCIAL_NETWORKS, normalizeSocial } from '../social'
 
 // Admin mutations. The session (already verified for the request host) is the
 // ONLY source of listingId. Inputs are validated with zod; DB functions keep
@@ -12,8 +14,9 @@ import { legalToDb } from '../legal'
 type Result = { ok: true; [k: string]: unknown } | { ok: false; reason: string }
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
+/** Every public page of the house (home + subpages, all under /[site]). */
 function refresh(s: AdminSession) {
-  revalidatePath(`/${s.site}`)
+  revalidatePath(`/${s.site}`, 'layout')
 }
 
 export async function setBookingStatus(s: AdminSession, bookingId: string, status: unknown): Promise<Result> {
@@ -148,6 +151,107 @@ export async function updateLegal(s: AdminSession, body: unknown): Promise<Resul
     revalidatePath(`/${s.site}/adatvedelem`)
   }
   return r
+}
+
+// ---------- owner documents (házirend, ÁSZF, GYIK, Környék, adatkezelés) ----------
+const docSchema = z.object({
+  kind: z.enum(DOC_KINDS),
+  body: z.string().max(60_000),
+  effectiveDate: z.union([dateStr, z.literal(''), z.null()]).optional(),
+})
+
+/** Save = live document + a version snapshot (newest 20 kept, SQL). No revalidation (testable). */
+export async function saveDocument(listingId: string, body: unknown): Promise<Result> {
+  const p = docSchema.safeParse(body)
+  if (!p.success) return { ok: false, reason: 'validation_error' }
+  const text = p.data.body.replace(/\r\n?/g, '\n').trim()
+  const row = await queryOne<{ r: Result }>('select save_listing_document($1, $2, $3, $4) as r', [listingId, p.data.kind, text, p.data.effectiveDate || null])
+  return row?.r ?? { ok: false, reason: 'unknown' }
+}
+
+/** Restore an old version of THIS listing (another house's version id = not_found). */
+export async function restoreDocumentVersion(listingId: string, versionId: unknown): Promise<Result> {
+  if (!z.guid().safeParse(versionId).success) return { ok: false, reason: 'validation_error' }
+  const v = await queryOne<{ kind: string; body: string; effective_date: string | null }>(
+    `select kind, body, to_char(effective_date, 'YYYY-MM-DD') as effective_date from listing_document_versions where id = $1 and listing_id = $2`,
+    [versionId, listingId]
+  )
+  if (!v) return { ok: false, reason: 'not_found' }
+  return saveDocument(listingId, { kind: v.kind, body: v.body, effectiveDate: v.effective_date })
+}
+
+export async function updateDocument(s: AdminSession, body: unknown): Promise<Result> {
+  const r = await saveDocument(s.listingId, body)
+  if (r.ok) refresh(s)
+  return r
+}
+
+export async function restoreDocument(s: AdminSession, versionId: unknown): Promise<Result> {
+  const r = await restoreDocumentVersion(s.listingId, versionId)
+  if (r.ok) refresh(s)
+  return r
+}
+
+// ---------- site settings: social links, menu toggles, booking terms, bank account ----------
+const optInt = (min: number, max: number) => z.union([z.number().int().min(min).max(max), z.null()])
+const settingsSchema = z.object({
+  social: z.record(z.string(), z.string().max(300)).default({}),
+  menuGyik: z.boolean(),
+  menuKornyek: z.boolean(),
+  depositPct: optInt(1, 100),
+  cancelDays: optInt(0, 365),
+  confirmHours: optInt(1, 168),
+  quoteValidDays: optInt(1, 60),
+  extraCosts: z.array(z.string().trim().min(3).max(300)).max(8).default([]),
+  bankAccount: z.string().trim().max(80).default(''),
+})
+
+/** Validates every social link against its network's domain; bad ones are reported by field. */
+export async function saveSettings(listingId: string, body: unknown): Promise<Result & { fields?: string[] }> {
+  const p = settingsSchema.safeParse(body)
+  if (!p.success) return { ok: false, reason: 'validation_error', fields: [...new Set(p.error.issues.map((i) => String(i.path[0])))] }
+  const d = p.data
+  const social: Record<string, string> = {}
+  const bad: string[] = []
+  for (const n of SOCIAL_NETWORKS) {
+    const raw = (d.social[n] ?? '').trim()
+    if (!raw) continue
+    const ok = normalizeSocial(n, raw)
+    if (ok) social[n] = ok
+    else bad.push(`social.${n}`)
+  }
+  if (bad.length) return { ok: false, reason: 'invalid_social', fields: bad }
+  if (d.bankAccount && !/^[0-9A-Z][0-9A-Z -]{7,40}$/i.test(d.bankAccount)) return { ok: false, reason: 'validation_error', fields: ['bankAccount'] }
+  await query(
+    `update listings set social = $2::jsonb, settings = settings || $3::jsonb, terms = $4::jsonb, bank_account = $5 where id = $1`,
+    [
+      listingId,
+      JSON.stringify(social),
+      JSON.stringify({ menu_gyik: d.menuGyik, menu_kornyek: d.menuKornyek }),
+      JSON.stringify(termsToDb({ depositPct: d.depositPct, cancelDays: d.cancelDays, confirmHours: d.confirmHours, quoteValidDays: d.quoteValidDays, extraCosts: d.extraCosts })),
+      d.bankAccount || null,
+    ]
+  )
+  return { ok: true }
+}
+
+export async function updateSettings(s: AdminSession, body: unknown) {
+  const r = await saveSettings(s.listingId, body)
+  if (r.ok) refresh(s)
+  return r
+}
+
+// ---------- contact messages ----------
+export async function setMessageHandled(s: AdminSession, id: string, handled: boolean): Promise<Result> {
+  if (!z.guid().safeParse(id).success) return { ok: false, reason: 'validation_error' }
+  const rows = await query('update contact_messages set handled = $3 where id = $1 and listing_id = $2 returning id', [id, s.listingId, handled])
+  return rows.length ? { ok: true } : { ok: false, reason: 'not_found' }
+}
+
+export async function deleteMessage(s: AdminSession, id: string): Promise<Result> {
+  if (!z.guid().safeParse(id).success) return { ok: false, reason: 'validation_error' }
+  const rows = await query('delete from contact_messages where id = $1 and listing_id = $2 returning id', [id, s.listingId])
+  return rows.length ? { ok: true } : { ok: false, reason: 'not_found' }
 }
 
 export async function createManualBooking(s: AdminSession, body: unknown) {

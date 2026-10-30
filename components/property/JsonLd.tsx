@@ -13,16 +13,19 @@ const AMENITIES: Record<string, string[]> = {
   napsugar: ['Kültéri medence (szezonális)', 'Kültéri jakuzzi (egész évben)', 'Klíma', 'Padlófűtés', 'Wi-Fi', 'Smart TV', 'Mosógép', 'Mosogatógép', 'Grillezési lehetőség', 'Bogrács', 'Szalonnasütés', 'Zárt parkoló', 'Kiságy', 'Etetőszék'],
 }
 
+/** "14:00–18:00" / "14:00-tól" -> "14:00" */
+const hhmm = (s: string | null) => s?.match(/\d{1,2}:\d{2}/)?.[0]
+
 export function lodgingJsonLd(listing: Listing, origin: string, photos: Photo[]) {
-  const address: Record<string, string> = { '@type': 'PostalAddress', addressLocality: 'Velence', addressCountry: 'HU' }
+  const address: Record<string, string> = { '@type': 'PostalAddress', addressLocality: 'Velence', addressRegion: 'Fejér', addressCountry: 'HU' }
   if (listing.address) {
     const m = listing.address.match(/^(\d{4})\s+([^,]+),\s*(.+)$/)
     if (m) Object.assign(address, { postalCode: m[1], addressLocality: m[2].trim(), streetAddress: m[3].trim() })
   }
-  const bedrooms = listing.slug === 'velence' ? 4 : 2
+  const sameAs = Object.values(listing.social)
   return {
     '@context': 'https://schema.org',
-    '@type': 'LodgingBusiness',
+    '@type': ['LodgingBusiness', 'VacationRental'],
     '@id': `${origin}/#lodging`,
     name: listing.name,
     url: `${origin}/`,
@@ -33,15 +36,18 @@ export function lodgingJsonLd(listing: Listing, origin: string, photos: Photo[])
     identifier: listing.ntakId ? { '@type': 'PropertyValue', propertyID: 'NTAK', value: listing.ntakId } : undefined,
     address,
     geo: listing.geo ? { '@type': 'GeoCoordinates', latitude: listing.geo.lat, longitude: listing.geo.lng } : undefined,
+    sameAs: sameAs.length ? sameAs : undefined,
     petsAllowed: true,
-    checkinTime: listing.checkinWindow ? listing.checkinWindow.slice(0, 5) : undefined,
-    checkoutTime: listing.checkoutTime ?? undefined,
+    checkinTime: hhmm(listing.checkinWindow),
+    checkoutTime: hhmm(listing.checkoutTime),
     amenityFeature: (AMENITIES[listing.slug] ?? []).map((name) => ({ '@type': 'LocationFeatureSpecification', name, value: true })),
     availableLanguage: ['hu'],
     containsPlace: {
-      '@type': 'House',
+      '@type': 'Accommodation',
+      additionalType: 'House',
       name: listing.name,
-      numberOfBedrooms: bedrooms,
+      numberOfBedrooms: listing.bedrooms ?? undefined,
+      numberOfBathroomsTotal: listing.bathrooms ?? undefined,
       occupancy: { '@type': 'QuantitativeValue', minValue: 1, maxValue: listing.capacityMax + listing.capacityExtra },
     },
   }

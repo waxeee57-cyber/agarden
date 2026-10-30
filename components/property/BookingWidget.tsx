@@ -6,10 +6,12 @@ import { useSearchParams } from 'next/navigation'
 import { Calendar, addDays, parseISO, toISO, fmtDay } from './Calendar'
 import { formatHuf } from '@/lib/format'
 import { telHref } from '@/lib/brand'
-import { ShareButton } from './ShareButton'
 
-// Booking + quote request for the CURRENT host's house. The client never sends
-// a listing id: every /api route resolves the house from the request host.
+// Step-by-step booking for the CURRENT host's house ("hülyebiztos"):
+//   1 Dátum → 2 Létszám, extrák → 3 Adataid → 4 Összegzés → küldés → kész.
+// One decision per step, errors next to the field, 48 px targets, and the
+// phone number is one tap away on every step. The client never sends a
+// listing id: every /api route resolves the house from the request host.
 
 export type WidgetListing = {
   siteName: string
@@ -20,26 +22,21 @@ export type WidgetListing = {
   phone: string
   email: string | null
   singleNightAllowed: boolean
+  confirmHours: number | null
+  depositLine: string | null
+  extraCosts: string[]
 }
 export type SisterInfo = { name: string; origin: string; pitch: string }
 
-type Quote = {
-  valid: boolean
-  reason: string | null
-  nights: number
-  subtotal: number | null
-  surcharges: { code: string; label: string; amount: number }[]
-  total: number | null
-  pricingMode: string | null
-}
+type Quote = { valid: boolean; reason: string | null; nights: number; subtotal: number | null; surcharges: { code: string; label: string; amount: number }[]; total: number | null; pricingMode: string | null }
 
 function humanError(code: string | null | undefined, minNights: number): string {
   switch (code) {
     case 'overlap': return 'Ez az időszak közben foglalt lett. Válassz másik dátumot.'
-    case 'min_nights': return `Legalább ${minNights} éjszaka foglalható. 1 éjszakás tartózkodáshoz kérj ajánlatot.`
+    case 'min_nights': return `Legalább ${minNights} éjszaka foglalható. Rövidebb tartózkodáshoz kérj ajánlatot.`
     case 'invalid_dates': return 'A távozás legyen későbbi az érkezésnél.'
     case 'capacity_unavailable': return 'Ennyi főre a ház nem foglalható. Kérj ajánlatot, és egyeztetünk.'
-    case 'listing_not_found': return 'A ház jelenleg nem foglalható online.'
+    case 'listing_not_found': return 'A ház jelenleg nem foglalható online. Hívj minket.'
     case 'validation_error': return 'Ellenőrizd a megadott adatokat.'
     case 'rate_limited': return 'Túl sok próbálkozás. Várj pár percet, vagy hívj minket.'
     default: return 'Nem sikerült elküldeni. Próbáld újra, vagy hívj minket.'
@@ -48,17 +45,16 @@ function humanError(code: string | null | undefined, minNights: number): string 
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
+const STEPS = ['Dátum', 'Létszám', 'Adataid', 'Összegzés'] as const
 
-export type ShareInfo = { title: string; lines: string[]; origin: string }
-
-export function BookingWidget({ listing, sister, share }: { listing: WidgetListing; sister: SisterInfo; share?: ShareInfo }) {
+export function BookingWidget({ listing, sister }: { listing: WidgetListing; sister: SisterInfo }) {
   const maxGuests = listing.capacityMax + listing.capacityExtra
   const params = useSearchParams()
   const initIn = params.get('checkIn')
   const initOut = params.get('checkOut')
   const valid = (s: string | null) => !!s && ISO_RE.test(s) && s >= toISO(new Date())
 
-  // ?ajanlat=1 opens the quote tab, ?rendezveny=1 pre-ticks the event flag (links from the event section)
+  const [step, setStep] = useState(0)
   const [mode, setMode] = useState<'book' | 'inquiry'>(params.get('ajanlat') === '1' ? 'inquiry' : 'book')
   const [checkIn, setCheckIn] = useState<string | null>(valid(initIn) ? initIn : null)
   const [checkOut, setCheckOut] = useState<string | null>(valid(initIn) && valid(initOut) && initOut! > initIn! ? initOut : null)
@@ -76,6 +72,7 @@ export function BookingWidget({ listing, sister, share }: { listing: WidgetListi
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [sisterOffer, setSisterOffer] = useState<null | { href: string; from: string; to: string }>(null)
   const [success, setSuccess] = useState<null | { kind: 'book' | 'inquiry'; id?: string; total?: number | null }>(null)
+  const top = useRef<HTMLDivElement>(null)
 
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -84,11 +81,7 @@ export function BookingWidget({ listing, sister, share }: { listing: WidgetListi
       if (!checkIn || !checkOut) { setQuote(null); return }
       setQuoteLoading(true)
       try {
-        const res = await fetch('/api/quote', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ checkIn, checkOut, guests, pet, isEvent }),
-        })
+        const res = await fetch('/api/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checkIn, checkOut, guests, pet, isEvent }) })
         setQuote(await res.json())
       } catch {
         setQuote(null)
@@ -109,47 +102,56 @@ export function BookingWidget({ listing, sister, share }: { listing: WidgetListi
     }
   }
 
-  function onBlockedPick(dayIso: string) {
-    void checkSister(dayIso, toISO(addDays(parseISO(dayIso), Math.max(listing.minNights, 1))))
+  function go(n: number) {
+    setStep(n)
+    setSubmitError(null)
+    // keep the step heading in view on phones, and move focus to it for screen readers
+    requestAnimationFrame(() => {
+      top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      top.current?.querySelector<HTMLElement>('[data-step-title]')?.focus()
+    })
   }
 
-  function validate(): boolean {
+  function validateStep(s: number): boolean {
     const e: Record<string, string> = {}
-    if (name.trim().length < 2) e.name = 'Add meg a neved.'
-    if (!EMAIL_RE.test(email.trim())) e.email = 'Érvényes e-mail cím kell a visszaigazoláshoz.'
-    if (phone.trim() && phone.trim().length < 5) e.phone = 'Ellenőrizd a telefonszámot.'
-    if (mode === 'book') {
-      if (!checkIn || !checkOut) e.dates = 'Válaszd ki az érkezést és a távozást.'
-      if (guests < 1 || guests > maxGuests) e.guests = `1–${maxGuests} fő.`
+    if (s === 0 && mode === 'book') {
+      if (!checkIn || !checkOut) e.dates = 'Válaszd ki az érkezés és a távozás napját a naptárban.'
+      else if (quote && !quote.valid) e.dates = humanError(quote.reason, listing.minNights)
+    }
+    if (s === 1 && (guests < 1 || guests > maxGuests)) e.guests = `1 és ${maxGuests} fő között.`
+    if (s === 2) {
+      if (name.trim().length < 2) e.name = 'Add meg a neved.'
+      if (!EMAIL_RE.test(email.trim())) e.email = 'Érvényes e-mail cím kell, ide küldjük a visszaigazolást.'
+      if (phone.trim() && phone.trim().replace(/\D/g, '').length < 6) e.phone = 'Ellenőrizd a telefonszámot.'
     }
     setErrors(e)
-    return Object.keys(e).length === 0
+    return !Object.keys(e).length
   }
 
-  async function submit(ev: React.FormEvent) {
-    ev.preventDefault()
-    setSubmitError(null)
-    if (!validate()) return
-    setSubmitting(true)
-    const contact = {
-      guestName: name.trim(),
-      guestEmail: email.trim(),
-      ...(phone.trim() ? { guestPhone: phone.trim() } : {}),
-      ...(message.trim() ? { message: message.trim() } : {}),
+  const next = () => { if (validateStep(step)) go(step + 1) }
+
+  async function submit() {
+    if (![0, 1, 2].every((s) => validateStep(s))) {
+      const first = [0, 1, 2].find((s) => !validateStep(s))
+      if (first != null) go(first)
+      return
     }
+    setSubmitting(true)
+    setSubmitError(null)
+    const contact = { guestName: name.trim(), guestEmail: email.trim(), ...(phone.trim() ? { guestPhone: phone.trim() } : {}), ...(message.trim() ? { message: message.trim() } : {}) }
     try {
       const res = await fetch(mode === 'book' ? '/api/booking' : '/api/quote-request', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(
-          mode === 'book'
-            ? { checkIn, checkOut, guests, pet, isEvent, ...contact }
-            : { ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), guests, pet, isEvent, ...contact }
-        ),
+        body: JSON.stringify(mode === 'book'
+          ? { checkIn, checkOut, guests, pet, isEvent, ...contact }
+          : { ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), guests, pet, isEvent, ...contact }),
       })
       const data = await res.json()
-      if (data.ok) setSuccess({ kind: mode, id: data.bookingId, total: data.total })
-      else {
+      if (data.ok) {
+        setSuccess({ kind: mode, id: data.bookingId, total: data.total })
+        requestAnimationFrame(() => top.current?.scrollIntoView({ block: 'start' }))
+      } else {
         setSubmitError(humanError(data.reason, listing.minNights))
         if (data.reason === 'overlap' && checkIn && checkOut) void checkSister(checkIn, checkOut)
       }
@@ -160,186 +162,199 @@ export function BookingWidget({ listing, sister, share }: { listing: WidgetListi
     }
   }
 
+  const callBtn = (
+    <a href={telHref(listing.phone)} className="btn btn-line btn-sm shrink-0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" /></svg>
+      Inkább felhívlak
+    </a>
+  )
+
   if (success) {
     return (
-      <div className="panel p-7 md:p-9" role="status">
-        <div className="kicker">{success.kind === 'book' ? 'Foglalási kérelem rögzítve' : 'Ajánlatkérés elküldve'}</div>
-        <h3 className="mt-2 text-2xl">{success.kind === 'book' ? 'Köszönjük, megkaptuk!' : 'Köszönjük, hamarosan jelentkezünk.'}</h3>
-        <p className="mt-3 text-fg/90">
-          {success.kind === 'book'
-            ? 'A dátumokat fenntartjuk, amíg e-mailben visszaigazoljuk a foglalást. Most nem vontunk le pénzt, a fizetés a helyszínen történik.'
-            : 'Az ajánlatkérés nem foglal le dátumot. A részletekkel e-mailben vagy telefonon keresünk.'}
-        </p>
-        <dl className="mt-5 space-y-1 text-sm">
+      <div ref={top} className="panel scroll-mt-4 p-6 md:p-10" role="status">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-act text-act-fg" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12.5 9.5 18 20 6" /></svg>
+        </span>
+        <h2 className="mt-5 text-[clamp(1.8rem,4vw,2.6rem)]">{success.kind === 'book' ? 'Megkaptuk a foglalási kérelmed!' : 'Megkaptuk az ajánlatkérésed!'}</h2>
+        <ol className="mt-6 grid gap-3 text-fg/90">
+          <li><strong>Most:</strong> {success.kind === 'book' ? 'a dátumokat fenntartjuk neked. Pénzt nem vontunk le.' : 'az ajánlatkérés még nem foglal le dátumot.'}</li>
+          <li><strong>{listing.confirmHours ? `${listing.confirmHours} órán belül:` : 'Hamarosan:'}</strong> {success.kind === 'book' ? 'e-mailben visszaigazoljuk a foglalást' : 'e-mailben vagy telefonon küldjük az ajánlatot'} ({email.trim()}).</li>
+          {success.kind === 'book' && listing.depositLine && <li><strong>Utána:</strong> {listing.depositLine} A számlaszámot a visszaigazoló levélben küldjük.</li>}
+        </ol>
+        <dl className="mt-6 space-y-1 text-sm">
           {success.id && <Row dt="Azonosító" dd={<span className="tnum">{success.id.slice(0, 8)}</span>} />}
+          {checkIn && checkOut && <Row dt="Dátum" dd={`${fmtDay(parseISO(checkIn))} – ${fmtDay(parseISO(checkOut))}`} />}
           {success.kind === 'book' && success.total != null && <Row dt="Tájékoztató végösszeg" dd={<span className="tnum">{formatHuf(success.total)}</span>} />}
         </dl>
-        <p className="mt-5 text-sm text-soft">
-          <a className="underline underline-offset-2" href={telHref(listing.phone)}>{listing.phone}</a>
-          {listing.email && <> · <a className="underline underline-offset-2" href={`mailto:${listing.email}`}>{listing.email}</a></>}
-        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/" className="btn btn-act">Vissza a főoldalra</Link>
+          <a href={telHref(listing.phone)} className="btn btn-line">Kérdésem van: {listing.phone}</a>
+        </div>
       </div>
     )
   }
 
   return (
-    <form className="panel overflow-hidden" onSubmit={submit} noValidate>
-      <div className="grid grid-cols-2 border-b border-rule" role="tablist" aria-label="Foglalás típusa">
-        {(['book', 'inquiry'] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={mode === m}
-            onClick={() => { setMode(m); setSubmitError(null); setErrors({}) }}
-            className={`min-h-14 px-4 py-4 text-sm font-semibold transition-colors ${mode === m ? 'bg-act text-act-fg' : 'bg-surface text-fg hover:bg-surface-2'}`}
-          >
-            {m === 'book' ? 'Foglalási kérelem' : 'Ajánlatkérés'}
-          </button>
-        ))}
+    <div ref={top} className="panel scroll-mt-4 overflow-hidden">
+      {/* progress + call: always visible */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-4 md:px-8">
+        <ol className="flex gap-1.5" aria-label="Lépések">
+          {STEPS.map((s, i) => (
+            <li key={s} aria-current={i === step ? 'step' : undefined} className={`h-1.5 w-8 rounded-full md:w-12 ${i <= step ? 'bg-act' : 'bg-rule'}`}>
+              <span className="sr-only">{i + 1}. {s}{i < step ? ' (kész)' : ''}</span>
+            </li>
+          ))}
+        </ol>
+        {callBtn}
       </div>
 
-      <div className="grid gap-7 p-5 md:grid-cols-[1.1fr_0.9fr] md:p-8">
-        <div>
-          <div className="field-label">Dátum</div>
-          <p className="mb-3 mt-1 text-sm text-soft">
-            {mode === 'book' ? 'Válaszd ki az érkezést és a távozást.' : 'A dátum opcionális: írd meg, mire gondoltok.'} A távozás napja másnak már érkezési nap lehet.
-          </p>
-          <Calendar
-            checkIn={checkIn}
-            checkOut={checkOut}
-            contact={{ phone: listing.phone, email: listing.email }}
-            onBlockedPick={onBlockedPick}
-            onSelect={(ci, co) => { setCheckIn(ci); setCheckOut(co); setSisterOffer(null); setErrors((e) => ({ ...e, dates: '' })) }}
-          />
-          {errors.dates && <p className="err mt-2">{errors.dates}</p>}
-          {share && checkIn && checkOut && (
-            <div className="mt-4"><ShareButton {...share} checkIn={checkIn} checkOut={checkOut} label="Elküldöm ezeket a dátumokat a társaságnak" /></div>
-          )}
+      <div className="p-5 md:p-8">
+        <p className="text-sm font-semibold text-soft">{step + 1}. lépés a {STEPS.length}-ből</p>
 
-          {sisterOffer && (
-            <div className="mt-4 rounded-[var(--radius-lg)] border border-band bg-band/15 p-4" role="status">
-              <p className="text-sm font-semibold text-fg">
-                Ezek a napok nálunk foglaltak, de a testvérházunk szabad: {fmtDay(parseISO(sisterOffer.from))} – {fmtDay(parseISO(sisterOffer.to))}
-              </p>
-              <p className="mt-1 text-sm text-fg/85">{sister.pitch}</p>
-              <a href={sisterOffer.href} className="btn btn-act btn-sm mt-3">Megnézem: {sister.name}</a>
+        {step === 0 && (
+          <section aria-labelledby="st-0">
+            <h2 id="st-0" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Mikor jönnétek?</h2>
+            <p className="mb-4 mt-2 text-soft">Koppints az érkezés, majd a távozás napjára. Minimum {listing.minNights} éjszaka; a távozás napja másnak már érkezési nap lehet.</p>
+            <Calendar
+              checkIn={checkIn}
+              checkOut={checkOut}
+              contact={{ phone: listing.phone, email: listing.email }}
+              onBlockedPick={(d) => void checkSister(d, toISO(addDays(parseISO(d), Math.max(listing.minNights, 1))))}
+              onSelect={(ci, co) => { setCheckIn(ci); setCheckOut(co); setSisterOffer(null); setMode('book'); setErrors((e) => ({ ...e, dates: '' })) }}
+            />
+            {errors.dates && <p className="err mt-3" role="alert">{errors.dates}</p>}
+            {checkIn && checkOut && <DatesSummary checkIn={checkIn} checkOut={checkOut} quote={quote} loading={quoteLoading} minNights={listing.minNights} />}
+            {sisterOffer && <SisterBox offer={sisterOffer} sister={sister} />}
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button type="button" className="btn btn-act" onClick={next}>Tovább: létszám</button>
+              <button type="button" className="btn btn-line" onClick={() => { setMode('inquiry'); setCheckIn(null); setCheckOut(null); setErrors({}); go(1) }}>
+                Még nincs pontos dátum: ajánlatot kérek
+              </button>
             </div>
-          )}
+          </section>
+        )}
 
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
-            <div>
-              <div className="field-label" id="guests-label">Létszám</div>
-              <div className="mt-2 flex items-center gap-3">
-                <Stepper value={guests} min={1} max={maxGuests} onChange={setGuests} labelledBy="guests-label" />
-                <span className="text-sm text-soft">max {listing.capacityMax}+{listing.capacityExtra} fő</span>
-              </div>
-              {errors.guests && <p className="err mt-1">{errors.guests}</p>}
+        {step === 1 && (
+          <section aria-labelledby="st-1">
+            <h2 id="st-1" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Hányan lesztek?</h2>
+            <p className="mt-2 text-soft">Legfeljebb {listing.capacityMax}+{listing.capacityExtra} fő (a +{listing.capacityExtra} pótágyon).</p>
+            <div className="mt-5 flex items-center gap-4">
+              <Stepper value={guests} min={1} max={maxGuests} onChange={setGuests} label="Létszám" />
+              <span className="text-lg font-semibold tnum">{guests} fő</span>
             </div>
-            <fieldset>
+            {errors.guests && <p className="err mt-2">{errors.guests}</p>}
+            <fieldset className="mt-8">
               <legend className="field-label">Extrák</legend>
-              <div className="mt-2 flex flex-col gap-1">
-                <Toggle checked={pet} onChange={setPet} label="Kistestű kisállat (felár)" />
-                <Toggle checked={isEvent} onChange={setIsEvent} label="Rendezvény, búcsú (eltérő ár)" />
+              <div className="mt-2 grid gap-2">
+                <Toggle checked={pet} onChange={setPet} label="Kistestű kisállatot hozunk" hint="felár ellenében" />
+                <Toggle checked={isEvent} onChange={setIsEvent} label="Rendezvény, legény- vagy lánybúcsú" hint="eltérő ár, egyeztetéssel" />
               </div>
             </fieldset>
-          </div>
-        </div>
+            <Nav onBack={() => go(0)} onNext={next} nextLabel="Tovább: adataid" />
+          </section>
+        )}
 
-        <div className="flex flex-col gap-5">
-          <QuotePanel quote={quote} loading={quoteLoading} hasDates={!!(checkIn && checkOut)} mode={mode} listing={listing} />
-
-          <div className="grid gap-3">
-            <div className="field">
-              <label htmlFor="bw-name">Név</label>
-              <input id="bw-name" className="input" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!errors.name} aria-describedby={errors.name ? 'bw-name-err' : undefined} autoComplete="name" />
-              {errors.name && <p id="bw-name-err" className="err">{errors.name}</p>}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="field">
-                <label htmlFor="bw-email">E-mail</label>
-                <input id="bw-email" type="email" inputMode="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'bw-email-err' : undefined} autoComplete="email" />
-                {errors.email && <p id="bw-email-err" className="err">{errors.email}</p>}
+        {step === 2 && (
+          <section aria-labelledby="st-2">
+            <h2 id="st-2" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Kinek küldjük a visszaigazolást?</h2>
+            <div className="mt-5 grid gap-4">
+              <Field id="bw-name" label="Név" value={name} onChange={setName} error={errors.name} autoComplete="name" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field id="bw-email" label="E-mail" type="email" inputMode="email" value={email} onChange={setEmail} error={errors.email} autoComplete="email" />
+                <Field id="bw-phone" label="Telefon" optional type="tel" inputMode="tel" value={phone} onChange={setPhone} error={errors.phone} autoComplete="tel" />
               </div>
               <div className="field">
-                <label htmlFor="bw-phone">Telefon <span className="font-normal text-soft">(opcionális)</span></label>
-                <input id="bw-phone" type="tel" inputMode="tel" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} aria-invalid={!!errors.phone} autoComplete="tel" />
-                {errors.phone && <p className="err">{errors.phone}</p>}
+                <label htmlFor="bw-msg">Üzenet <span className="font-normal text-soft">(nem kötelező)</span></label>
+                <textarea id="bw-msg" className="input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={mode === 'book' ? 'Pl. mikor érkeztek, kérdés a házról' : 'Pl. melyik hétvége, hány éjszaka, mire készültök'} />
               </div>
             </div>
-            <div className="field">
-              <label htmlFor="bw-msg">Üzenet <span className="font-normal text-soft">(opcionális)</span></label>
-              <textarea id="bw-msg" className="input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={mode === 'book' ? 'Pl. érkezés időpontja, kérdések' : 'Pl. hétvége 8 főre, érdeklődünk az árról'} />
+            <Nav onBack={() => go(1)} onNext={next} nextLabel="Tovább: összegzés" />
+          </section>
+        )}
+
+        {step === 3 && (
+          <section aria-labelledby="st-3">
+            <h2 id="st-3" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Minden stimmel?</h2>
+            <dl className="mt-5 divide-y divide-rule border-y border-rule">
+              <SummaryRow dt="Típus" dd={mode === 'book' ? 'Foglalási kérelem' : 'Ajánlatkérés (nem foglal le dátumot)'} onEdit={() => go(0)} />
+              <SummaryRow dt="Dátum" dd={checkIn && checkOut ? `${fmtDay(parseISO(checkIn))} – ${fmtDay(parseISO(checkOut))}${quote?.nights ? ` (${quote.nights} éj)` : ''}` : 'Még nincs pontos dátum'} onEdit={() => go(0)} />
+              <SummaryRow dt="Létszám" dd={`${guests} fő${pet ? ', kisállattal' : ''}${isEvent ? ', rendezvény' : ''}`} onEdit={() => go(1)} />
+              <SummaryRow dt="Kapcsolat" dd={`${name.trim()}, ${email.trim()}${phone.trim() ? `, ${phone.trim()}` : ''}`} onEdit={() => go(2)} />
+              <SummaryRow dt="Ár" dd={quote?.valid && quote.total != null ? `${formatHuf(quote.total)} (tájékoztató)` : 'Egyedi ajánlatban küldjük'} />
+            </dl>
+            <ul className="mt-5 grid gap-1.5 text-sm text-soft">
+              <li>Most nem vonunk le pénzt, online fizetés nincs.</li>
+              {mode === 'book' && listing.depositLine && <li>{listing.depositLine}</li>}
+              {listing.extraCosts.map((x) => <li key={x}>{x}</li>)}
+            </ul>
+            {submitError && <p className="err mt-4" role="alert">{submitError}</p>}
+            {sisterOffer && <SisterBox offer={sisterOffer} sister={sister} />}
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+              <button type="button" className="btn btn-line" onClick={() => go(2)}>Vissza</button>
+              <button type="button" className="btn btn-act sm:min-w-64" onClick={submit} disabled={submitting}>
+                {submitting ? 'Küldés…' : mode === 'book' ? 'Foglalási kérelem elküldése' : 'Ajánlatkérés elküldése'}
+              </button>
             </div>
-          </div>
-
-          {submitError && <p className="err" role="alert">{submitError}</p>}
-
-          <button type="submit" className="btn btn-act" disabled={submitting}>
-            {submitting ? 'Küldés…' : mode === 'book' ? 'Foglalási kérelem küldése' : 'Ajánlatkérés küldése'}
-          </button>
-          <p className="text-center text-sm text-soft">
-            {mode === 'book'
-              ? 'Most nem vonunk le pénzt. Visszaigazolás e-mailben, fizetés a helyszínen.'
-              : 'Az ajánlatkérés nem foglal le dátumot.'}
-          </p>
-          <p className="text-center text-xs text-soft">
-            Az adataidat csak a kérés intézéséhez használjuk.{' '}
-            <Link href="/adatvedelem" className="underline underline-offset-2 hover:text-fg">Adatkezelési tájékoztató</Link>
-          </p>
-        </div>
+            <p className="mt-4 text-xs text-soft">
+              A küldéssel elfogadod az <Link href="/aszf" className="underline underline-offset-2">ÁSZF</Link>-et. Az adataidat csak a kérés intézéséhez használjuk:{' '}
+              <Link href="/adatvedelem" className="underline underline-offset-2">Adatvédelem</Link>.
+            </p>
+          </section>
+        )}
       </div>
-    </form>
+    </div>
   )
 }
 
-function QuotePanel({ quote, loading, hasDates, mode, listing }: { quote: Quote | null; loading: boolean; hasDates: boolean; mode: 'book' | 'inquiry'; listing: WidgetListing }) {
-  const priced = listing.pricingMode === 'fixed'
-  if (!hasDates) {
-    return (
-      <div className="rounded-[var(--radius-lg)] border border-dashed border-rule p-5 text-sm text-soft">
-        {priced
-          ? 'Válassz dátumot, és megmutatjuk a tájékoztató végösszeget.'
-          : 'Az árat egyedi ajánlatban küldjük: válassz dátumot a foglalási kérelemhez, vagy kérj ajánlatot.'}
-        {!listing.singleNightAllowed && <> Minimum {listing.minNights} éjszaka.</>}
-      </div>
-    )
-  }
-  if (loading && !quote) return <div className="rounded-[var(--radius-lg)] border border-rule p-5 text-sm text-soft" aria-live="polite">Ellenőrzés…</div>
-  if (!quote) return null
-  if (!quote.valid) {
-    return (
-      <div className="rounded-[var(--radius-lg)] border border-bad/40 bg-bad/10 p-5" role="status">
-        <p className="text-sm text-fg/90">{humanError(quote.reason, listing.minNights)}</p>
-      </div>
-    )
-  }
-  if (quote.total == null) {
-    return (
-      <div className="rounded-[var(--radius-lg)] border border-rule bg-surface-2 p-5" role="status">
-        <div className="flex items-baseline justify-between">
-          <span className="kicker">{mode === 'book' ? 'Foglalható' : 'Ajánlatkérés'}</span>
-          <span className="text-sm text-soft tnum">{quote.nights} éj</span>
-        </div>
-        <p className="mt-2 text-sm text-fg/90">A dátumok szabadok. Az árat a visszaigazolással együtt küldjük el.</p>
-      </div>
-    )
-  }
-  const nightly = quote.nights && quote.subtotal != null ? Math.round(quote.subtotal / quote.nights) : null
+function DatesSummary({ checkIn, checkOut, quote, loading, minNights }: { checkIn: string; checkOut: string; quote: Quote | null; loading: boolean; minNights: number }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-rule bg-surface-2 p-5" role="status">
-      <div className="flex items-baseline justify-between">
-        <div className="kicker">Tájékoztató ár</div>
-        <div className="text-sm text-soft tnum">{quote.nights} éj</div>
+    <div className="mt-4 rounded-[var(--radius-lg)] border border-rule bg-surface-2 p-4" aria-live="polite">
+      <p className="font-semibold">{fmtDay(parseISO(checkIn))} – {fmtDay(parseISO(checkOut))}{quote?.nights ? <span className="font-normal text-soft"> · {quote.nights} éj</span> : null}</p>
+      {loading && !quote ? <p className="mt-1 text-sm text-soft">Ellenőrzés…</p>
+        : quote && !quote.valid ? <p className="err mt-1">{humanError(quote.reason, minNights)}</p>
+        : quote?.total != null ? <p className="mt-1 text-sm">Tájékoztató ár: <strong className="tnum">{formatHuf(quote.total)}</strong></p>
+        : quote ? <p className="mt-1 text-sm text-soft">Szabad. Az árat a visszaigazolással küldjük.</p> : null}
+    </div>
+  )
+}
+
+function SisterBox({ offer, sister }: { offer: { href: string; from: string; to: string }; sister: SisterInfo }) {
+  return (
+    <div className="mt-4 rounded-[var(--radius-lg)] border border-act/40 bg-range p-4" role="status">
+      <p className="font-semibold">Ezek a napok nálunk foglaltak, de a testvérházunk szabad: {fmtDay(parseISO(offer.from))} – {fmtDay(parseISO(offer.to))}</p>
+      {sister.pitch && <p className="mt-1 text-sm text-fg/85">{sister.pitch}</p>}
+      <a href={offer.href} className="btn btn-act btn-sm mt-3">Megnézem: {sister.name}</a>
+    </div>
+  )
+}
+
+function Nav({ onBack, onNext, nextLabel }: { onBack: () => void; onNext: () => void; nextLabel: string }) {
+  return (
+    <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+      <button type="button" className="btn btn-line" onClick={onBack}>Vissza</button>
+      <button type="button" className="btn btn-act" onClick={onNext}>{nextLabel}</button>
+    </div>
+  )
+}
+
+function Field({ id, label, value, onChange, error, optional, ...rest }: { id: string; label: string; value: string; onChange: (v: string) => void; error?: string; optional?: boolean } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'id'>) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}{optional && <span className="font-normal text-soft"> (nem kötelező)</span>}</label>
+      <input id={id} className="input" value={value} onChange={(e) => onChange(e.target.value)} aria-invalid={!!error} aria-describedby={error ? `${id}-err` : undefined} {...rest} />
+      {error && <p id={`${id}-err`} className="err">{error}</p>}
+    </div>
+  )
+}
+
+function SummaryRow({ dt, dd, onEdit }: { dt: string; dd: string; onEdit?: () => void }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-3">
+      <div>
+        <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-soft">{dt}</dt>
+        <dd className="mt-1 font-semibold">{dd}</dd>
       </div>
-      <dl className="mt-3 space-y-1.5 text-sm">
-        <Row dt={<span className="tnum">{quote.nights} éj × {formatHuf(nightly)}</span>} dd={<span className="tnum">{formatHuf(quote.subtotal)}</span>} />
-        {quote.surcharges.map((s) => <Row key={s.code} dt={s.label} dd={<span className="tnum">+{formatHuf(s.amount)}</span>} />)}
-      </dl>
-      <div className="mt-3 flex items-baseline justify-between border-t border-rule pt-3">
-        <span className="font-display text-lg">Végösszeg</span>
-        <span className="font-display text-2xl tnum text-fg">{formatHuf(quote.total)}</span>
-      </div>
+      {onEdit && <button type="button" onClick={onEdit} className="min-h-12 shrink-0 px-2 text-sm font-semibold text-pop underline underline-offset-4">Módosítom</button>}
     </div>
   )
 }
@@ -353,24 +368,24 @@ function Row({ dt, dd }: { dt: React.ReactNode; dd: React.ReactNode }) {
   )
 }
 
-function Stepper({ value, min, max, onChange, labelledBy }: { value: number; min: number; max: number; onChange: (n: number) => void; labelledBy: string }) {
+function Stepper({ value, min, max, onChange, label }: { value: number; min: number; max: number; onChange: (n: number) => void; label: string }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-rule bg-surface p-1" role="group" aria-labelledby={labelledBy}>
-      <button type="button" aria-label="Kevesebb fő" className="btn btn-line !h-11 !min-h-11 !w-11 !border-0 !p-0" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}>−</button>
-      <span className="w-8 text-center font-semibold tnum" aria-live="polite">{value}</span>
-      <button type="button" aria-label="Több fő" className="btn btn-line !h-11 !min-h-11 !w-11 !border-0 !p-0" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>+</button>
+    <div className="inline-flex items-center gap-1 rounded-full border border-rule bg-surface p-1" role="group" aria-label={label}>
+      <button type="button" aria-label="Kevesebb fő" className="btn btn-line !h-12 !min-h-12 !w-12 !border-0 !p-0 text-xl" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}>−</button>
+      <span className="w-10 text-center text-lg font-semibold tnum" aria-live="polite">{value}</span>
+      <button type="button" aria-label="Több fő" className="btn btn-line !h-12 !min-h-12 !w-12 !border-0 !p-0 text-xl" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>+</button>
     </div>
   )
 }
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (b: boolean) => void; label: string }) {
+function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (b: boolean) => void; label: string; hint?: string }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+    <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-[var(--radius-md)] border border-rule bg-surface px-4 py-2">
       <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span aria-hidden="true" className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus ${checked ? 'bg-act' : 'bg-rule'}`}>
         <span className={`inline-block h-5 w-5 rounded-full border border-rule bg-surface transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
       </span>
-      <span>{label}</span>
+      <span><span className="font-semibold">{label}</span>{hint && <span className="block text-sm text-soft">{hint}</span>}</span>
     </label>
   )
 }

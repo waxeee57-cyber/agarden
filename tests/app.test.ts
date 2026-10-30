@@ -192,6 +192,7 @@ async function main() {
     const g = await read(garden)
     assert.equal(operatorLine(g.legal), 'Teszt Üzemeltető, 2481 Velence, Teszt u. 1., adószám: 12345678-1-07')
     assert.match(g.legal.updatedAt ?? '', /^\d{4}-\d{2}-\d{2}$/)
+    // the form posts every field: times not sent = cleared (the admin form always sends them)
     assert.deepEqual(missingLegal(g.legal, g).map((m) => m.key), ['paymentTerms', 'cancellation', 'checkinWindow', 'checkoutTime', 'retention', 'processorsConfirmed'])
     // the other house is untouched
     assert.equal((await read(napsugar)).legal.operatorName, undefined)
@@ -205,6 +206,75 @@ async function main() {
     const g3 = await read(garden)
     assert.equal(g3.checkoutTime, null)
     assert.equal(g3.legal.cancellation, undefined)
+  })
+
+  // ---------------- 2026-10-30: documents, settings, menu ----------------
+  const actions = await import('../lib/admin/actions')
+  const { normalizeSocial } = await import('../lib/social')
+  const { buildNav } = await import('../lib/nav')
+  const { getDocuments } = await import('../lib/listing')
+  const { parseFaq, parseMarkdown } = await import('../lib/markdown')
+
+  await t('documents: save -> live + version; restore old version; foreign version id refused', async () => {
+    assert.deepEqual((await actions.saveDocument(garden, { kind: 'kornyek', body: 'első' })).ok, true)
+    assert.deepEqual((await actions.saveDocument(garden, { kind: 'kornyek', body: '## Második\nszöveg' })).ok, true)
+    const [old] = await query<{ id: string }>("select id from listing_document_versions where listing_id = $1 and kind = 'kornyek' and body = 'első'", [garden])
+    assert.ok(old)
+    assert.deepEqual((await actions.restoreDocumentVersion(garden, old.id)).ok, true)
+    assert.equal((await getDocuments(garden)).kornyek?.body, 'első')
+    // the Napsugár listing cannot restore (= read or write) a Garden version
+    assert.deepEqual(await actions.restoreDocumentVersion(napsugar, old.id), { ok: false, reason: 'not_found' })
+    assert.deepEqual(await actions.saveDocument(garden, { kind: 'nemletezo', body: 'x' }), { ok: false, reason: 'validation_error' })
+  })
+
+  await t('markdown-lite: headings/lists/links parsed, unsafe link scheme dropped, FAQ pairs', async () => {
+    const b = parseMarkdown('## Cím\n- egy\n- kettő\n[x](javascript:alert(1)) és https://example.hu')
+    assert.deepEqual(b.map((x) => x.t), ['h', 'ul', 'p'])
+    const p = b[2] as Extract<(typeof b)[number], { t: 'p' }>
+    assert.deepEqual(p.lines[0].map((i) => i.t), ['text', 'text', 'a'], 'javascript: link becomes plain text')
+    assert.deepEqual(parseFaq('## K1?\nV1\n\n## K2?\nV2'), [{ q: 'K1?', a: 'V1' }, { q: 'K2?', a: 'V2' }])
+  })
+
+  await t('social links: only that network\'s domain, normalized to https; bad link rejected by field', async () => {
+    assert.equal(normalizeSocial('facebook', 'facebook.com/gardenvendeghazvelence'), 'https://facebook.com/gardenvendeghazvelence')
+    assert.equal(normalizeSocial('instagram', 'http://www.instagram.com/garden_vendeghaz_velence/'), 'https://www.instagram.com/garden_vendeghaz_velence/')
+    assert.equal(normalizeSocial('facebook', 'https://www.instagram.com/x'), null)
+    assert.equal(normalizeSocial('tiktok', 'https://tiktok.com'), null, 'bare domain is not a profile')
+    assert.equal(normalizeSocial('facebook', 'https://facebook.com.evil.example/x'), null)
+    const base = { menuGyik: true, menuKornyek: true, depositPct: 20, cancelDays: 30, confirmHours: 24, quoteValidDays: 4, extraCosts: [], bankAccount: '' }
+    assert.deepEqual(await actions.saveSettings(garden, { ...base, social: { facebook: 'https://www.instagram.com/x' } }), { ok: false, reason: 'invalid_social', fields: ['social.facebook'] })
+    assert.deepEqual(await actions.saveSettings(garden, { ...base, social: { facebook: 'facebook.com/gardenvendeghazvelence/', tiktok: '' } }), { ok: true })
+    const l = (await getListing('velence'))!
+    assert.deepEqual(l.social, { facebook: 'https://facebook.com/gardenvendeghazvelence/' })
+  })
+
+  await t('bank account: saved for the e-mail, never part of the public listing data', async () => {
+    const base = { social: {}, menuGyik: true, menuKornyek: true, depositPct: 20, cancelDays: 30, confirmHours: 24, quoteValidDays: 4, extraCosts: [] }
+    assert.equal((await actions.saveSettings(garden, { ...base, bankAccount: '<script>' })).ok, false)
+    assert.deepEqual(await actions.saveSettings(garden, { ...base, bankAccount: '11773000-00000000-00000000' }), { ok: true })
+    const { getListing: fresh } = await import('../lib/listing')
+    const pub = JSON.stringify(await fresh('velence'))
+    assert.ok(!pub.includes('11773000'), 'bank account must not reach any public page')
+  })
+
+  await t('menu toggle: GYIK hidden when switched off or empty; Környék needs text', async () => {
+    const docs = { gyik: {}, hazirend: {} }
+    const labels = (s: { menuGyik: boolean; menuKornyek: boolean }, d: object) => buildNav({ settings: s }, d, 'https://x.test').map((n) => n.label)
+    assert.deepEqual(labels({ menuGyik: true, menuKornyek: true }, docs), ['Foglalás', 'Képek', 'Házirend', 'ÁSZF', 'Kapcsolat', 'GYIK', 'Testvérházunk'])
+    assert.ok(!labels({ menuGyik: false, menuKornyek: true }, docs).includes('GYIK'))
+    assert.ok(labels({ menuGyik: true, menuKornyek: true }, { ...docs, kornyek: {} }).includes('Környék & programok'))
+    const base = { social: {}, menuKornyek: true, depositPct: null, cancelDays: null, confirmHours: null, quoteValidDays: null, extraCosts: [], bankAccount: '' }
+    assert.deepEqual(await actions.saveSettings(napsugar, { ...base, menuGyik: false }), { ok: true })
+    assert.equal((await getListing('napsugar'))!.settings.menuGyik, false)
+  })
+
+  await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {
+    for (const path of ['/api/admin/documents', '/api/admin/documents/restore', '/api/admin/settings', '/api/admin/messages/x']) {
+      const r = await auth.requireAdminApi(req('garden.test', path, { method: 'PUT', origin: 'https://garden.test' }))
+      assert.equal(!r.ok && r.res.status, 401, path)
+    }
+    const cross = await auth.requireAdminApi(req('napsugar.test', '/api/admin/documents', { method: 'PUT', token: gardenToken, origin: 'https://napsugar.test' }))
+    assert.equal(!cross.ok && cross.res.status, 401)
   })
 
   console.log(`app tests: ${passed} passed`)

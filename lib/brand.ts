@@ -21,7 +21,7 @@ export const BRANDS: Record<Site, Brand> = {
     fullName: 'Garden Vendégház Velence',
     phone: '+36 20 497 1994',
     email: 'gardenvendeghazvelence@gmail.com',
-    colors: { deep: '#0D1813', deep700: '#07100C', accent: '#E4A35C', action: '#E4A35C', paper: '#0D1813', cream: '#EFEADF', ink: '#EFEADF' },
+    colors: { deep: '#556126', deep700: '#434D1D', accent: '#E9D9A0', action: '#556126', paper: '#F5F6F2', cream: '#FCFCFA', ink: '#1B231F' },
   },
   napsugar: {
     site: 'napsugar',
@@ -29,7 +29,7 @@ export const BRANDS: Record<Site, Brand> = {
     fullName: 'Napsugár Vendégház Velence',
     phone: '+36 30 344 2000',
     email: null,
-    colors: { deep: '#0E6070', deep700: '#0A4B58', accent: '#F2A23C', action: '#0E6070', paper: '#FBF1DF', cream: '#FFF7E8', ink: '#1C2930' },
+    colors: { deep: '#0E6070', deep700: '#0A4B58', accent: '#F2A23C', action: '#0E6070', paper: '#F5F6F2', cream: '#FCFCFA', ink: '#1B231F' },
   },
 }
 

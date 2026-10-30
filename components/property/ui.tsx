@@ -1,8 +1,8 @@
-// Server-safe brand atoms. Letters are always real text in the house's own
-// display face (never generated lettering); marks are hand-built SVG (lib/mark.ts).
-//   Mark      — 64×64 badge.
-//   Wordmark  — Mark + name. Garden: condensed caps signage. Napsugár: postcard script.
-//   Stamp     — Napsugár's postage stamp (perforated edge), the postcard signature.
+// Server-safe brand atoms. Letters are always real text in the display face
+// (never generated lettering); marks are hand-built SVG (lib/mark.ts).
+//   Mark      64×64 badge, the only per-house graphic besides the accent.
+//   Wordmark  Mark + house name (Young Serif) + "Vendégház · Velence".
+//   Icon      the few line icons the pages need (stroke = currentColor).
 
 import type { Site } from '@/lib/site-map'
 import { BRANDS } from '@/lib/brand'
@@ -19,47 +19,38 @@ export function Mark({ site, size = 40, className = '' }: { site: Site; size?: n
   )
 }
 
-/** tone="band": on the footer band (band-2), whose foreground differs from the page fg. */
-export function Wordmark({ site, size = 38, tone = "page" }: { site: Site; size?: number; tone?: "page" | "band" }) {
-  const fg = tone === "band" ? "text-band-2-fg" : "text-fg"
-  const sub = tone === "band" ? "text-band-2-fg/80" : "text-fg/80"
+/** tone="band": on the dark footer/contact band. */
+export function Wordmark({ site, size = 40, tone = 'page' }: { site: Site; size?: number; tone?: 'page' | 'band' }) {
   const b = BRANDS[site]
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span className="inline-flex items-center gap-3">
       <Mark site={site} size={size} />
       <span className="flex flex-col leading-none">
-        <span className={`${site === 'velence' ? 'font-display text-[1.6rem] font-extrabold uppercase tracking-[0.04em]' : 'font-display text-[1.5rem]'} ${fg}`}>
-          {b.name}
-        </span>
-        <span className={`mt-1 whitespace-nowrap text-[0.62rem] font-semibold uppercase tracking-[0.2em] ${sub}`}>Vendégház · Velence</span>
+        <span className={`font-display text-[1.55rem] tracking-[-0.01em] ${tone === 'band' ? 'text-band-fg' : 'text-fg'}`}>{b.name}</span>
+        <span className={`mt-1 whitespace-nowrap text-[0.66rem] font-semibold uppercase tracking-[0.18em] ${tone === 'band' ? 'text-band-fg/75' : 'text-soft'}`}>Vendégház · Velence</span>
       </span>
     </span>
   )
 }
 
-/** Postage stamp with a perforated edge (scalloped mask), holding the sun mark. */
-export function Stamp({ className = '', caption = 'Velence · 2481' }: { className?: string; caption?: string }) {
-  const c = BRANDS.napsugar.colors
-  const holes = Array.from({ length: 9 }, (_, i) => 6 + i * 12)
-  const side = Array.from({ length: 11 }, (_, i) => 6 + i * 11.6)
+const PATHS = {
+  phone: 'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z',
+  mail: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-.5 1.5L12 13l8.5-6.5',
+  pin: 'M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21zm0-9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  arrow: 'M5 12h14m-6-6 6 6-6 6',
+  out: 'M14 4h6v6m0-6L10 14M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
+  check: 'M4 12.5 9.5 18 20 6',
+  clock: 'M12 7v5l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  facebook: 'M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z',
+  instagram: 'M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm5 5.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM17.3 6.7h.01',
+  tiktok: 'M15 3c.4 2.6 2 4.2 4.5 4.5v3.2c-1.7 0-3.2-.5-4.5-1.4v6.2A5.5 5.5 0 1 1 9.5 10v3.3a2.3 2.3 0 1 0 2.3 2.3V3H15z',
+} as const
+export type IconName = keyof typeof PATHS
+
+export function Icon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
   return (
-    <span className={`relative inline-block select-none ${className}`} style={{ width: 108, height: 128 }} aria-hidden="true">
-      <svg viewBox="0 0 108 128" width="108" height="128" className="absolute inset-0 drop-shadow-[0_8px_14px_rgb(28_41_48/0.25)]">
-        <defs>
-          <mask id="perf">
-            <rect width="108" height="128" fill="white" />
-            {holes.map((x) => <circle key={`t${x}`} cx={x} cy="0" r="3.4" fill="black" />)}
-            {holes.map((x) => <circle key={`b${x}`} cx={x} cy="128" r="3.4" fill="black" />)}
-            {side.map((y) => <circle key={`l${y}`} cx="0" cy={y} r="3.4" fill="black" />)}
-            {side.map((y) => <circle key={`r${y}`} cx="108" cy={y} r="3.4" fill="black" />)}
-          </mask>
-        </defs>
-        <rect width="108" height="128" fill={c.cream} mask="url(#perf)" />
-        <rect x="9" y="9" width="90" height="110" fill={c.accent} />
-      </svg>
-      <span className="absolute inset-x-0 top-[18px] flex justify-center"><Mark site="napsugar" size={58} /></span>
-      <span className="absolute inset-x-0 bottom-[34px] text-center font-display text-[1.1rem] leading-none text-[#1C2930]">Napsugár</span>
-      <span className="absolute inset-x-0 bottom-[17px] text-center text-[0.56rem] font-bold uppercase tracking-[0.14em] text-[#1C2930]">{caption}</span>
-    </span>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
+      <path d={PATHS[name]} />
+    </svg>
   )
 }

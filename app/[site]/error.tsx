@@ -9,7 +9,7 @@ export default function SiteError({ reset }: { error: Error & { digest?: string 
   const params = useParams<{ site: string }>()
   const b = BRANDS[isSite(params.site) ? params.site : 'velence']
   return (
-    <main data-skin={isSite(params.site) && params.site === 'napsugar' ? 'napsugar' : 'garden'} className="skin-root"><div className="mx-auto flex min-h-[70svh] max-w-xl flex-col justify-center px-4 py-16">
+    <main data-skin={isSite(params.site) ? params.site : 'velence'} className="skin-root"><div className="mx-auto flex min-h-[70svh] max-w-xl flex-col justify-center px-4 py-16">
       <p className="kicker">{b.fullName}</p>
       <h1 className="mt-3 text-4xl">Az oldal most nem tölt be teljesen.</h1>
       <p className="mt-4 text-fg/85">Foglaláshoz és kérdésekhez hívj minket, vagy próbáld újra pár perc múlva.</p>

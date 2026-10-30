@@ -1,23 +1,24 @@
-import type { Metadata } from 'next'
 import { LegalPage, loadLegal } from '@/components/property/LegalPage'
+import { pageMeta } from '@/components/property/SiteChrome'
+import { loadSite } from '@/lib/page'
 
 export const revalidate = 3600
-export const metadata: Metadata = {
-  title: 'Sütik',
-  description: 'Látogatóként nem használunk sütit, analitikát vagy hirdetési követést. Egyetlen süti van: a tulajdonosi belépésé.',
-  alternates: { canonical: '/sutik' },
+
+export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
+  const ctx = await loadSite((await params).site)
+  return pageMeta(ctx.site, '/sutik', 'Sütik', 'Látogatóként nem használunk sütit, analitikát vagy hirdetési követést. Egyetlen süti van: a tulajdonosi belépésé.')
 }
 
 // Claims below were measured on 2026-10-18: a live crawl of every public page
 // set no cookies and made no third-party requests; OSM tile responses carry no
 // Set-Cookie header.
 export default async function Page({ params }: { params: Promise<{ site: string }> }) {
-  const { site, listing } = await loadLegal(params)
+  const { ctx } = await loadLegal(params)
   return (
-    <LegalPage site={site} listing={listing} title="Sütik (cookie-k)" path="/sutik">
+    <LegalPage ctx={ctx} title="Sütik (cookie-k)" path="/sutik">
       <h2>Látogatóként</h2>
       <p>Az oldal a látogatóknál <strong>nem használ sütit</strong>: nincs analitika, nincs hirdetési vagy követő süti, ezért süti-hozzájárulást sem kérünk. A betűtípusokat is saját szerverünkről töltjük, nem külső szolgáltatótól.</p>
-      {site === 'napsugar' && <p>A térkép az OpenStreetMap csempéit tölti be; ezek sem helyeznek el sütit.</p>}
+      <p>A Kapcsolat oldal térképe az OpenStreetMap csempéit tölti be; ezek sem helyeznek el sütit.</p>
 
       <h2>A tulajdonosi felületen</h2>
       <table>

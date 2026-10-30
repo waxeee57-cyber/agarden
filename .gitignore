@@ -34,3 +34,4 @@ playwright-report/
 .DS_Store
 Thumbs.db
 TULAJ-UTMUTATO.md
+.e2e-env

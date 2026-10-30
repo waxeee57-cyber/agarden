@@ -8,10 +8,10 @@ import { useEffect, useRef, useState } from 'react'
 // on the first paint.
 const MapInner = dynamic(() => import('./LocationMapInner'), {
   ssr: false,
-  loading: () => <div className="h-full w-full animate-pulse bg-paper-2" aria-hidden="true" />,
+  loading: () => <div className="h-full w-full animate-pulse bg-surface-2" aria-hidden="true" />,
 })
 
-export function LocationMap(props: { lat: number; lng: number; label: string }) {
+export function LocationMap(props: { lat: number; lng: number; label: string; color: string }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [near, setNear] = useState(false)
 
@@ -23,5 +23,5 @@ export function LocationMap(props: { lat: number; lng: number; label: string }) 
     return () => io.disconnect()
   }, [])
 
-  return <div ref={ref} className="h-full w-full">{near ? <MapInner {...props} /> : <div className="h-full w-full bg-paper-2" aria-hidden="true" />}</div>
+  return <div ref={ref} className="h-full w-full">{near ? <MapInner {...props} /> : <div className="h-full w-full bg-surface-2" aria-hidden="true" />}</div>
 }

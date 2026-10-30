@@ -1,23 +1,37 @@
-import type { Metadata } from 'next'
-import { LegalPage, loadLegal, Pending } from '@/components/property/LegalPage'
+import Link from 'next/link'
+import { LegalPage, loadLegal, Pending, ConsumerSupplement } from '@/components/property/LegalPage'
+import { SitePage, pageMeta } from '@/components/property/SiteChrome'
+import { DocBody } from '@/components/property/DocPage'
 import { lines, operatorLine } from '@/lib/legal'
+import { loadSite } from '@/lib/page'
 
-export const revalidate = 3600
-export const metadata: Metadata = {
-  title: 'ÁSZF és házirend',
-  description: 'A foglalás menete, árak és fizetés, lemondás, házirend és panaszkezelés: a szálláshely általános szerződési feltételei.',
-  alternates: { canonical: '/aszf' },
+export const revalidate = 300
+
+export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
+  const ctx = await loadSite((await params).site)
+  return pageMeta(ctx.site, '/aszf', 'Általános szerződési feltételek', 'A foglalás menete, előleg és fizetés, lemondás és panaszkezelés: a szálláshely általános szerződési feltételei.')
 }
 
+// The owner's own ÁSZF (admin "Szövegek") wins; until there is one, the page is
+// generated from the "Adatok" fields with visible "pótlásra vár" gaps.
 export default async function Page({ params }: { params: Promise<{ site: string }> }) {
-  const { site, listing } = await loadLegal(params)
+  const { listing, ctx } = await loadLegal(params)
   const contact = `${listing.contactPhone ?? ''}${listing.contactEmail ? `, ${listing.contactEmail}` : ''}`
+  const doc = ctx.docs.aszf
+  if (doc) {
+    return (
+      <SitePage ctx={ctx} crumb={{ name: 'ÁSZF', path: '/aszf' }}>
+        <DocBody title="Általános szerződési feltételek" body={doc.body} effective={doc.effectiveDate} updated={doc.updatedAt} />
+        <ConsumerSupplement contact={contact} />
+      </SitePage>
+    )
+  }
   const legal = listing.legal
   const operator = operatorLine(legal)
   const payment = lines(legal.paymentTerms)
   const cancellation = lines(legal.cancellation)
   return (
-    <LegalPage site={site} listing={listing} title="ÁSZF és házirend" path="/aszf">
+    <LegalPage ctx={ctx} title="Általános szerződési feltételek" path="/aszf">
       <h2>1. Szolgáltató</h2>
       <ul>
         <li>Üzemeltető: {operator ?? <Pending>üzemeltetői adatok (név, székhely, adószám)</Pending>}</li>
@@ -54,11 +68,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
       </p>
 
       <h2>5. Házirend</h2>
-      <ul>
-        {listing.houseRules.map((r) => (
-          <li key={r.t}><strong>{r.t}</strong>{r.d ? `: ${r.d}` : ''}</li>
-        ))}
-      </ul>
+      {ctx.docs.hazirend && <p>A részletes házirend külön oldalon olvasható: <Link href="/hazirend">Házirend</Link>.</p>}
       {listing.checkinWindow && listing.checkoutTime ? (
         <p>Érkezés: {listing.checkinWindow}. Távozás: {listing.checkoutTime}-ig.</p>
       ) : (

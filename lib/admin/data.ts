@@ -1,6 +1,8 @@
 import 'server-only'
 import { query, queryOne } from '../db'
 import { legalFromDb, type LegalData } from '../legal'
+import { socialFromDb, type SocialLinks } from '../social'
+import { termsFromDb, settingsFromDb, type Terms, type SiteSettings, type DocKind } from '../terms'
 
 // Admin reads. EVERY query is scoped by the listing id from the verified
 // session (lib/admin/auth.ts) — never by a client-supplied id.
@@ -103,4 +105,52 @@ export async function getAdminListing(listingId: string): Promise<AdminListing |
     checkinWindow: l.checkin_window, checkoutTime: l.checkout_time, legal: legalFromDb(l.legal),
     surcharges: s.map((x) => ({ code: x.code, label: x.label, amount: x.amount_huf, calc: x.calc, active: x.active })),
   }
+}
+
+// ---------- documents + versions ----------
+export type AdminDoc = { body: string; effectiveDate: string | null; updatedAt: string | null }
+export type DocVersion = { id: string; createdAt: string; effectiveDate: string | null; chars: number; preview: string }
+
+export async function listDocuments(listingId: string): Promise<Partial<Record<DocKind, AdminDoc>>> {
+  const rows = await query<{ kind: DocKind; body: string; effective_date: string | null; updated_at: string }>(
+    `select kind, body, to_char(effective_date, 'YYYY-MM-DD') as effective_date,
+            to_char(updated_at at time zone 'Europe/Budapest', 'YYYY-MM-DD HH24:MI') as updated_at
+       from listing_documents where listing_id = $1`,
+    [listingId]
+  )
+  return Object.fromEntries(rows.map((r) => [r.kind, { body: r.body, effectiveDate: r.effective_date, updatedAt: r.updated_at }]))
+}
+
+export async function listVersions(listingId: string, kind: DocKind): Promise<DocVersion[]> {
+  const rows = await query<{ id: string; created_at: string; effective_date: string | null; chars: number; preview: string }>(
+    `select id, to_char(created_at at time zone 'Europe/Budapest', 'YYYY-MM-DD HH24:MI') as created_at,
+            to_char(effective_date, 'YYYY-MM-DD') as effective_date, length(body) as chars, left(regexp_replace(body, '\s+', ' ', 'g'), 90) as preview
+       from listing_document_versions where listing_id = $1 and kind = $2 order by created_at desc limit 20`,
+    [listingId, kind]
+  )
+  return rows.map((r) => ({ id: r.id, createdAt: r.created_at, effectiveDate: r.effective_date, chars: r.chars, preview: r.preview }))
+}
+
+// ---------- settings (social, menu, terms, bank account) ----------
+export type AdminSettings = { social: SocialLinks; settings: SiteSettings; terms: Terms; bankAccount: string }
+
+export async function getAdminSettings(listingId: string): Promise<AdminSettings | null> {
+  const r = await queryOne<{ social: unknown; settings: unknown; terms: unknown; bank_account: string | null }>(
+    'select social, settings, terms, bank_account from listings where id = $1',
+    [listingId]
+  )
+  if (!r) return null
+  return { social: socialFromDb(r.social), settings: settingsFromDb(r.settings), terms: termsFromDb(r.terms), bankAccount: r.bank_account ?? '' }
+}
+
+// ---------- contact messages ----------
+export type AdminMessage = { id: string; name: string; email: string; phone: string | null; message: string; handled: boolean; createdAt: string }
+
+export async function listMessages(listingId: string): Promise<AdminMessage[]> {
+  const rows = await query<{ id: string; name: string; email: string; phone: string | null; message: string; handled: boolean; created_at: string }>(
+    `select id, name, email, phone, message, handled, to_char(created_at at time zone 'Europe/Budapest', 'YYYY-MM-DD HH24:MI') as created_at
+       from contact_messages where listing_id = $1 order by handled, created_at desc limit 100`,
+    [listingId]
+  )
+  return rows.map((r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, message: r.message, handled: r.handled, createdAt: r.created_at }))
 }

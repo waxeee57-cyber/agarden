@@ -3,8 +3,14 @@ import { z } from 'zod'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { updatePhoto, deletePhoto } from '@/lib/photos'
 import { revalidateSite } from '@/lib/admin/actions'
+import { PHOTO_CATEGORIES } from '@/lib/terms'
 
-const patchSchema = z.object({ alt: z.string().max(200).optional(), isCover: z.literal(true).optional() })
+const patchSchema = z.object({
+  alt: z.string().max(200).optional(),
+  isCover: z.literal(true).optional(),
+  category: z.enum(PHOTO_CATEGORIES).optional(),
+  featured: z.union([z.number().int().min(1).max(3), z.null()]).optional(),
+})
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const a = await requireAdminApi(req)
