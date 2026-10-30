@@ -3,6 +3,8 @@ import { cache } from 'react'
 import { query, queryOne } from './db'
 import type { Site } from './site-map'
 import { legalFromDb, type LegalData } from './legal'
+import { socialFromDb, type SocialLinks } from './social'
+import { termsFromDb, settingsFromDb, type Terms, type SiteSettings, type DocKind, type PhotoCategory } from './terms'
 
 // Listing data for the public sites + admin. Replaces lib/velence.ts: there are
 // NO fallback constants — if the DB is unreachable the page errors (app/error.tsx
@@ -29,6 +31,8 @@ export type ListingContent = {
   faq?: { q: string; a: string }[]
   seo?: { title?: string; description?: string }
   sister_pitch?: string
+  hero_chips?: string[]
+  why?: { t: string; d: string }[]
 }
 
 export type Surcharge = { code: 'single_night' | 'pet' | 'event'; label: string; amount: number; calc: string; active: boolean }
@@ -55,9 +59,16 @@ export type Listing = {
   content: ListingContent
   surcharges: Surcharge[]
   legal: LegalData
+  bedrooms: number | null
+  bathrooms: number | null
+  openAllYear: boolean | null
+  social: SocialLinks
+  settings: SiteSettings
+  /** Public booking terms. The bank account is NOT here (e-mail only, lib/email). */
+  terms: Terms
 }
 
-export type Photo = { id: string; url: string; width: number; height: number; alt: string; sortOrder: number; isCover: boolean }
+export type Photo = { id: string; url: string; width: number; height: number; alt: string; sortOrder: number; isCover: boolean; category: PhotoCategory; featured: number | null }
 
 type ListingRow = {
   id: string; slug: string; name: string; site_name: string | null; tagline: string | null
@@ -67,13 +78,16 @@ type ListingRow = {
   address: string | null; geo_lat: number | null; geo_lng: number | null
   checkin_window: string | null; checkout_time: string | null
   house_rules: Listing['houseRules']; content: ListingContent; legal: unknown
+  bedrooms: number | null; bathrooms: number | null; open_all_year: boolean | null
+  social: unknown; settings: unknown; terms: unknown
 }
 
 export const getListing = cache(async (slug: Site): Promise<Listing | null> => {
   const row = await queryOne<ListingRow>(
     `select id, slug, name, site_name, tagline, capacity_max, capacity_extra, min_nights, ntak_id,
             contact_email, contact_phone, nightly_rate_huf, pricing_mode, address, geo_lat, geo_lng,
-            checkin_window, checkout_time, house_rules, content, legal
+            checkin_window, checkout_time, house_rules, content, legal,
+            bedrooms, bathrooms, open_all_year, social, settings, terms
        from listings where slug = $1 and status = 'active'`,
     [slug]
   )
@@ -104,6 +118,12 @@ export const getListing = cache(async (slug: Site): Promise<Listing | null> => {
     content: row.content ?? {},
     surcharges: surcharges.map((s) => ({ code: s.code, label: s.label, amount: s.amount_huf, calc: s.calc, active: s.active })),
     legal: legalFromDb(row.legal),
+    bedrooms: row.bedrooms,
+    bathrooms: row.bathrooms,
+    openAllYear: row.open_all_year,
+    social: socialFromDb(row.social),
+    settings: settingsFromDb(row.settings),
+    terms: termsFromDb(row.terms),
   }
 })
 
@@ -114,11 +134,24 @@ export async function getListingId(slug: Site): Promise<string | null> {
 }
 
 export const getPhotos = cache(async (listingId: string): Promise<Photo[]> => {
-  const rows = await query<{ id: string; blob_url: string; width: number; height: number; alt: string; sort_order: number; is_cover: boolean }>(
-    `select id, blob_url, width, height, alt, sort_order, is_cover from listing_photos
-      where listing_id = $1 order by is_cover desc, sort_order, created_at`,
+  const rows = await query<{ id: string; blob_url: string; width: number; height: number; alt: string; sort_order: number; is_cover: boolean; category: PhotoCategory; featured: number | null }>(
+    `select id, blob_url, width, height, alt, sort_order, is_cover, category, featured from listing_photos
+      where listing_id = $1 order by sort_order, created_at`,
     [listingId]
   )
-  return rows.map((r) => ({ id: r.id, url: r.blob_url, width: r.width, height: r.height, alt: r.alt, sortOrder: r.sort_order, isCover: r.is_cover }))
+  return rows.map((r) => ({ id: r.id, url: r.blob_url, width: r.width, height: r.height, alt: r.alt, sortOrder: r.sort_order, isCover: r.is_cover, category: r.category, featured: r.featured }))
+})
+
+export type ListingDocument = { kind: DocKind; body: string; effectiveDate: string | null; updatedAt: string }
+
+/** Owner-edited documents of a house (empty map entry = not written yet). */
+export const getDocuments = cache(async (listingId: string): Promise<Partial<Record<DocKind, ListingDocument>>> => {
+  const rows = await query<{ kind: DocKind; body: string; effective_date: string | null; updated_at: string }>(
+    `select kind, body, to_char(effective_date, 'YYYY-MM-DD') as effective_date,
+            to_char(updated_at at time zone 'Europe/Budapest', 'YYYY-MM-DD') as updated_at
+       from listing_documents where listing_id = $1 and btrim(body) <> ''`,
+    [listingId]
+  )
+  return Object.fromEntries(rows.map((r) => [r.kind, { kind: r.kind, body: r.body, effectiveDate: r.effective_date, updatedAt: r.updated_at }]))
 })
 
