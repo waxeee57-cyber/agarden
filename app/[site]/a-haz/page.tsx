@@ -32,7 +32,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     <SitePage ctx={ctx} crumb={{ name: 'A ház', path: '/a-haz' }}>
       <PageHead title="A ház" lead={c.lead} />
 
-      <div className="mx-auto max-w-7xl space-y-16 px-4 pb-20 md:px-8">
+      <div className="mx-auto max-w-6xl space-y-16 px-5 pb-20 md:px-8">
         {(c.spaces ?? []).map((s, i) => {
           const photo = firstOf(SPACE_PHOTO[s.tag] ?? 'egyeb')
           return (

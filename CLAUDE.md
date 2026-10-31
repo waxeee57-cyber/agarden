@@ -18,10 +18,10 @@ rendszerrel és tulajdonosi adminnal. Részletek: `README.md`, `PRODUCT.md`.
 - Foglalási logika SQL-ben (`db/migrations`), TS-ben nincs duplikálva.
 - Árak HUF-ban (magyar piac). Nincs kitalált adat: ismeretlen = null/TBD, nem renderelődik.
 - `pnpm build` előtt `scripts/secret-guard.mjs` fut — ha elbukik, NE kerüld meg.
-- Egységes arculat (2026-10-30): `[data-skin=velence|napsugar]` csak az akcentust váltja (`app/globals.css`); Young Serif + Schibsted Grotesk mindkét házon. Közös oldalkeret: `components/property/SiteChrome.tsx` (`SitePage`), adatok: `lib/page.ts` (`loadSite`), menü: `lib/nav.ts`.
+- Egységes arculat (2026-10-30): `[data-skin=velence|napsugar]` csak az akcentust váltja (`app/globals.css`); Gilda Display + Hanken Grotesk mindkét házon. Közös oldalkeret: `components/property/SiteChrome.tsx` (`SitePage`), adatok: `lib/page.ts` (`loadSite`), menü: `lib/nav.ts`.
 - Tulajdonosi szövegek (házirend, ÁSZF, GYIK, Környék, adatkezelés): `listing_documents` markdown-lite (`lib/markdown.ts`), minden mentés verzió (utolsó 20, `save_listing_document`). Bankszámlaszám (`listings.bank_account`) CSAK a visszaigazoló e-mailbe kerülhet, `lib/listing.ts` szándékosan nem olvassa.
 - A gyökér és a `[site]` not-found kliens-komponens: szerveroldali `headers()` ott minden házoldalt dinamikussá tenne (ISR elveszne).
-- Logó/OG: kézi SVG (`lib/mark.ts`) + valódi font (YoungSerif/Schibsted TTF az `assets/fonts`-ban, ő/ű ellenőrizve). AI-szöveges kép tilos.
+- Logó/OG: kézi SVG (`lib/mark.ts`) + valódi font (GildaDisplay/Schibsted TTF az `assets/fonts`-ban, ő/ű ellenőrizve). AI-szöveges kép tilos.
 - E2E: `node scripts/e2e-server.mjs` (agarden_test DB, :3100) + `node --env-file=.e2e-env tests/admin-e2e.mjs <out>`.
 - Jogi oldalak: ismeretlen üzemeltetői adat = `<Pending>` („pótlásra vár”), soha nem kitalált.
 

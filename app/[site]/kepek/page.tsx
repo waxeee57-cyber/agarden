@@ -19,9 +19,9 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   return (
     <SitePage ctx={ctx} crumb={{ name: 'Képek', path: '/kepek' }}>
       <PageHead title="Képek" lead={`${photos.length} fotó, mind a házról készült.`} />
-      <div className="mx-auto max-w-7xl px-4 pb-20 md:px-8">
+      <div className="mx-auto max-w-6xl px-5 pb-20 md:px-8">
         {groups.length > 1 && (
-          <nav aria-label="Kategóriák" className="sticky top-0 z-20 -mx-4 mb-6 overflow-x-auto bg-bg/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
+          <nav aria-label="Kategóriák" className="sticky top-0 z-20 -mx-5 mb-6 overflow-x-auto bg-bg/95 px-5 py-3 backdrop-blur md:-mx-8 md:px-8">
             <ul className="flex gap-2">
               {groups.map((g) => (
                 <li key={g.key}>

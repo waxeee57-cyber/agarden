@@ -45,9 +45,9 @@ export function ContactLinks({ ctx, tone = 'page' }: { ctx: SiteCtx; tone?: 'pag
 export function SiteHeader({ ctx, overlay = false }: { ctx: SiteCtx; overlay?: boolean }) {
   return (
     <header className={overlay ? 'absolute inset-x-0 top-0 z-30' : 'border-b border-rule bg-bg'}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-8 md:py-4">
-        <Link href="/" className={`rounded-full ${overlay ? 'rounded-2xl bg-surface/90 py-1.5 pl-1.5 pr-4 backdrop-blur' : ''}`} aria-label={`${BRANDS[ctx.site].fullName}, főoldal`}>
-          <Wordmark site={ctx.site} size={overlay ? 40 : 42} />
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-4 md:px-10 md:py-5">
+        <Link href="/" className="rounded-md" aria-label={`${BRANDS[ctx.site].fullName}, főoldal`}>
+          <Wordmark site={ctx.site} size={40} />
         </Link>
         <div className="flex items-center gap-2">
           <Link href="/foglalas" className="btn btn-act btn-sm hidden md:inline-flex">Foglalás</Link>
@@ -58,37 +58,58 @@ export function SiteHeader({ ctx, overlay = false }: { ctx: SiteCtx; overlay?: b
   )
 }
 
+// Centered, quiet footer (reference structure): name, address, two contact
+// circles, social, sister house, legal row.
 export function SiteFooter({ ctx }: { ctx: SiteCtx }) {
   const { listing, site } = ctx
   const brand = BRANDS[site]
   const sister = BRANDS[site === 'velence' ? 'napsugar' : 'velence']
+  const social = socialEntries(listing.social)
+  const circle = 'flex h-12 w-12 items-center justify-center rounded-full border border-band-fg/30 transition-colors group-hover:border-band-fg'
   return (
     <footer className="bg-band pb-24 text-band-fg md:pb-0">
-      <div className="mx-auto max-w-7xl px-4 py-14 md:px-8 md:py-20">
-        <div className="grid gap-10 md:grid-cols-[1.3fr_1fr_1fr]">
-          <div>
-            <Wordmark site={site} size={44} tone="band" />
-            {listing.address && <p className="mt-6 flex gap-3 opacity-90"><Icon name="pin" className="mt-0.5 shrink-0" /> {listing.address}</p>}
-            {listing.ntakId && <p className="mt-2 text-sm opacity-75">NTAK regisztrációs szám: {listing.ntakId}</p>}
-          </div>
-          <div>
-            <h2 className="text-xl">Kapcsolat</h2>
-            <div className="mt-3"><ContactLinks ctx={ctx} tone="band" /></div>
-          </div>
-          <div>
-            <h2 className="text-xl">Testvérházunk</h2>
-            <a href={ctx.sisterOrigin} className="mt-3 inline-flex min-h-11 items-center gap-3 font-semibold underline-offset-4 hover:underline">
-              <Mark site={sister.site} size={36} /> {sister.fullName} <span aria-hidden="true">↗</span>
+      <div className="mx-auto max-w-5xl px-5 pb-10 pt-16 text-center md:px-8 md:pt-24">
+        <p className="font-display text-[clamp(2rem,4vw,3rem)] leading-tight">{brand.fullName}</p>
+        {listing.address && <p className="mt-3 text-band-fg/80">{listing.address}</p>}
+        {listing.ntakId && <p className="mt-1 text-sm text-band-fg/60">NTAK regisztrációs szám: {listing.ntakId}</p>}
+
+        <div className="mx-auto mt-12 grid max-w-2xl gap-8 sm:grid-cols-2">
+          <a href={telHref(ctx.phone)} className="group flex flex-col items-center gap-3">
+            <span className={circle}><Icon name="phone" size={18} /></span>
+            <span className="font-display text-xl">{ctx.phone}</span>
+            {listing.content.contact_hours && <span className="-mt-2 text-xs text-band-fg/60">{listing.content.contact_hours}</span>}
+          </a>
+          {listing.contactEmail && (
+            <a href={`mailto:${listing.contactEmail}`} className="group flex flex-col items-center gap-3">
+              <span className={circle}><Icon name="mail" size={18} /></span>
+              <span className="text-[1.02rem] [overflow-wrap:anywhere]">{listing.contactEmail}</span>
             </a>
-          </div>
+          )}
         </div>
-        <div className="mt-12 flex flex-col gap-3 border-t border-band-fg/15 pt-6 text-sm opacity-85 md:flex-row md:items-center md:justify-between">
+
+        {social.length > 0 && (
+          <ul className="mt-10 flex justify-center gap-2" aria-label="Közösségi oldalak">
+            {social.map(([n, url]) => (
+              <li key={n}>
+                <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`${brand.fullName} a ${SOCIAL_LABEL[n]}-on (új lapon)`} className="flex h-11 w-11 items-center justify-center rounded-full text-band-fg/80 hover:text-band-fg">
+                  <Icon name={n} size={19} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <a href={ctx.sisterOrigin} className="mt-8 inline-flex min-h-11 items-center gap-3 text-sm text-band-fg/85 hover:text-band-fg">
+          <Mark site={sister.site} size={28} /> Testvérházunk: {sister.fullName} <span aria-hidden="true">↗</span>
+        </a>
+
+        <div className="mt-12 flex flex-col items-center gap-2 border-t border-band-fg/12 pt-6 text-xs text-band-fg/65 md:flex-row md:justify-between">
           <span>© {new Date().getFullYear()} {brand.fullName}</span>
-          <nav aria-label="Jogi információk" className="flex flex-wrap gap-x-5">
-            <Link href="/adatvedelem" className="inline-flex min-h-11 items-center hover:underline">Adatvédelem</Link>
-            <Link href="/sutik" className="inline-flex min-h-11 items-center hover:underline">Sütik</Link>
-            <Link href="/aszf" className="inline-flex min-h-11 items-center hover:underline">ÁSZF</Link>
-            {ctx.docs.hazirend && <Link href="/hazirend" className="inline-flex min-h-11 items-center hover:underline">Házirend</Link>}
+          <nav aria-label="Jogi információk" className="flex flex-wrap justify-center gap-x-5">
+            <Link href="/adatvedelem" className="inline-flex min-h-11 items-center hover:text-band-fg">Adatvédelem</Link>
+            <Link href="/sutik" className="inline-flex min-h-11 items-center hover:text-band-fg">Sütik</Link>
+            <Link href="/aszf" className="inline-flex min-h-11 items-center hover:text-band-fg">ÁSZF</Link>
+            {ctx.docs.hazirend && <Link href="/hazirend" className="inline-flex min-h-11 items-center hover:text-band-fg">Házirend</Link>}
           </nav>
         </div>
       </div>
@@ -126,9 +147,9 @@ export function pageMeta(site: SiteCtx['site'], path: string, title: string, des
 /** Page heading block used by the subpages. */
 export function PageHead({ title, lead, kicker }: { title: string; lead?: React.ReactNode; kicker?: string }) {
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 md:px-8 md:pb-12 md:pt-16">
+    <div className="mx-auto max-w-6xl px-5 pb-10 pt-12 md:px-8 md:pb-14 md:pt-20">
       {kicker && <p className="kicker">{kicker}</p>}
-      <h1 className="mt-3 text-[clamp(2.4rem,6vw,4.4rem)]">{title}</h1>
+      <h1 className="mt-3 text-[clamp(2.4rem,5vw,3.8rem)]">{title}</h1>
       {lead && <div className="mt-4 max-w-[60ch] text-lg text-soft">{lead}</div>}
     </div>
   )

@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     <SitePage ctx={ctx} crumb={{ name: 'GYIK', path: '/gyik' }}>
       <JsonLd data={faqJsonLd(faq.map((f) => ({ q: f.q, a: f.a.replace(/\*\*|\[|\]\([^)]*\)/g, '') })))} />
       <PageHead title="Gyakori kérdések" />
-      <div className="mx-auto max-w-7xl px-4 pb-20 md:px-8">
+      <div className="mx-auto max-w-6xl px-5 pb-20 md:px-8">
         <div className="max-w-3xl divide-y divide-rule border-y border-rule">
           {faq.map((f) => (
             <details key={f.q} className="group">

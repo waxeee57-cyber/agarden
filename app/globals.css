@@ -40,6 +40,7 @@
   /* legacy admin tokens */
   --color-ink:       #18241F;
   --color-deep:      #1E4339;
+  --color-deep-fg:   #FBF5EA;
   --color-deep-600:  #295A4C;
   --color-deep-700:  #16332B;
   --color-water:     #356B5B;
@@ -56,8 +57,8 @@
   --color-success:   #3F6E47;
   --color-danger:    #A63D27;
 
-  --font-display: var(--font-schibsted), system-ui, sans-serif;
-  --font-sans:    var(--font-schibsted), system-ui, sans-serif;
+  --font-display: var(--font-hanken), system-ui, sans-serif;
+  --font-sans:    var(--font-hanken), system-ui, sans-serif;
 
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -66,9 +67,9 @@
 }
 
 /* ---------- admin (legacy, light) ---------- */
-[data-site="velence"]  { --font-display: var(--font-schibsted), system-ui, sans-serif; --font-sans: var(--font-schibsted), system-ui, sans-serif; }
+[data-site="velence"]  { --font-display: var(--font-hanken), system-ui, sans-serif; --font-sans: var(--font-hanken), system-ui, sans-serif; }
 [data-site="napsugar"] {
-  --font-display: var(--font-schibsted), system-ui, sans-serif; --font-sans: var(--font-schibsted), system-ui, sans-serif;
+  --font-display: var(--font-hanken), system-ui, sans-serif; --font-sans: var(--font-hanken), system-ui, sans-serif;
   --color-deep: #0E6070; --color-deep-700: #0A4B58; --color-water: #0E6070;
   --color-accent: #F2A23C; --color-action: #A94F1B; --color-action-hover: #8C4014;
   --color-paper: #F7EBD8; --color-paper-2: #F1E0C6; --color-cream: #FDF7EC; --color-line: #E3CFAE;
@@ -77,24 +78,28 @@
 /* ---------- public skin (shared) + house accents ---------- */
 [data-skin] {
   color-scheme: light;
-  --font-display: var(--font-young), Georgia, serif;
-  --font-sans: var(--font-schibsted), system-ui, sans-serif;
-  --color-bg: #F5F6F2; --color-surface: #FCFCFA; --color-surface-2: #EBEEE7;
-  --color-fg: #1B231F; --color-soft: #56605A; --color-rule: #D7DCD3;
-  --color-band: #1B231F; --color-band-fg: #EEF0EA;
-  --color-band-2: #1B231F; --color-band-2-fg: #EEF0EA;
-  --color-taken: #E4E7E0; --color-taken-fg: #6E766F;
+  --font-display: var(--font-gilda), Georgia, serif;
+  --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --color-bg: #FAFAF8; --color-surface: #FEFEFC; --color-surface-2: #F0F1ED;
+  --color-fg: #1E2421; --color-soft: #5E6661; --color-rule: #E2E5DF;
+  --color-band: #232825; --color-band-fg: #F1F2EE;
+  --color-band-2: #232825; --color-band-2-fg: #F1F2EE;
+  --color-taken: #ECEEE9; --color-taken-fg: #737B75;
   --color-ok: #2D6B3F; --color-bad: #A63D27;
+  --radius-lg: 10px; --radius-xl: 14px;
 }
+/* act = buttons/links (small areas); deep = muted tone for large colour blocks */
 [data-skin="velence"] {
-  --color-act: #556126; --color-act-fg: #FCFCFA; --color-act-hover: #434D1D;
+  --color-act: #556126; --color-act-fg: #FEFEFC; --color-act-hover: #434D1D;
   --color-pop: #556126; --color-focus: #556126;
-  --color-sel: #556126; --color-sel-fg: #FCFCFA; --color-range: #E3E8CF;
+  --color-deep: #3E4534; --color-deep-fg: #F3F4EF;
+  --color-sel: #556126; --color-sel-fg: #FEFEFC; --color-range: #E6EAD6;
 }
 [data-skin="napsugar"] {
-  --color-act: #0E6070; --color-act-fg: #FCFCFA; --color-act-hover: #0A4B58;
+  --color-act: #0E6070; --color-act-fg: #FEFEFC; --color-act-hover: #0A4B58;
   --color-pop: #0E6070; --color-focus: #0E6070;
-  --color-sel: #0E6070; --color-sel-fg: #FCFCFA; --color-range: #D3E6E8;
+  --color-deep: #31505A; --color-deep-fg: #F2F5F5;
+  --color-sel: #0E6070; --color-sel-fg: #FEFEFC; --color-range: #DAEAEC;
 }
 
 * { box-sizing: border-box; }
@@ -115,8 +120,10 @@ body {
 .site-root { min-height: 100dvh; }
 
 h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 500; }
-/* Young Serif has one weight: hierarchy comes from size, never faux bold */
-[data-skin] :is(h1, h2, h3, .display) { font-weight: 400; line-height: 1.08; letter-spacing: -0.01em; }
+/* Gilda Display has one weight: hierarchy comes from size, never faux bold */
+[data-skin] :is(h1, h2, h3, .display) { font-weight: 400; line-height: 1.14; letter-spacing: 0; }
+[data-skin] { line-height: 1.6; }
+[data-skin] :is(p, li, dd) { text-wrap: pretty; }
 
 ::selection { background-color: var(--color-band); color: var(--color-band-fg); }
 
@@ -147,9 +154,15 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   .btn-line { background: transparent; color: var(--color-fg); border-color: color-mix(in oklab, var(--color-fg) 35%, transparent); }
   .btn-line:hover:not(:disabled) { border-color: var(--color-fg); }
   .btn-sm { min-height: 44px; padding: 0.55rem 1rem; font-size: 0.92rem; }
-  .btn-light { background: transparent; color: #FCFCFA; border-color: rgb(252 252 250 / 0.7); }
+  .btn-light { background: transparent; color: #FEFEFC; border-color: rgb(254 254 252 / 0.7); }
+  .btn-white { background: #FEFEFC; color: #1E2421; }
+  .btn-white:hover:not(:disabled) { background: #F0F1ED; }
   .btn-light:hover:not(:disabled) { background: rgb(252 252 250 / 0.12); border-color: #FCFCFA; }
-  [data-skin] .btn { border-radius: 999px; }
+  /* public buttons: quiet, tracked caps, small radius (reference-grade restraint) */
+  [data-skin] .btn { border-radius: 4px; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.78rem; font-weight: 600; padding: 0 1.6rem; min-height: 48px; }
+  [data-skin] .btn-sm { min-height: 44px; padding: 0 1.15rem; font-size: 0.74rem; }
+  [data-skin] .btn-line { border-width: 1px; border-color: color-mix(in oklab, var(--color-fg) 28%, transparent); }
+  [data-skin] .btn-light { border-width: 1px; }
 
   .field { display: flex; flex-direction: column; gap: 0.4rem; }
   .field > label, .field-label { font-size: 0.88rem; font-weight: 600; color: var(--color-fg); }

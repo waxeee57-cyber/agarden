@@ -24,7 +24,7 @@ csak helymegjelölés, sosem ígéret. Mindkét ház azzal nyer, ami a saját te
 
 ## Márkák (2026-10-30, tulajdonosi konzultáció: egységes arculat)
 Egy közös, világos, nyugodt rendszer mindkét házra: azonos szerkezet, tipográfia
-(Young Serif + Schibsted Grotesk), komponensek és menü. Házanként csak a kézi SVG jel,
+(Gilda Display + Hanken Grotesk), komponensek és menü. Házanként csak a kézi SVG jel,
 az akcentusszín és a fotók különböznek.
 - **Garden Vendégház Velence**: társaságnak, wellnessel (10+2 fő, 4 hálószoba, 2 fürdő,
   6 fős jakuzzi, 2 fős szauna, egész évben nyitva). Akcentus: olíva `#556126`.

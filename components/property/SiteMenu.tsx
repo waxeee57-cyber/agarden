@@ -43,10 +43,10 @@ export function SiteMenu({ items, footer, label = 'Menü' }: { items: NavItem[];
         aria-expanded={open}
         aria-controls="site-menu"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-12 items-center gap-3 rounded-full border border-current/25 bg-surface/90 px-4 text-sm font-semibold text-fg backdrop-blur hover:border-current/60"
+        className="inline-flex min-h-11 items-center gap-3 rounded-[4px] border border-fg/20 bg-surface px-4 text-[0.74rem] font-semibold uppercase tracking-[0.14em] text-fg transition-colors hover:border-fg/60"
       >
         <span>{label}</span>
-        <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><path d="M0 1h18M0 6h18M0 11h12" stroke="currentColor" strokeWidth="1.8" /></svg>
+        <svg width="18" height="10" viewBox="0 0 18 10" aria-hidden="true"><path d="M0 1h18M6 9h12" stroke="currentColor" strokeWidth="1.4" /></svg>
       </button>
 
       <div
@@ -60,7 +60,7 @@ export function SiteMenu({ items, footer, label = 'Menü' }: { items: NavItem[];
         <button type="button" tabIndex={-1} aria-hidden="true" onClick={close} className="absolute inset-0 hidden cursor-default bg-fg/40 md:block" />
         <div ref={panel} className="menu-sheet absolute inset-y-0 right-0 flex w-full flex-col overflow-y-auto bg-surface text-fg md:max-w-[440px] md:border-l md:border-rule">
           <div className="flex items-center justify-end px-4 py-4 md:px-8">
-            <button type="button" onClick={() => { close(); btn.current?.focus() }} className="inline-flex min-h-12 items-center gap-3 rounded-full border border-rule px-4 text-sm font-semibold">
+            <button type="button" onClick={() => { close(); btn.current?.focus() }} className="inline-flex min-h-11 items-center gap-3 rounded-[4px] border border-rule px-4 text-[0.74rem] font-semibold uppercase tracking-[0.14em]">
               Bezárás
               <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" /></svg>
             </button>
@@ -69,7 +69,7 @@ export function SiteMenu({ items, footer, label = 'Menü' }: { items: NavItem[];
             <ul className="divide-y divide-rule border-y border-rule">
               {items.map((it) => {
                 const current = !it.external && path === it.href
-                const cls = 'flex min-h-14 items-center justify-between gap-4 py-3 font-display text-[1.7rem] leading-tight hover:text-pop'
+                const cls = 'flex min-h-14 items-center justify-between gap-4 py-3.5 font-display text-[1.75rem] leading-tight transition-colors hover:text-pop'
                 return (
                   <li key={it.href}>
                     {it.external ? (

@@ -1,7 +1,7 @@
 // Server-safe brand atoms. Letters are always real text in the display face
 // (never generated lettering); marks are hand-built SVG (lib/mark.ts).
 //   Mark      64×64 badge, the only per-house graphic besides the accent.
-//   Wordmark  Mark + house name (Young Serif) + "Vendégház · Velence".
+//   Wordmark  Mark + house name (Gilda Display) + "Vendégház · Velence".
 //   Icon      the few line icons the pages need (stroke = currentColor).
 
 import type { Site } from '@/lib/site-map'
@@ -59,9 +59,9 @@ const PATHS = {
 } as const
 export type IconName = keyof typeof PATHS
 
-export function Icon({ name, size = 20, className = '' }: { name: IconName; size?: number; className?: string }) {
+export function Icon({ name, size = 20, className = '', stroke = 1.6 }: { name: IconName; size?: number; className?: string; stroke?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
       <path d={PATHS[name]} />
     </svg>
   )

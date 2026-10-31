@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     return (
       <SitePage ctx={ctx} crumb={{ name: 'Adatvédelem', path: '/adatvedelem' }}>
         <DocBody title="Adatkezelési tájékoztató" body={doc.body} effective={doc.effectiveDate} updated={doc.updatedAt} />
-        <section className="prose-legal mx-auto max-w-7xl px-4 pb-20 md:px-8 lg:pl-[calc(240px+4rem+2rem)]" aria-labelledby="honlap">
+        <section className="prose-legal mx-auto max-w-6xl px-5 pb-20 md:px-8 lg:pl-[calc(220px+4rem+2rem)]" aria-labelledby="honlap">
           <div className="max-w-[70ch] border-t border-rule pt-8">
             <h2 id="honlap" className="!mt-0">Kiegészítés: a honlap foglalási rendszerének adatkezelése</h2>
             {technical}

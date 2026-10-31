@@ -38,7 +38,7 @@ export function LegalPage({ ctx, title, path, children }: { ctx: SiteCtx; title:
 /** Legally required consumer information shown under an owner-written ÁSZF. */
 export function ConsumerSupplement({ contact }: { contact: string }) {
   return (
-    <section className="doc mx-auto max-w-7xl px-4 pb-20 md:px-8 lg:pl-[calc(240px+4rem+2rem)]" aria-labelledby="kiegeszites">
+    <section className="doc mx-auto max-w-6xl px-5 pb-20 md:px-8 lg:pl-[calc(220px+4rem+2rem)]" aria-labelledby="kiegeszites">
       <div className="max-w-[70ch] border-t border-rule pt-8">
         <h2 id="kiegeszites" className="!mt-0">Kiegészítő tájékoztatás</h2>
         <p>

@@ -36,7 +36,7 @@ export function DocBody({ title, lead, body, effective, updated }: { title: stri
   return (
     <>
       <PageHead title={title} lead={lead} />
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-20 md:px-8 lg:grid-cols-[240px_1fr] lg:gap-16">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 pb-20 md:px-8 lg:grid-cols-[220px_1fr] lg:gap-16">
         <aside className="hidden lg:block"><div className="sticky top-6"><Toc blocks={blocks} /></div></aside>
         <article className="doc max-w-[70ch]">
           {dateLine && <p className="!mt-0 text-sm text-soft">{dateLine}</p>}

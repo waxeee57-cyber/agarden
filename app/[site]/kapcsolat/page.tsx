@@ -21,12 +21,12 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   return (
     <SitePage ctx={ctx} crumb={{ name: 'Kapcsolat', path: '/kapcsolat' }}>
       <PageHead title="Kapcsolat" lead="Hívj, írj, vagy küldj üzenetet: hamar válaszolunk." />
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 md:px-8 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 md:px-8 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
         <div className="flex flex-col gap-8">
           <ContactLinks ctx={ctx} />
           {listing.address && (
             <div>
-              <h2 className="text-xl">Cím</h2>
+              <h2 className="text-[0.68rem] font-sans font-semibold uppercase tracking-[0.16em] text-soft">Cím</h2>
               <p className="mt-2 flex gap-3"><Icon name="pin" className="mt-0.5 shrink-0" /> {listing.address}</p>
               {route && (
                 <a href={route} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold text-pop underline-offset-4 hover:underline">
@@ -43,7 +43,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
         </div>
       </div>
       {listing.geo && (
-        <section aria-label="Térkép" className="mx-auto max-w-7xl px-4 pb-20 md:px-8">
+        <section aria-label="Térkép" className="mx-auto max-w-6xl px-5 pb-20 md:px-8">
           <div className="h-[360px] overflow-hidden rounded-[var(--radius-xl)] border border-rule md:h-[440px]">
             <LocationMap lat={listing.geo.lat} lng={listing.geo.lng} label={BRANDS[ctx.site].fullName} color={BRANDS[ctx.site].colors.action} />
           </div>
