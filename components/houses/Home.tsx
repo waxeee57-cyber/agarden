@@ -52,7 +52,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 1. HERO ---------- */}
       <section aria-labelledby="hero-title" className="mx-auto max-w-[1400px] px-3 pt-3 md:px-10 md:pt-8">
         <div className="relative isolate flex min-h-[74svh] items-end overflow-hidden rounded-[14px] bg-band text-[#FEFEFC] md:min-h-[min(76svh,640px)] md:items-center">
-          {cover && <Image src={cover.url} alt={cover.alt} fill fetchPriority="high" loading="eager" sizes="(min-width: 1400px) 1320px, 100vw" quality={70} className="-z-10 object-cover" />}
+          {cover && <Image src={cover.url} alt={cover.alt} fill preload fetchPriority="high" sizes="(min-width: 1400px) 1320px, 100vw" quality={70} className="-z-10 object-cover" />}
           <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(18_22_20/0.42)]" />
           <div aria-hidden="true" className="absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-[rgb(18_22_20/0.55)] to-transparent md:hidden" />
           <div className="mx-auto w-full max-w-6xl px-6 pb-12 pt-32 md:py-16 md:text-center">
