@@ -260,7 +260,7 @@ async function main() {
   await t('menu toggle: GYIK hidden when switched off or empty; Környék needs text', async () => {
     const docs = { gyik: {}, hazirend: {} }
     const labels = (s: { menuGyik: boolean; menuKornyek: boolean }, d: object) => buildNav({ settings: s }, d, 'https://x.test').map((n) => n.label)
-    assert.deepEqual(labels({ menuGyik: true, menuKornyek: true }, docs), ['Foglalás', 'Képek', 'Házirend', 'ÁSZF', 'Kapcsolat', 'GYIK', 'Testvérházunk'])
+    assert.deepEqual(labels({ menuGyik: true, menuKornyek: true }, docs), ['A ház', 'Foglalás', 'Képek', 'Házirend', 'ÁSZF', 'Kapcsolat', 'GYIK', 'Testvérházunk'])
     assert.ok(!labels({ menuGyik: false, menuKornyek: true }, docs).includes('GYIK'))
     assert.ok(labels({ menuGyik: true, menuKornyek: true }, { ...docs, kornyek: {} }).includes('Környék & programok'))
     const base = { social: {}, menuKornyek: true, depositPct: null, cancelDays: null, confirmHours: null, quoteValidDays: null, extraCosts: [], bankAccount: '' }

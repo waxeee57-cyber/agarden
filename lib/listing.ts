@@ -33,6 +33,9 @@ export type ListingContent = {
   sister_pitch?: string
   hero_chips?: string[]
   why?: { t: string; d: string }[]
+  hero_kicker?: string
+  features?: { i: string; t: string; d: string }[]
+  good_to_know?: string[]
 }
 
 export type Surcharge = { code: 'single_night' | 'pet' | 'event'; label: string; amount: number; calc: string; active: boolean }

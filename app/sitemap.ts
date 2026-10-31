@@ -14,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     page('/', 1, 'weekly'),
     page('/foglalas', 0.9, 'weekly'),
+    page('/a-haz', 0.8),
     page('/kepek', 0.7),
     page('/kapcsolat', 0.7),
     ...(docs.hazirend ? [page('/hazirend', 0.5)] : []),

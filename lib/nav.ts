@@ -7,6 +7,7 @@ export type NavItem = { href: string; label: string; external?: boolean }
 
 export function buildNav(listing: { settings: SiteSettings }, docs: Partial<Record<DocKind, unknown>>, sisterOrigin: string): NavItem[] {
   const items: (NavItem | false)[] = [
+    { href: '/a-haz', label: 'A ház' },
     { href: '/foglalas', label: 'Foglalás' },
     { href: '/kepek', label: 'Képek' },
     !!docs.hazirend && { href: '/hazirend', label: 'Házirend' },
