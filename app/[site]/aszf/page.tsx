@@ -76,7 +76,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
       )}
 
       <h2>6. Panaszkezelés, jogorvoslat</h2>
-      <p>Panaszodat elsősorban közvetlenül nekünk jelezd: {contact}.</p>
+      <p>Panaszát kérjük, elsősorban közvetlenül nekünk jelezze: {contact}.</p>
       <p>
         Fogyasztói jogvita esetén a lakóhelyed szerinti, vagy a szálláshely szerint illetékes békéltető testülethez fordulhatsz:
       </p>

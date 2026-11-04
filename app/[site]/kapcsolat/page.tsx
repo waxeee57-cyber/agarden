@@ -10,7 +10,7 @@ export const revalidate = 300
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)
   const where = ctx.listing.address ?? 'Velence'
-  return pageMeta(ctx.site, '/kapcsolat', 'Kapcsolat és megközelítés', `${BRANDS[ctx.site].fullName}: ${where}. Telefon: ${ctx.phone}. Írj üzenetet, vagy nézd meg a térképen.`)
+  return pageMeta(ctx.site, '/kapcsolat', 'Kapcsolat és megközelítés', `${BRANDS[ctx.site].fullName}: ${where}. Telefon: ${ctx.phone}. Írjon üzenetet, vagy nézze meg a térképen.`)
 }
 
 export default async function Page({ params }: { params: Promise<{ site: string }> }) {
@@ -20,7 +20,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   const route = listing.address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(listing.address)}` : null
   return (
     <SitePage ctx={ctx} crumb={{ name: 'Kapcsolat', path: '/kapcsolat' }}>
-      <PageHead title="Kapcsolat" lead="Hívj, írj, vagy küldj üzenetet: hamar válaszolunk." />
+      <PageHead title="Kapcsolat" lead="Hívjon, írjon, vagy küldjön üzenetet: hamarosan válaszolunk." />
       <div className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 md:px-8 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
         <div className="flex flex-col gap-8">
           <ContactLinks ctx={ctx} />
@@ -38,10 +38,34 @@ export default async function Page({ params }: { params: Promise<{ site: string 
           {listing.ntakId && <p className="text-sm text-soft">NTAK regisztrációs szám: {listing.ntakId}</p>}
         </div>
         <div>
-          <h2 className="mb-4 text-[clamp(1.6rem,3vw,2.2rem)]">Írj nekünk</h2>
+          <h2 className="mb-4 text-[clamp(1.6rem,3vw,2.2rem)]">Írjon nekünk</h2>
           <ContactForm phone={ctx.phone} />
         </div>
       </div>
+      <section aria-label="Tudnivalók" className="mx-auto grid max-w-6xl gap-6 px-5 pb-16 md:grid-cols-2 md:px-8">
+        {(listing.checkinWindow || listing.checkoutTime) && (
+          <div className="flex gap-4 rounded-[var(--radius-xl)] border border-rule bg-surface p-6 md:p-8">
+            <Icon name="calendar" size={28} stroke={1.25} className="shrink-0 text-fg/75" />
+            <div>
+              <h2 className="text-[1.4rem]">Érkezés, távozás</h2>
+              <p className="mt-2 text-soft">
+                {listing.checkinWindow && <>Érkezés: {listing.checkinWindow}. </>}
+                {listing.checkoutTime && <>Távozás: {listing.checkoutTime}-ig. </>}
+                Korábbi érkezést vagy későbbi távozást kérjük, előre egyeztesse velünk.
+              </p>
+            </div>
+          </div>
+        )}
+        <div className="flex gap-4 rounded-[var(--radius-xl)] border border-rule bg-surface p-6 md:p-8">
+          <Icon name="phone" size={28} stroke={1.25} className="shrink-0 text-fg/75" />
+          <div>
+            <h2 className="text-[1.4rem]">Segítünk</h2>
+            <p className="mt-2 text-soft">
+              Kérdése van a foglalással vagy az érkezéssel kapcsolatban? Hívjon minket{listing.content.contact_hours ? ` (${listing.content.contact_hours})` : ''}: {ctx.phone}.
+            </p>
+          </div>
+        </div>
+      </section>
       {listing.geo && (
         <section aria-label="Térkép" className="mx-auto max-w-6xl px-5 pb-20 md:px-8">
           <div className="h-[360px] overflow-hidden rounded-[var(--radius-xl)] border border-rule md:h-[440px]">

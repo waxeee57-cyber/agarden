@@ -94,11 +94,11 @@ export function guestEmail(house: MailHouse, b: MailBooking): { subject: string;
   const t = house.terms
   const intro =
     b.kind === 'booking'
-      ? `Megkaptuk a foglalási kérelmedet. ${paymentIntro(t)}`
-      : `Megkaptuk az ajánlatkérésedet. ${t?.confirmHours ? `${t.confirmHours} órán belül` : 'Hamarosan'} jelentkezünk a részletekkel. Az ajánlatkérés még nem foglal le dátumot.${t?.quoteValidDays ? ` Az ajánlatunk ${t.quoteValidDays} napig érvényes.` : ''}`
+      ? `Megkaptuk foglalási kérelmét. ${paymentIntro(t)}`
+      : `Megkaptuk ajánlatkérését. ${t?.confirmHours ? `${t.confirmHours} órán belül` : 'Hamarosan'} jelentkezünk a részletekkel. Az ajánlatkérés még nem foglal le dátumot.${t?.quoteValidDays ? ` Az ajánlatunk ${t.quoteValidDays} napig érvényes.` : ''}`
   const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}!</h1>
 <p style="margin:0;font-size:15px;line-height:1.6;">${intro}</p>${details(b)}
-<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#5F6F64;">Kérdésed van? Válaszolj erre a levélre${house.phone ? `, vagy hívj: ${esc(house.phone)}` : ''}.</p>`
+<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#5F6F64;">Kérdése van? Válaszoljon erre a levélre${house.phone ? `, vagy hívjon: ${esc(house.phone)}` : ''}.</p>`
   return {
     subject: b.kind === 'booking' ? `Foglalási kérelem rögzítve – ${name}` : `Ajánlatkérés megérkezett – ${name}`,
     html: layout(house.site, house, body),
@@ -148,10 +148,10 @@ export function guestStatusEmail(house: MailHouse, b: MailBooking, status: 'conf
   const first = esc(b.guestName.trim().split(/\s+/)[0] || b.guestName)
   const name = BRANDS[house.site].name
   const accent = BRANDS[house.site].deep
-  const call = house.phone ? `, vagy hívj: ${esc(house.phone)}` : ''
+  const call = house.phone ? `, vagy hívjon: ${esc(house.phone)}` : ''
   if (status === 'confirmed') {
     const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}, visszaigazoltuk!</h1>
-<p style="margin:0 0 12px;font-size:15px;line-height:1.6;">A foglalásod rendben van, várunk titeket.</p>${depositBlock(b, house.terms, x.bankAccount)}${details(b)}
+<p style="margin:0 0 12px;font-size:15px;line-height:1.6;">Foglalása rendben van, szeretettel várjuk.</p>${depositBlock(b, house.terms, x.bankAccount)}${details(b)}
 ${rows([
   ['Bejelentkezés', x.checkinWindow ? esc(x.checkinWindow) : null],
   ['Kijelentkezés', x.checkoutTime ? `${esc(x.checkoutTime)}-ig` : null],
@@ -162,7 +162,7 @@ ${rows([
   }
   const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}!</h1>
 <p style="margin:0;font-size:15px;line-height:1.6;">Sajnos ezt a foglalást nem tudjuk teljesíteni, ezért lemondtuk. Pénzt nem vontunk le.</p>${details(b)}
-<p style="margin:16px 0 0;font-size:15px;line-height:1.6;">Másik időpontot keresel? Írj vagy hívj, segítünk${call ? call.replace(', vagy hívj', '. Telefon') : ''}.</p>
+<p style="margin:16px 0 0;font-size:15px;line-height:1.6;">Másik időpontot keres? Írjon vagy hívjon, segítünk${call ? call.replace(', vagy hívjon', '. Telefon') : ''}.</p>
 <p style="margin:20px 0 0;font-size:14px;line-height:1.6;">A testvérházunkban is lehet szabad hely: <a href="${esc(x.sister.origin)}" style="color:${accent};font-weight:700;">${esc(x.sister.name)}</a></p>`
   return { subject: `Foglalás lemondva – ${name}`, html: layout(house.site, house, body) }
 }

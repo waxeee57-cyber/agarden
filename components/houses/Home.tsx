@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { BRANDS, telHref } from '@/lib/brand'
+import { BRANDS } from '@/lib/brand'
 import type { Photo } from '@/lib/listing'
 import type { SiteCtx } from '@/lib/page'
 import { Icon, Mark, type IconName } from '@/components/property/ui'
@@ -61,7 +61,6 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
             {listing.address && <p className="mt-4 text-[1.05rem] font-light text-[#FEFEFC]/90">{listing.address}</p>}
             <div className="mt-9 flex flex-wrap gap-3 md:justify-center">
               <Link href="/foglalas" className="btn btn-white">Foglalás</Link>
-              <a href={telHref(ctx.phone)} className="btn btn-light"><Icon name="phone" size={16} /> {ctx.phone}</a>
             </div>
           </div>
         </div>
@@ -89,7 +88,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       <section aria-labelledby="foglaltsag-title" className={`${SECTION} grid gap-10 py-20 md:py-28 lg:grid-cols-[0.9fr_1.4fr] lg:gap-20`}>
         <div>
           <h2 id="foglaltsag-title" className={H2}>Foglaltság</h2>
-          <p className="mt-4 max-w-[40ch] text-soft">Válaszd ki az érkezést és a távozást: a foglalásnál már ezek a napok lesznek kijelölve.</p>
+          <p className="mt-4 max-w-[40ch] text-soft">Válassza ki az érkezést és a távozást: a foglalásnál már ezek a napok lesznek kijelölve.</p>
           <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-rule pt-6">
             {listing.checkinWindow && <Fact dt="Érkezés" dd={listing.checkinWindow} />}
             {listing.checkoutTime && <Fact dt="Távozás" dd={`${listing.checkoutTime}-ig`} />}
@@ -114,7 +113,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
           <p className="max-w-[56ch] text-[1.08rem] leading-[1.75] text-fg/85">{c.lead}</p>
           {chips.length > 0 && (
             <ul className="mt-6 grid gap-x-8 gap-y-2 text-soft sm:grid-cols-2">
-              {[...chips, `Minimum ${listing.minNights} éjszaka`].map((x) => (
+              {[...chips, `Minimum ${listing.minNights} éjszaka`, ctx.phone].map((x) => (
                 <li key={x} className="flex items-center gap-3"><span aria-hidden="true" className="h-px w-4 shrink-0 bg-current" /> {x}</li>
               ))}
             </ul>
@@ -144,7 +143,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 6. FEATURES ---------- */}
       {features.length > 0 && (
         <section aria-labelledby="felszereltseg-title" className={`${SECTION} py-20 md:py-28`}>
-          <h2 id="felszereltseg-title" className={`${H2} mx-auto max-w-[20ch] text-center`}>Ami a házhoz tartozik</h2>
+          <h2 id="felszereltseg-title" className={`${H2} mx-auto max-w-[24ch] text-center`}>Fedezze fel teljes mértékben a {brand.fullName} lehetőségeit!</h2>
           <ul className="mt-14 grid gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <li key={f.t} className="flex flex-col items-center text-center">
@@ -162,15 +161,8 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
         <section aria-labelledby="miert-title" className={SECTION}>
           <div className="grid gap-4 md:grid-cols-[1fr_1.2fr] md:gap-6">
             <div className="flex flex-col justify-center rounded-[10px] bg-deep p-8 text-deep-fg md:p-12">
-              <h2 id="miert-title" className={H2}>Miért minket?</h2>
-              <ul className="mt-7 space-y-5">
-                {why.map((w) => (
-                  <li key={w.t}>
-                    <h3 className="text-[1.25rem]">{w.t}</h3>
-                    <p className="mt-1 text-[0.95rem] text-deep-fg/80">{w.d}</p>
-                  </li>
-                ))}
-              </ul>
+              <h2 id="miert-title" className={H2}>{why[0].t}</h2>
+              <p className="mt-5 max-w-[42ch] text-deep-fg/85">{why[0].d}</p>
               <Link href="/foglalas" className="btn btn-light mt-9 self-start">Foglalás</Link>
             </div>
             {splitPhoto && (
@@ -185,12 +177,11 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 8. GOOD TO KNOW ---------- */}
       {notes.length > 0 && (
         <section aria-labelledby="tudnivalok-title" className={`${SECTION} py-20 md:py-28`}>
-          <h2 id="tudnivalok-title" className={`${H2} text-center`}>Jó tudni</h2>
-          <ul className="mt-12 grid gap-10 md:grid-cols-3 md:gap-12">
+          <h2 id="tudnivalok-title" className="sr-only">Jó tudni</h2>
+          <ul className="mx-auto max-w-4xl space-y-12 md:space-y-14">
             {notes.map((n) => (
               <li key={n} className="text-center">
-                <span aria-hidden="true" className="mx-auto block h-px w-10 bg-pop" />
-                <p className="mx-auto mt-5 max-w-[32ch] text-fg/85">{n}</p>
+                <p className="mx-auto max-w-[34ch] font-display text-[clamp(1.45rem,2.6vw,2.1rem)] leading-[1.3]">{n}</p>
               </li>
             ))}
           </ul>

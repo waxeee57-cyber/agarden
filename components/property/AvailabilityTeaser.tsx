@@ -37,7 +37,7 @@ export function AvailabilityTeaser({ phone, email }: { phone: string; email: str
         <Link href={href} className="btn btn-act">
           {range.ci && range.co ? `Foglalás: ${fmtDay(parseISO(range.ci))} – ${fmtDay(parseISO(range.co))}` : 'Foglalás'}
         </Link>
-        <p className="text-sm text-soft">{range.ci && range.co ? 'A dátumokat a foglalásnál már nem kell újra megadnod.' : 'Koppints az érkezés, majd a távozás napjára.'}</p>
+        <p className="text-sm text-soft">{range.ci && range.co ? 'A dátumokat a foglalásnál már nem kell újra megadnia.' : 'Koppintson az érkezés, majd a távozás napjára.'}</p>
       </div>
     </div>
   )

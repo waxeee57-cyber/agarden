@@ -9,8 +9,8 @@ import { telHref } from '@/lib/brand'
 
 const MSG: Record<string, string> = {
   name: 'Add meg a neved.',
-  email: 'Érvényes e-mail címet adj meg, ide válaszolunk.',
-  message: 'Írj legalább pár szót.',
+  email: 'Kérjük, érvényes e-mail címet adjon meg, ide válaszolunk.',
+  message: 'Kérjük, írjon legalább pár szót.',
 }
 
 export function ContactForm({ phone }: { phone: string }) {
@@ -40,7 +40,7 @@ export function ContactForm({ phone }: { phone: string }) {
       const data = (await res.json()) as { ok: boolean; reason?: string; fields?: string[] }
       if (data.ok) return setState('sent')
       if (data.reason === 'validation_error' && data.fields) {
-        setErrors(Object.fromEntries(data.fields.map((k) => [k, MSG[k] ?? 'Ellenőrizd ezt a mezőt.'])))
+        setErrors(Object.fromEntries(data.fields.map((k) => [k, MSG[k] ?? 'Kérjük, ellenőrizze ezt a mezőt.'])))
         return setState('idle')
       }
       setState(data.reason === 'rate_limited' ? 'limited' : 'error')
@@ -84,10 +84,10 @@ export function ContactForm({ phone }: { phone: string }) {
         <label htmlFor="c-website">Weboldal</label>
         <input id="c-website" tabIndex={-1} autoComplete="off" value={f.website} onChange={set('website')} />
       </div>
-      {state === 'error' && <p className="err" role="alert">Nem sikerült elküldeni. Próbáld újra, vagy hívj: <a href={telHref(phone)} className="underline">{phone}</a></p>}
-      {state === 'limited' && <p className="err" role="alert">Túl sok üzenet rövid idő alatt. Várj pár percet, vagy hívj: <a href={telHref(phone)} className="underline">{phone}</a></p>}
+      {state === 'error' && <p className="err" role="alert">Nem sikerült elküldeni. Kérjük, próbálja újra, vagy hívjon: <a href={telHref(phone)} className="underline">{phone}</a></p>}
+      {state === 'limited' && <p className="err" role="alert">Túl sok üzenet rövid idő alatt. Kérjük, várjon pár percet, vagy hívjon: <a href={telHref(phone)} className="underline">{phone}</a></p>}
       <button type="submit" className="btn btn-act" disabled={state === 'sending'}>{state === 'sending' ? 'Küldés…' : 'Üzenet küldése'}</button>
-      <p className="text-xs text-soft">Az adataidat csak a válaszhoz használjuk, 90 nap után töröljük. <Link href="/adatvedelem" className="underline underline-offset-2">Adatvédelem</Link></p>
+      <p className="text-xs text-soft">Adatait csak a válaszhoz használjuk, 90 nap után töröljük. <Link href="/adatvedelem" className="underline underline-offset-2">Adatvédelem</Link></p>
     </form>
   )
 }

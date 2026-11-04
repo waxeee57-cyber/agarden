@@ -22,7 +22,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     <SitePage ctx={ctx} crumb={{ name: 'Foglalás', path: '/foglalas' }} sticky={false}>
       <PageHead
         title="Foglalás"
-        lead={`Négy rövid lépés. Most nem vonunk le pénzt: ${t.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'} e-mailben visszaigazoljuk a kérésed.`}
+        lead={`Négy rövid lépés. Most nem vonunk le pénzt: ${t.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'} e-mailben visszaigazoljuk kérését.`}
       />
       <div className="mx-auto max-w-4xl px-4 pb-20 md:px-8">
         <Suspense fallback={<div className="panel min-h-[640px]" aria-hidden="true" />}>

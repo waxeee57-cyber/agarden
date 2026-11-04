@@ -5,7 +5,7 @@
   "description": "Garden Vendeghaz + Napsugar Vendeghaz — two host-routed sites, one booking system (Neon Postgres + Vercel Blob)",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/secret-guard.mjs && next build",
+    "build": "node scripts/secret-guard.mjs && node scripts/migrate-on-build.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

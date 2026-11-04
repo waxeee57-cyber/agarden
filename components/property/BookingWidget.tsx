@@ -32,14 +32,14 @@ type Quote = { valid: boolean; reason: string | null; nights: number; subtotal: 
 
 function humanError(code: string | null | undefined, minNights: number): string {
   switch (code) {
-    case 'overlap': return 'Ez az időszak közben foglalt lett. Válassz másik dátumot.'
-    case 'min_nights': return `Legalább ${minNights} éjszaka foglalható. Rövidebb tartózkodáshoz kérj ajánlatot.`
+    case 'overlap': return 'Ez az időszak közben foglalt lett. Kérjük, válasszon másik dátumot.'
+    case 'min_nights': return `Legalább ${minNights} éjszaka foglalható. Rövidebb tartózkodáshoz kérjen ajánlatot.`
     case 'invalid_dates': return 'A távozás legyen későbbi az érkezésnél.'
-    case 'capacity_unavailable': return 'Ennyi főre a ház nem foglalható. Kérj ajánlatot, és egyeztetünk.'
-    case 'listing_not_found': return 'A ház jelenleg nem foglalható online. Hívj minket.'
-    case 'validation_error': return 'Ellenőrizd a megadott adatokat.'
-    case 'rate_limited': return 'Túl sok próbálkozás. Várj pár percet, vagy hívj minket.'
-    default: return 'Nem sikerült elküldeni. Próbáld újra, vagy hívj minket.'
+    case 'capacity_unavailable': return 'Ennyi főre a ház nem foglalható. Kérjen ajánlatot, és egyeztetünk.'
+    case 'listing_not_found': return 'A ház jelenleg nem foglalható online. Kérjük, hívjon minket.'
+    case 'validation_error': return 'Kérjük, ellenőrizze a megadott adatokat.'
+    case 'rate_limited': return 'Túl sok próbálkozás. Kérjük, várjon pár percet, vagy hívjon minket.'
+    default: return 'Nem sikerült elküldeni. Kérjük, próbálja újra, vagy hívjon minket.'
   }
 }
 
@@ -115,14 +115,14 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   function validateStep(s: number): boolean {
     const e: Record<string, string> = {}
     if (s === 0 && mode === 'book') {
-      if (!checkIn || !checkOut) e.dates = 'Válaszd ki az érkezés és a távozás napját a naptárban.'
+      if (!checkIn || !checkOut) e.dates = 'Válassza ki az érkezés és a távozás napját a naptárban.'
       else if (quote && !quote.valid) e.dates = humanError(quote.reason, listing.minNights)
     }
     if (s === 1 && (guests < 1 || guests > maxGuests)) e.guests = `1 és ${maxGuests} fő között.`
     if (s === 2) {
       if (name.trim().length < 2) e.name = 'Add meg a neved.'
       if (!EMAIL_RE.test(email.trim())) e.email = 'Érvényes e-mail cím kell, ide küldjük a visszaigazolást.'
-      if (phone.trim() && phone.trim().replace(/\D/g, '').length < 6) e.phone = 'Ellenőrizd a telefonszámot.'
+      if (phone.trim() && phone.trim().replace(/\D/g, '').length < 6) e.phone = 'Kérjük, ellenőrizze a telefonszámot.'
     }
     setErrors(e)
     return !Object.keys(e).length
@@ -165,7 +165,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   const callBtn = (
     <a href={telHref(listing.phone)} className="btn btn-line btn-sm shrink-0">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" /></svg>
-      Inkább felhívlak
+      Inkább felhívom
     </a>
   )
 
@@ -175,9 +175,9 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-act text-act-fg" aria-hidden="true">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12.5 9.5 18 20 6" /></svg>
         </span>
-        <h2 className="mt-5 text-[clamp(1.8rem,4vw,2.6rem)]">{success.kind === 'book' ? 'Megkaptuk a foglalási kérelmed!' : 'Megkaptuk az ajánlatkérésed!'}</h2>
+        <h2 className="mt-5 text-[clamp(1.8rem,4vw,2.6rem)]">{success.kind === 'book' ? 'Megkaptuk foglalási kérelmét!' : 'Megkaptuk ajánlatkérését!'}</h2>
         <ol className="mt-6 grid gap-3 text-fg/90">
-          <li><strong>Most:</strong> {success.kind === 'book' ? 'a dátumokat fenntartjuk neked. Pénzt nem vontunk le.' : 'az ajánlatkérés még nem foglal le dátumot.'}</li>
+          <li><strong>Most:</strong> {success.kind === 'book' ? 'a dátumokat fenntartjuk Önnek. Pénzt nem vontunk le.' : 'az ajánlatkérés még nem foglal le dátumot.'}</li>
           <li><strong>{listing.confirmHours ? `${listing.confirmHours} órán belül:` : 'Hamarosan:'}</strong> {success.kind === 'book' ? 'e-mailben visszaigazoljuk a foglalást' : 'e-mailben vagy telefonon küldjük az ajánlatot'} ({email.trim()}).</li>
           {success.kind === 'book' && listing.depositLine && <li><strong>Utána:</strong> {listing.depositLine} A számlaszámot a visszaigazoló levélben küldjük.</li>}
         </ol>
@@ -213,7 +213,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
 
         {step === 0 && (
           <section aria-labelledby="st-0">
-            <h2 id="st-0" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Mikor jönnétek?</h2>
+            <h2 id="st-0" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Mikor érkeznek?</h2>
             <p className="mb-4 mt-2 text-soft">Koppints az érkezés, majd a távozás napjára. Minimum {listing.minNights} éjszaka; a távozás napja másnak már érkezési nap lehet.</p>
             <Calendar
               checkIn={checkIn}
@@ -236,7 +236,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
 
         {step === 1 && (
           <section aria-labelledby="st-1">
-            <h2 id="st-1" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Hányan lesztek?</h2>
+            <h2 id="st-1" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Hány főre foglal?</h2>
             <p className="mt-2 text-soft">Legfeljebb {listing.capacityMax}+{listing.capacityExtra} fő (a +{listing.capacityExtra} pótágyon).</p>
             <div className="mt-5 flex items-center gap-4">
               <Stepper value={guests} min={1} max={maxGuests} onChange={setGuests} label="Létszám" />
@@ -250,7 +250,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
                 <Toggle checked={isEvent} onChange={setIsEvent} label="Rendezvény, legény- vagy lánybúcsú" hint="eltérő ár, egyeztetéssel" />
               </div>
             </fieldset>
-            <Nav onBack={() => go(0)} onNext={next} nextLabel="Tovább: adataid" />
+            <Nav onBack={() => go(0)} onNext={next} nextLabel="Tovább: adatok" />
           </section>
         )}
 
@@ -265,7 +265,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
               </div>
               <div className="field">
                 <label htmlFor="bw-msg">Üzenet <span className="font-normal text-soft">(nem kötelező)</span></label>
-                <textarea id="bw-msg" className="input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={mode === 'book' ? 'Pl. mikor érkeztek, kérdés a házról' : 'Pl. melyik hétvége, hány éjszaka, mire készültök'} />
+                <textarea id="bw-msg" className="input" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={mode === 'book' ? 'Pl. várható érkezés időpontja, kérdés a házról' : 'Pl. melyik hétvége, hány éjszaka, milyen alkalomra'} />
               </div>
             </div>
             <Nav onBack={() => go(1)} onNext={next} nextLabel="Tovább: összegzés" />
@@ -274,7 +274,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
 
         {step === 3 && (
           <section aria-labelledby="st-3">
-            <h2 id="st-3" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Minden stimmel?</h2>
+            <h2 id="st-3" data-step-title tabIndex={-1} className="mt-1 text-[clamp(1.6rem,3.4vw,2.2rem)] outline-none">Kérjük, ellenőrizze az adatokat</h2>
             <dl className="mt-5 divide-y divide-rule border-y border-rule">
               <SummaryRow dt="Típus" dd={mode === 'book' ? 'Foglalási kérelem' : 'Ajánlatkérés (nem foglal le dátumot)'} onEdit={() => go(0)} />
               <SummaryRow dt="Dátum" dd={checkIn && checkOut ? `${fmtDay(parseISO(checkIn))} – ${fmtDay(parseISO(checkOut))}${quote?.nights ? ` (${quote.nights} éj)` : ''}` : 'Még nincs pontos dátum'} onEdit={() => go(0)} />
@@ -354,7 +354,7 @@ function SummaryRow({ dt, dd, onEdit }: { dt: string; dd: string; onEdit?: () =>
         <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-soft">{dt}</dt>
         <dd className="mt-1 font-semibold">{dd}</dd>
       </div>
-      {onEdit && <button type="button" onClick={onEdit} className="min-h-12 shrink-0 px-2 text-sm font-semibold text-pop underline underline-offset-4">Módosítom</button>}
+      {onEdit && <button type="button" onClick={onEdit} className="min-h-12 shrink-0 px-2 text-sm font-semibold text-pop underline underline-offset-4">Módosítás</button>}
     </div>
   )
 }

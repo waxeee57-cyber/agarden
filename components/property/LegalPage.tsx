@@ -50,7 +50,7 @@ export function ConsumerSupplement({ contact }: { contact: string }) {
           szerződésekre irányadó 14 napos indokolás nélküli elállási jog nem vonatkozik (45/2014. (II. 26.) Korm. rendelet 29. § (1) bekezdés l) pont).
         </p>
         <p>
-          Panaszodat elsősorban közvetlenül nekünk jelezd: {contact}. Fogyasztói jogvita esetén a lakóhelyed szerinti, vagy a szálláshely szerint
+          Panaszát kérjük, elsősorban közvetlenül nekünk jelezze: {contact}. Fogyasztói jogvita esetén a lakóhelye szerinti, vagy a szálláshely szerint
           illetékes békéltető testülethez fordulhatsz: Fejér Vármegyei Békéltető Testület, 8000 Székesfehérvár, Hosszúsétatér 4–6.; telefon: (22) 510-310;
           e-mail: <a href="mailto:bekeltetes@fmkik.hu">bekeltetes@fmkik.hu</a>; <a href="https://www.bekeltetesfejer.hu">bekeltetesfejer.hu</a>
         </p>

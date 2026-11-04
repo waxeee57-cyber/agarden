@@ -111,8 +111,8 @@ export function Calendar({
   const guidance = !choosingEnd
     ? null
     : cap
-      ? `A távozás legkésőbb ${fmtDay(cap)} lehet, utána foglalt időszak jön. Válassz korábbi távozást vagy másik érkezést.`
-      : 'Válaszd ki a távozás napját.'
+      ? `A távozás legkésőbb ${fmtDay(cap)} lehet, utána foglalt időszak jön. Kérjük, válasszon korábbi távozást vagy másik érkezést.`
+      : 'Válassza ki a távozás napját.'
 
   return (
     <div>
@@ -141,7 +141,7 @@ export function Calendar({
       {(checkIn || checkOut) && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-rule bg-surface-2 px-3 py-2 text-sm">
           <span className="text-fg/90">
-            {ci && <><span className="font-semibold">{fmtDay(ci)}</span>{co ? <> – <span className="font-semibold">{fmtDay(co)}</span></> : <span className="text-soft"> → válaszd ki a távozást</span>}</>}
+            {ci && <><span className="font-semibold">{fmtDay(ci)}</span>{co ? <> – <span className="font-semibold">{fmtDay(co)}</span></> : <span className="text-soft"> → válassza ki a távozást</span>}</>}
           </span>
           <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 shrink-0 px-1 font-semibold text-pop underline underline-offset-2">
             Dátum törlése
@@ -165,7 +165,7 @@ export function Calendar({
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-soft">
         <Legend swatch="bg-surface border border-rule" label="szabad" />
         <Legend swatch="bg-sel" label="kiválasztva" />
-        <Legend swatch="bg-taken border border-taken-fg/50" label="foglalt (kattints: testvérházunk szabad-e)" />
+        <Legend swatch="bg-taken border border-taken-fg/50" label="foglalt (kattintson: szabad-e a testvérházunk)" />
         {state === 'loading' && <span aria-live="polite">foglaltság betöltése…</span>}
       </div>
     </div>

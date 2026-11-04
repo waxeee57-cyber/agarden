@@ -6,6 +6,7 @@ import type { PhotoCategory } from '@/lib/terms'
 import { BRANDS } from '@/lib/brand'
 import { SitePage, PageHead, pageMeta } from '@/components/property/SiteChrome'
 import { Icon, type IconName } from '@/components/property/ui'
+import { formatHuf } from '@/lib/format'
 
 export const revalidate = 300
 
@@ -28,6 +29,8 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   const photos = await getPhotos(listing.id)
   const firstOf = (cat: PhotoCategory) => photos.find((p) => p.category === cat) ?? null
   const wellnessPhoto = firstOf('wellness')
+  // The reference shows a price line under every unit; ours is the whole house.
+  const price = listing.pricingMode === 'fixed' && listing.nightlyRate ? `${formatHuf(listing.nightlyRate)} / éj, az egész ház` : 'Ár: egyedi ajánlat alapján'
   return (
     <SitePage ctx={ctx} crumb={{ name: 'A ház', path: '/a-haz' }}>
       <PageHead title="A ház" lead={c.lead} />
@@ -48,6 +51,10 @@ export default async function Page({ params }: { params: Promise<{ site: string 
                 <ul className="mt-5 space-y-2">
                   {s.items.map((x) => <li key={x} className="flex gap-3"><Icon name="check" size={18} className="mt-1 shrink-0 text-pop" /> {x}</li>)}
                 </ul>
+                <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-rule pt-5">
+                  <p className="font-display text-[1.35rem]">{price}</p>
+                  <Link href="/foglalas" className="btn btn-act">Foglalás</Link>
+                </div>
               </div>
             </section>
           )

@@ -8,7 +8,7 @@ export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)
-  return pageMeta(ctx.site, '/adatvedelem', 'Adatkezelési tájékoztató', 'Milyen adatot kérünk a foglaláshoz, mire használjuk, meddig őrizzük, ki fér hozzá, és milyen jogaid vannak (GDPR).')
+  return pageMeta(ctx.site, '/adatvedelem', 'Adatkezelési tájékoztató', 'Milyen adatot kérünk a foglaláshoz, mire használjuk, meddig őrizzük, ki fér hozzá, és milyen jogai vannak (GDPR).')
 }
 
 // GDPR Art. 13 checklist: controller, purposes + legal basis, recipients,
@@ -83,9 +83,9 @@ function TechnicalNotice({ listing, operator, heading: H }: { listing: Awaited<R
         harmadik országba történő hozzáférés az adatfeldolgozói szerződésekben rögzített garanciák mellett lehetséges
         (pl. az Európai Bizottság általános szerződési feltételei).{!listing.legal.processorsConfirmed && <> <Pending>a garanciák tulajdonosi ellenőrzése</Pending></>}
       </p>
-      <p>A Kapcsolat oldalon a térkép csempéit a böngésződ közvetlenül az OpenStreetMap szervereiről tölti le; ehhez az IP-címed az OSM-hez jut. Az OSM nem a mi adatfeldolgozónk.</p>
+      <p>A Kapcsolat oldalon a térkép csempéit az Ön böngészője közvetlenül az OpenStreetMap szervereiről tölti le; ehhez az IP-címe az OSM-hez jut. Az OSM nem a mi adatfeldolgozónk.</p>
 
-      <H>6. Jogaid</H>
+      <H>6. Az Ön jogai</H>
       <p>
         Kérhetsz hozzáférést az adataidhoz, helyesbítést, törlést, az adatkezelés korlátozását, adathordozhatóságot,
         és tiltakozhatsz a jogos érdeken alapuló adatkezelés ellen. Kérésedre legfeljebb egy hónapon belül válaszolunk.
