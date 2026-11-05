@@ -44,7 +44,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
       </div>
       <section aria-label="Tudnivalók" className="mx-auto grid max-w-6xl gap-6 px-5 pb-16 md:grid-cols-2 md:px-8">
         {(listing.checkinWindow || listing.checkoutTime) && (
-          <div className="flex gap-4 rounded-[var(--radius-xl)] border border-rule bg-surface p-6 md:p-8">
+          <div className="flex gap-4 border-t border-rule pt-6">
             <Icon name="calendar" size={28} stroke={1.25} className="shrink-0 text-fg/75" />
             <div>
               <h2 className="text-[1.4rem]">Érkezés, távozás</h2>
@@ -56,7 +56,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
             </div>
           </div>
         )}
-        <div className="flex gap-4 rounded-[var(--radius-xl)] border border-rule bg-surface p-6 md:p-8">
+        <div className="flex gap-4 border-t border-rule pt-6">
           <Icon name="phone" size={28} stroke={1.25} className="shrink-0 text-fg/75" />
           <div>
             <h2 className="text-[1.4rem]">Segítünk</h2>

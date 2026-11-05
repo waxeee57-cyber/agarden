@@ -5,7 +5,6 @@ import { SOCIAL_LABEL, socialEntries } from '@/lib/social'
 import type { SiteCtx } from '@/lib/page'
 import { Wordmark, Mark, Icon } from './ui'
 import { SiteMenu } from './SiteMenu'
-import { MobileStickyCTA } from './MobileStickyCTA'
 import { JsonLd, breadcrumbJsonLd } from './JsonLd'
 
 // Header, footer and page shell shared by every public page of both houses.
@@ -63,9 +62,9 @@ export function SiteFooter({ ctx }: { ctx: SiteCtx }) {
   const brand = BRANDS[site]
   const sister = BRANDS[site === 'velence' ? 'napsugar' : 'velence']
   const social = socialEntries(listing.social)
-  const circle = 'flex h-12 w-12 items-center justify-center rounded-full border border-white transition-colors group-hover:bg-white/10'
+  const circle = 'flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#27292F] transition-transform group-hover:scale-105'
   return (
-    <footer className="bg-band pb-24 text-band-fg md:pb-0">
+    <footer className="bg-band text-band-fg">
       <div className="mx-auto max-w-5xl px-5 pb-10 pt-16 text-center md:px-8 md:pt-24">
         <p className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-tight text-white">{brand.fullName}</p>
         {listing.address && <p className="mt-3 text-band-fg/80">{listing.address}</p>}
@@ -116,16 +115,15 @@ export function SiteFooter({ ctx }: { ctx: SiteCtx }) {
 }
 
 /** Shell for every public page: skin, header, breadcrumb JSON-LD, footer, mobile CTA. */
-export function SitePage({ ctx, crumb, overlayHeader = false, sticky = true, children }: { ctx: SiteCtx; crumb?: { name: string; path: string }; overlayHeader?: boolean; sticky?: boolean; children: React.ReactNode }) {
+export function SitePage({ ctx, crumb, children }: { ctx: SiteCtx; crumb?: { name: string; path: string }; overlayHeader?: boolean; sticky?: boolean; children: React.ReactNode }) {
   const trail = [{ name: BRANDS[ctx.site].fullName, path: '/' }, ...(crumb ? [crumb] : [])]
   return (
     <div data-skin={ctx.site} className="skin-root">
       <a href="#tartalom" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-surface focus:px-4 focus:py-3">Ugrás a tartalomhoz</a>
       {crumb && <JsonLd data={breadcrumbJsonLd(ctx.origin, trail)} />}
-      <SiteHeader ctx={ctx} overlay={overlayHeader} />
+      <SiteHeader ctx={ctx} />
       <main id="tartalom">{children}</main>
       <SiteFooter ctx={ctx} />
-      {sticky && <MobileStickyCTA phone={ctx.phone} />}
     </div>
   )
 }

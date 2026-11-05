@@ -6,6 +6,7 @@ import type { SiteCtx } from '@/lib/page'
 import { Icon, Mark, type IconName } from '@/components/property/ui'
 import { AvailabilityTeaser } from '@/components/property/AvailabilityTeaser'
 import { PhotoStrip } from '@/components/property/PhotoStrip'
+import { NotesSlider } from '@/components/property/NotesSlider'
 
 const lb = (p: Photo) => ({ id: p.id, url: p.url, width: p.width, height: p.height, alt: p.alt })
 
@@ -54,15 +55,15 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
     <>
       {/* ---------- 1. HERO ---------- */}
       <section aria-labelledby="hero-title" className="mx-auto max-w-[1400px] px-3 pt-3 md:px-10 md:pt-8">
-        <div className="relative isolate flex min-h-[70svh] items-center overflow-hidden rounded-[10px] bg-band text-white md:min-h-[min(74svh,620px)]">
+        <div className="relative isolate flex min-h-[390px] items-center overflow-hidden rounded-[10px] bg-band text-white md:min-h-[540px]">
           {cover && <Image src={cover.url} alt={cover.alt} fill preload fetchPriority="high" sizes="(min-width: 1400px) 1320px, 100vw" quality={70} className="-z-10 object-cover" />}
           <div aria-hidden="true" className="hero-tint absolute inset-0 -z-10" />
           <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(0_0_0/0.12)]" />
-          <div className="mx-auto w-full max-w-6xl px-6 py-16 text-center">
+          <div className="mx-auto w-full max-w-6xl px-6 py-14 text-center md:py-[6vw]">
             {c.hero_kicker && <p className="font-ui text-[12px] font-bold uppercase tracking-[0.3em] text-white md:text-[14px]">{c.hero_kicker}</p>}
-            <h1 id="hero-title" className="mt-5 text-[clamp(2.4rem,6vw,4.5rem)] leading-[1.15] !text-white">{brand.fullName}</h1>
-            {listing.address && <p className="mt-5 font-display text-[clamp(1.05rem,2vw,1.5rem)] text-white">{listing.address}</p>}
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <h1 id="hero-title" className="mt-4 text-[clamp(1.85rem,5.4vw,4.5rem)] leading-[1.2] !text-white md:mt-5">{brand.fullName}</h1>
+            {listing.address && <p className="mt-3 font-display text-[clamp(1rem,2vw,1.5rem)] text-white md:mt-5">{listing.address}</p>}
+            <div className="mt-8 flex flex-wrap justify-center gap-3 md:mt-10">
               <Link href="/foglalas" className="btn btn-white">Foglalás</Link>
             </div>
           </div>
@@ -105,11 +106,11 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
           <h2 id="haz-title" className={H2}>A házról</h2>
         </div>
         <div>
-          <p className="max-w-[56ch] text-[1.08rem] leading-[1.75] text-fg/85">{c.lead}</p>
+          <p className="max-w-[60ch] text-[15px] leading-[1.8] md:text-[16px]">{c.lead}</p>
           {chips.length > 0 && (
-            <ul className="mt-6 grid gap-x-8 gap-y-2 text-soft sm:grid-cols-2">
+            <ul className="mt-1 text-[15px] leading-[1.8] md:text-[16px]">
               {[...chips, `Minimum ${listing.minNights} éjszaka`, ctx.phone].map((x) => (
-                <li key={x} className="flex items-center gap-3"><span aria-hidden="true" className="h-px w-4 shrink-0 bg-current" /> {x}</li>
+                <li key={x}>– {x}</li>
               ))}
             </ul>
           )}
@@ -173,13 +174,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {notes.length > 0 && (
         <section aria-labelledby="tudnivalok-title" className={`${SECTION} py-20 md:py-28`}>
           <h2 id="tudnivalok-title" className="sr-only">Jó tudni</h2>
-          <ul className="mx-auto max-w-4xl space-y-12 md:space-y-14">
-            {notes.map((n) => (
-              <li key={n} className="text-center">
-                <p className="mx-auto max-w-[34ch] font-display text-[clamp(1.45rem,2.6vw,2.1rem)] leading-[1.3]">{n}</p>
-              </li>
-            ))}
-          </ul>
+          <NotesSlider notes={notes} />
           <p className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-2">
             {ctx.docs.hazirend && <Link href="/hazirend" className="inline-flex min-h-11 items-center font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Teljes házirend</Link>}
             {listing.settings.menuGyik && ctx.docs.gyik && <Link href="/gyik" className="inline-flex min-h-11 items-center font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Gyakori kérdések</Link>}

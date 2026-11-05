@@ -6,28 +6,27 @@ import { Lightbox, type LightboxItem } from './Lightbox'
 
 export type GalleryItem = LightboxItem
 
-// Masonry gallery of the house's real photos (listing_photos). Every tile
+// Uniform grid (reference gallery: equal portrait tiles, 12 px corners) of the house's real photos (listing_photos). Every tile
 // opens the shared lightbox. No placeholder tiles, ever.
 export function Gallery({ items }: { items: GalleryItem[] }) {
   const [open, setOpen] = useState<number | null>(null)
   return (
     <>
-      <div className="columns-2 gap-3 md:columns-3 md:gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
         {items.map((item, idx) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setOpen(idx)}
-            className="group mb-3 block w-full overflow-hidden rounded-[var(--radius-lg)] md:mb-4"
+            className="group relative block aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-[12px] bg-surface-2"
             aria-label={`${item.alt || 'Fotó'}, nagyítás`}
           >
             <Image
               src={item.url}
               alt={item.alt}
-              width={item.width}
-              height={item.height}
-              sizes="(min-width: 768px) 33vw, 50vw"
-              className="h-auto w-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]"
+              fill
+              sizes="(min-width: 1024px) 270px, (min-width: 768px) 33vw, 50vw"
+              className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]"
             />
           </button>
         ))}
