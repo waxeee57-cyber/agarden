@@ -1,7 +1,7 @@
 // Server-safe brand atoms. Letters are always real text in the display face
 // (never generated lettering); marks are hand-built SVG (lib/mark.ts).
 //   Mark      64×64 badge, the only per-house graphic besides the accent.
-//   Wordmark  Mark + house name (Gilda Display) + "Vendégház · Velence".
+//   Wordmark  Mark + house name (Prata HU) + "Vendégház · Velence".
 //   Icon      the few line icons the pages need (stroke = currentColor).
 
 import type { Site } from '@/lib/site-map'
@@ -27,7 +27,7 @@ export function Wordmark({ site, size = 40, tone = 'page' }: { site: Site; size?
       <Mark site={site} size={size} />
       <span className="flex flex-col leading-none">
         <span className={`font-display text-[1.55rem] tracking-[-0.01em] ${tone === 'band' ? 'text-band-fg' : 'text-fg'}`}>{b.name}</span>
-        <span className={`mt-1 whitespace-nowrap text-[0.66rem] font-semibold uppercase tracking-[0.18em] ${tone === 'band' ? 'text-band-fg/75' : 'text-soft'}`}>Vendégház · Velence</span>
+        <span className={`font-ui mt-1 whitespace-nowrap text-[0.62rem] font-bold uppercase tracking-[0.24em] ${tone === 'band' ? 'text-band-fg/75' : 'text-soft'}`}>Vendégház · Velence</span>
       </span>
     </span>
   )

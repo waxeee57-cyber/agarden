@@ -13,7 +13,7 @@ const lb = (p: Photo) => ({ id: p.id, url: p.url, width: p.width, height: p.heig
 // reference the owner picked (velenceviolavilla.hu): inset hero → photo strip
 // → availability → about → key facts on a photo → features → why us →
 // good to know → sister house. Our own photos, facts and text only.
-// Visual rule: one quiet didone (Gilda) for headings, thin line icons in ink,
+// Visual rule (reference system): Prata headings, Open Sans body, Inter caps, thin line icons in ink,
 // colour only on actions and on one muted block — restraint over decoration.
 
 export const coverOf = (photos: Photo[]) => photos.find((p) => p.isCover) ?? photos[0] ?? null
@@ -28,7 +28,7 @@ export function featuredOf(photos: Photo[], cover: Photo | null, n = 3): Photo[]
 const chipIcon = (s: string): IconName =>
   /\d\s*fő/.test(s) ? 'users' : /hálószoba/.test(s) ? 'bed' : /medence/i.test(s) ? 'sun' : /jakuzzi|szauna/i.test(s) ? 'tub' : /udvar|kert/i.test(s) ? 'fire' : /nyitva/.test(s) ? 'calendar' : 'home'
 
-const H2 = 'text-[clamp(2rem,3.6vw,3rem)]'
+const H2 = 'text-[clamp(1.6rem,3.8vw,3.25rem)]'
 const SECTION = 'mx-auto max-w-6xl px-5 md:px-8'
 
 export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo[]; sisterCover: Photo | null }) {
@@ -54,15 +54,15 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
     <>
       {/* ---------- 1. HERO ---------- */}
       <section aria-labelledby="hero-title" className="mx-auto max-w-[1400px] px-3 pt-3 md:px-10 md:pt-8">
-        <div className="relative isolate flex min-h-[74svh] items-end overflow-hidden rounded-[14px] bg-band text-[#FEFEFC] md:min-h-[min(76svh,640px)] md:items-center">
+        <div className="relative isolate flex min-h-[70svh] items-center overflow-hidden rounded-[10px] bg-band text-white md:min-h-[min(74svh,620px)]">
           {cover && <Image src={cover.url} alt={cover.alt} fill preload fetchPriority="high" sizes="(min-width: 1400px) 1320px, 100vw" quality={70} className="-z-10 object-cover" />}
-          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(18_22_20/0.42)]" />
-          <div aria-hidden="true" className="absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-[rgb(18_22_20/0.55)] to-transparent md:hidden" />
-          <div className="mx-auto w-full max-w-6xl px-6 pb-12 pt-32 md:py-16 md:text-center">
-            {c.hero_kicker && <p className="text-[0.72rem] font-semibold uppercase tracking-[0.32em] text-[#FEFEFC]/90">{c.hero_kicker}</p>}
-            <h1 id="hero-title" className="mt-5 text-[clamp(2.6rem,5.6vw,4.6rem)] leading-[1.05]">{brand.fullName}</h1>
-            {listing.address && <p className="mt-4 text-[1.05rem] font-light text-[#FEFEFC]/90">{listing.address}</p>}
-            <div className="mt-9 flex flex-wrap gap-3 md:justify-center">
+          <div aria-hidden="true" className="hero-tint absolute inset-0 -z-10" />
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(0_0_0/0.12)]" />
+          <div className="mx-auto w-full max-w-6xl px-6 py-16 text-center">
+            {c.hero_kicker && <p className="font-ui text-[12px] font-bold uppercase tracking-[0.3em] text-white md:text-[14px]">{c.hero_kicker}</p>}
+            <h1 id="hero-title" className="mt-5 text-[clamp(2.4rem,6vw,4.5rem)] leading-[1.15] !text-white">{brand.fullName}</h1>
+            {listing.address && <p className="mt-5 font-display text-[clamp(1.05rem,2vw,1.5rem)] text-white">{listing.address}</p>}
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
               <Link href="/foglalas" className="btn btn-white">Foglalás</Link>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
         <section aria-label="Fotók a házról" className={`${SECTION} pt-8 md:pt-10`}>
           <PhotoStrip strip={strip.map(lb)} all={photos.map(lb)} />
           <p className="mt-5 text-center">
-            <Link href="/kepek" className="inline-flex min-h-11 items-center gap-2 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Mind a {photos.length} fotó <Icon name="arrow" size={15} /></Link>
+            <Link href="/kepek" className="inline-flex min-h-11 items-center gap-2 font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Mind a {photos.length} fotó <Icon name="arrow" size={15} /></Link>
           </p>
         </section>
       )}
@@ -113,21 +113,21 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
               ))}
             </ul>
           )}
-          <Link href="/a-haz" className="mt-7 inline-flex min-h-11 items-center gap-2 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">A ház részletesen <Icon name="arrow" size={15} /></Link>
+          <Link href="/a-haz" className="mt-7 inline-flex min-h-11 items-center gap-2 font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">A ház részletesen <Icon name="arrow" size={15} /></Link>
         </div>
       </section>
 
       {/* ---------- 5. KEY FACTS on a photo ---------- */}
       {chips.length > 0 && (
         <section aria-label="A ház röviden" className="mx-auto max-w-[1400px] px-3 md:px-10">
-          <div className="relative isolate overflow-hidden rounded-[14px] bg-deep px-4 py-14 md:px-10 md:py-24">
+          <div className="relative isolate overflow-hidden rounded-[10px] bg-deep px-4 py-14 md:px-10 md:py-24">
             {bandPhoto && <Image src={bandPhoto.url} alt="" fill sizes="100vw" className="-z-10 object-cover" />}
             {bandPhoto && <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(18_22_20/0.18)]" />}
             <ul className="mx-auto grid max-w-4xl grid-cols-2 rounded-[10px] bg-surface shadow-[0_24px_60px_-28px_rgb(18_22_20/0.45)] md:grid-cols-4">
               {chips.map((x, i) => (
                 <li key={x} className={`flex flex-col items-center gap-3 px-4 py-8 text-center ${i % 2 ? 'border-l border-rule' : ''} ${i > 1 ? 'border-t border-rule md:border-t-0' : ''} ${i === 2 ? 'md:border-l' : ''}`}>
                   <Icon name={chipIcon(x)} size={30} stroke={1.25} className="text-fg/80" />
-                  <span className="text-[0.72rem] font-semibold uppercase tracking-[0.14em]">{x}</span>
+                  <span className="font-ui text-[13px] font-bold uppercase tracking-[0.06em] text-fg md:text-[15px]">{x}</span>
                 </li>
               ))}
             </ul>
@@ -143,7 +143,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
             {features.map((f) => (
               <li key={f.t} className="flex flex-col items-center text-center">
                 <Icon name={f.i as IconName} size={34} stroke={1.15} className="text-fg/75" />
-                <h3 className="mt-4 text-[1.4rem]">{f.t}</h3>
+                <h3 className="mt-4 text-[1.5rem]">{f.t}</h3>
                 <p className="mt-2 max-w-[30ch] text-[0.95rem] text-soft">{f.d}</p>
               </li>
             ))}
@@ -156,7 +156,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
         <section aria-labelledby="miert-title" className={SECTION}>
           <div className="grid gap-4 md:grid-cols-[1fr_1.2fr] md:gap-6">
             <div className="flex flex-col justify-center rounded-[10px] bg-deep p-8 text-deep-fg md:p-12">
-              <h2 id="miert-title" className={H2}>{why[0].t}</h2>
+              <h2 id="miert-title" className={`${H2} !text-white`}>{why[0].t}</h2>
               <p className="mt-5 max-w-[42ch] text-deep-fg/85">{why[0].d}</p>
               <Link href="/foglalas" className="btn btn-light mt-9 self-start">Foglalás</Link>
             </div>
@@ -181,8 +181,8 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
             ))}
           </ul>
           <p className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-2">
-            {ctx.docs.hazirend && <Link href="/hazirend" className="inline-flex min-h-11 items-center text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Teljes házirend</Link>}
-            {listing.settings.menuGyik && ctx.docs.gyik && <Link href="/gyik" className="inline-flex min-h-11 items-center text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Gyakori kérdések</Link>}
+            {ctx.docs.hazirend && <Link href="/hazirend" className="inline-flex min-h-11 items-center font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Teljes házirend</Link>}
+            {listing.settings.menuGyik && ctx.docs.gyik && <Link href="/gyik" className="inline-flex min-h-11 items-center font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Gyakori kérdések</Link>}
           </p>
         </section>
       )}
@@ -202,7 +202,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
               <span className="kicker">Testvérházunk Velencén</span>
               <span id="testver-title" className="font-display text-[clamp(1.7rem,3vw,2.4rem)] leading-tight">{qi > 0 ? pitch.slice(0, qi + 1) : sisterBrand.fullName}</span>
               {qi > 0 && <span className="text-soft">{pitch.slice(qi + 1).trim()}</span>}
-              <span className="mt-2 inline-flex items-center gap-2 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-pop">{sisterBrand.fullName} <Icon name="out" size={15} /></span>
+              <span className="mt-2 inline-flex items-center gap-2 font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-pop">{sisterBrand.fullName} <Icon name="out" size={15} /></span>
             </span>
           </a>
         </section>
@@ -214,7 +214,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
 function Fact({ dt, dd }: { dt: string; dd: string }) {
   return (
     <div>
-      <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-soft">{dt}</dt>
+      <dt className="font-ui text-[11px] font-bold uppercase tracking-[0.16em] text-soft">{dt}</dt>
       <dd className="mt-1 text-[1.02rem]">{dd}</dd>
     </div>
   )

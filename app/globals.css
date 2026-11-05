@@ -28,6 +28,7 @@
   --color-band-fg:   #1C2930;
   --color-band-2:    #0E6070;
   --color-band-2-fg: #FFF7E8;
+  --color-nav:       #2EA3F2;
   --color-sel:       #0E6070;
   --color-sel-fg:    #FFF7E8;
   --color-range:     #CFE6E6;
@@ -57,8 +58,8 @@
   --color-success:   #3F6E47;
   --color-danger:    #A63D27;
 
-  --font-display: var(--font-hanken), system-ui, sans-serif;
-  --font-sans:    var(--font-hanken), system-ui, sans-serif;
+  --font-display: var(--font-open), system-ui, sans-serif;
+  --font-sans:    var(--font-open), system-ui, sans-serif;
 
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -67,39 +68,35 @@
 }
 
 /* ---------- admin (legacy, light) ---------- */
-[data-site="velence"]  { --font-display: var(--font-hanken), system-ui, sans-serif; --font-sans: var(--font-hanken), system-ui, sans-serif; }
+[data-site="velence"]  { --font-display: var(--font-open), system-ui, sans-serif; --font-sans: var(--font-open), system-ui, sans-serif; }
 [data-site="napsugar"] {
-  --font-display: var(--font-hanken), system-ui, sans-serif; --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --font-display: var(--font-open), system-ui, sans-serif; --font-sans: var(--font-open), system-ui, sans-serif;
   --color-deep: #0E6070; --color-deep-700: #0A4B58; --color-water: #0E6070;
   --color-accent: #F2A23C; --color-action: #A94F1B; --color-action-hover: #8C4014;
   --color-paper: #F7EBD8; --color-paper-2: #F1E0C6; --color-cream: #FDF7EC; --color-line: #E3CFAE;
 }
 
-/* ---------- public skin (shared) + house accents ---------- */
+/* ---------- public skin: the reference (velenceviolavilla.hu) system, both houses ----------
+   Measured from the reference's Divi CSS (2026-11-05): Prata headings #333,
+   Open Sans body #666 1.8 line-height, Inter 700 tracked caps for labels and
+   buttons, square buttons, 10–12 px rounded photos/sections, slate #496572
+   for colour blocks/actions, #27292F footer, blue→teal photo overlay. */
 [data-skin] {
   color-scheme: light;
-  --font-display: var(--font-gilda), Georgia, serif;
-  --font-sans: var(--font-hanken), system-ui, sans-serif;
-  --color-bg: #FAFAF8; --color-surface: #FEFEFC; --color-surface-2: #F0F1ED;
-  --color-fg: #1E2421; --color-soft: #5E6661; --color-rule: #E2E5DF;
-  --color-band: #232825; --color-band-fg: #F1F2EE;
-  --color-band-2: #232825; --color-band-2-fg: #F1F2EE;
-  --color-taken: #ECEEE9; --color-taken-fg: #737B75;
-  --color-ok: #2D6B3F; --color-bad: #A63D27;
-  --radius-lg: 10px; --radius-xl: 14px;
-}
-/* act = buttons/links (small areas); deep = muted tone for large colour blocks */
-[data-skin="velence"] {
-  --color-act: #556126; --color-act-fg: #FEFEFC; --color-act-hover: #434D1D;
-  --color-pop: #556126; --color-focus: #556126;
-  --color-deep: #3E4534; --color-deep-fg: #F3F4EF;
-  --color-sel: #556126; --color-sel-fg: #FEFEFC; --color-range: #E6EAD6;
-}
-[data-skin="napsugar"] {
-  --color-act: #0E6070; --color-act-fg: #FEFEFC; --color-act-hover: #0A4B58;
-  --color-pop: #0E6070; --color-focus: #0E6070;
-  --color-deep: #31505A; --color-deep-fg: #F2F5F5;
-  --color-sel: #0E6070; --color-sel-fg: #FEFEFC; --color-range: #DAEAEC;
+  --font-display: var(--font-prata), Georgia, serif;
+  --font-sans: var(--font-open), system-ui, sans-serif;
+  --font-ui: var(--font-inter), system-ui, sans-serif;
+  --color-bg: #FFFFFF; --color-surface: #FFFFFF; --color-surface-2: #F5F6F7;
+  --color-fg: #333333; --color-soft: #666666; --color-rule: #E6E6E6;
+  --color-band: #27292F; --color-band-fg: #FFFFFF;
+  --color-band-2: #27292F; --color-band-2-fg: #FFFFFF;
+  --color-taken: #F2F2F2; --color-taken-fg: #8A8A8A;
+  --color-ok: #2D6B3F; --color-bad: #B03A2E;
+  --color-act: #496572; --color-act-fg: #FFFFFF; --color-act-hover: #3A525D;
+  --color-pop: #496572; --color-focus: #2EA3F2; --color-nav: #2EA3F2;
+  --color-deep: #496572; --color-deep-fg: #FFFFFF;
+  --color-sel: #496572; --color-sel-fg: #FFFFFF; --color-range: #E4ECEF;
+  --radius-md: 8px; --radius-lg: 12px; --radius-xl: 10px;
 }
 
 * { box-sizing: border-box; }
@@ -120,9 +117,11 @@ body {
 .site-root { min-height: 100dvh; }
 
 h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 500; }
-/* Gilda Display has one weight: hierarchy comes from size, never faux bold */
-[data-skin] :is(h1, h2, h3, .display) { font-weight: 400; line-height: 1.14; letter-spacing: 0; }
-[data-skin] { line-height: 1.6; }
+/* Prata has one weight: hierarchy comes from size, never faux bold */
+[data-skin] :is(h1, h2, h3, h4, .display) { font-family: var(--font-display); font-weight: 400; line-height: 1.2; letter-spacing: 0; color: var(--color-fg); }
+[data-skin] { line-height: 1.8; font-size: 16px; color: var(--color-soft); }
+[data-skin] :is(strong, b, label, dt) { color: var(--color-fg); }
+.font-ui { font-family: var(--font-ui); }
 [data-skin] :is(p, li, dd) { text-wrap: pretty; }
 
 ::selection { background-color: var(--color-band); color: var(--color-band-fg); }
@@ -137,7 +136,7 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   .tnum { font-variant-numeric: tabular-nums; }
 
   /* eyebrow label: short, real metadata only */
-  .kicker { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-pop); }
+  .kicker { font-family: var(--font-ui, inherit); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--color-pop); }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -159,10 +158,11 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   .btn-white:hover:not(:disabled) { background: #F0F1ED; }
   .btn-light:hover:not(:disabled) { background: rgb(252 252 250 / 0.12); border-color: #FCFCFA; }
   /* public buttons: quiet, tracked caps, small radius (reference-grade restraint) */
-  [data-skin] .btn { border-radius: 4px; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.78rem; font-weight: 600; padding: 0 1.6rem; min-height: 48px; }
-  [data-skin] .btn-sm { min-height: 44px; padding: 0 1.15rem; font-size: 0.74rem; }
-  [data-skin] .btn-line { border-width: 1px; border-color: color-mix(in oklab, var(--color-fg) 28%, transparent); }
-  [data-skin] .btn-light { border-width: 1px; }
+  [data-skin] .btn { border-radius: 0; font-family: var(--font-ui); text-transform: uppercase; letter-spacing: 0.16em; font-size: 14px; font-weight: 700; padding: 0 24px; min-height: 54px; }
+  [data-skin] .btn-sm { min-height: 46px; padding: 0 18px; font-size: 13px; }
+  [data-skin] .btn-line { border-width: 1px; border-color: color-mix(in oklab, var(--color-fg) 30%, transparent); }
+  [data-skin] .btn-light { border-width: 1px; border-color: #FFFFFF; }
+  [data-skin] .btn-white { color: #333333; }
 
   .field { display: flex; flex-direction: column; gap: 0.4rem; }
   .field > label, .field-label { font-size: 0.88rem; font-weight: 600; color: var(--color-fg); }
@@ -228,9 +228,17 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
 /* ---------- booking ---------- */
 @layer components {
   .bk-step { animation: bk-in 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
-  [data-skin] .bk-input { border-width: 1px; border-radius: 10px; min-height: 52px; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  [data-skin] .bk-input { border-width: 1px; border-radius: 0; min-height: 52px; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
   [data-skin] .bk-input:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-focus) 18%, transparent); }
 }
 @keyframes bk-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .bk-step { animation: none; } }
 @media (max-width: 1023.98px) { body.has-bookbar { padding-bottom: 84px; } }
+
+/* reference hero overlay: blue → teal over the photo */
+.hero-tint { background: linear-gradient(180deg, rgba(43, 135, 218, 0.45) 0%, rgba(41, 196, 169, 0.5) 100%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-drop { animation: nav-drop 0.18s ease-out; }
+}
+@keyframes nav-drop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

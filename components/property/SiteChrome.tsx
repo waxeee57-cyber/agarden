@@ -42,17 +42,15 @@ export function ContactLinks({ ctx, tone = 'page' }: { ctx: SiteCtx; tone?: 'pag
   )
 }
 
-export function SiteHeader({ ctx, overlay = false }: { ctx: SiteCtx; overlay?: boolean }) {
+export function SiteHeader({ ctx }: { ctx: SiteCtx; overlay?: boolean }) {
+  // reference (Divi) header: white bar, logo left, navigation right
   return (
-    <header className={overlay ? 'absolute inset-x-0 top-0 z-30' : 'border-b border-rule bg-bg'}>
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-4 md:px-10 md:py-5">
+    <header className="relative z-40 border-b border-black/[0.08] bg-white">
+      <div className="relative mx-auto flex h-[76px] max-w-[1180px] items-center justify-between gap-4 px-5 md:h-[84px] md:px-8">
         <Link href="/" className="rounded-md" aria-label={`${BRANDS[ctx.site].fullName}, főoldal`}>
-          <Wordmark site={ctx.site} size={40} />
+          <Wordmark site={ctx.site} size={42} />
         </Link>
-        <div className="flex items-center gap-2">
-          <Link href="/foglalas" className="btn btn-act btn-sm hidden md:inline-flex">Foglalás</Link>
-          <SiteMenu items={ctx.nav} footer={<ContactLinks ctx={ctx} />} />
-        </div>
+        <SiteMenu items={ctx.nav} />
       </div>
     </header>
   )
@@ -65,24 +63,24 @@ export function SiteFooter({ ctx }: { ctx: SiteCtx }) {
   const brand = BRANDS[site]
   const sister = BRANDS[site === 'velence' ? 'napsugar' : 'velence']
   const social = socialEntries(listing.social)
-  const circle = 'flex h-12 w-12 items-center justify-center rounded-full border border-band-fg/30 transition-colors group-hover:border-band-fg'
+  const circle = 'flex h-12 w-12 items-center justify-center rounded-full border border-white transition-colors group-hover:bg-white/10'
   return (
     <footer className="bg-band pb-24 text-band-fg md:pb-0">
       <div className="mx-auto max-w-5xl px-5 pb-10 pt-16 text-center md:px-8 md:pt-24">
-        <p className="font-display text-[clamp(2rem,4vw,3rem)] leading-tight">{brand.fullName}</p>
+        <p className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-tight text-white">{brand.fullName}</p>
         {listing.address && <p className="mt-3 text-band-fg/80">{listing.address}</p>}
         {listing.ntakId && <p className="mt-1 text-sm text-band-fg/60">NTAK regisztrációs szám: {listing.ntakId}</p>}
 
         <div className="mx-auto mt-12 grid max-w-2xl gap-8 sm:grid-cols-2">
           <a href={telHref(ctx.phone)} className="group flex flex-col items-center gap-3">
             <span className={circle}><Icon name="phone" size={18} /></span>
-            <span className="font-display text-xl">{ctx.phone}</span>
+            <span className="font-display text-[1.25rem]">{ctx.phone}</span>
             {listing.content.contact_hours && <span className="-mt-2 text-xs text-band-fg/60">{listing.content.contact_hours}</span>}
           </a>
           {listing.contactEmail && (
             <a href={`mailto:${listing.contactEmail}`} className="group flex flex-col items-center gap-3">
               <span className={circle}><Icon name="mail" size={18} /></span>
-              <span className="text-[1.02rem] [overflow-wrap:anywhere]">{listing.contactEmail}</span>
+              <span className="font-display text-[clamp(0.95rem,4.2vw,1.25rem)] [overflow-wrap:anywhere] sm:whitespace-nowrap">{listing.contactEmail}</span>
             </a>
           )}
         </div>
@@ -149,7 +147,7 @@ export function PageHead({ title, lead, kicker }: { title: string; lead?: React.
   return (
     <div className="mx-auto max-w-6xl px-5 pb-10 pt-12 md:px-8 md:pb-14 md:pt-20">
       {kicker && <p className="kicker">{kicker}</p>}
-      <h1 className="mt-3 text-[clamp(2.4rem,5vw,3.8rem)]">{title}</h1>
+      <h1 className="mt-3 text-[clamp(2.2rem,4.6vw,3.25rem)]">{title}</h1>
       {lead && <div className="mt-4 max-w-[60ch] text-lg text-soft">{lead}</div>}
     </div>
   )

@@ -7,12 +7,12 @@ import { join } from 'node:path'
 // 2026-10-30). The default ImageResponse font is not trusted with Hungarian accents.
 export async function ogFonts() {
   const dir = join(process.cwd(), 'assets', 'fonts')
-  const [display, sans] = await Promise.all([readFile(join(dir, 'GildaDisplay-Regular.ttf')), readFile(join(dir, 'SchibstedGrotesk-Regular.ttf'))])
+  const [display, sans] = await Promise.all([readFile(join(dir, 'PrataHU-Regular.ttf')), readFile(join(dir, 'SchibstedGrotesk-Regular.ttf'))])
   return {
-    displayName: 'Gilda Display',
+    displayName: 'Prata HU',
     sansName: 'Schibsted Grotesk',
     fonts: [
-      { name: 'Gilda Display', data: display, weight: 400 as const, style: 'normal' as const },
+      { name: 'Prata HU', data: display, weight: 400 as const, style: 'normal' as const },
       { name: 'Schibsted Grotesk', data: sans, weight: 400 as const, style: 'normal' as const },
     ],
   }
