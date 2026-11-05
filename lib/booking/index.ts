@@ -11,8 +11,8 @@ import 'server-only'
 import { query, queryOne } from '../db'
 import { normalizeReason, normalizeThrown, type BookingErrorCode } from './errors'
 import {
-  availabilitySchema, quoteSchema, createBookingSchema, requestQuoteSchema,
-  type AvailabilityInput, type QuoteInput, type CreateBookingInput, type RequestQuoteInput,
+  availabilitySchema, quoteSchema, createBookingSchema, requestQuoteSchema, lookupSchema,
+  type AvailabilityInput, type QuoteInput, type CreateBookingInput, type RequestQuoteInput, type LookupInput,
 } from './schemas'
 
 export type Surcharge = { code: string; label: string; amount: number }
@@ -131,6 +131,7 @@ export async function createBooking(
     const data = row?.r
     if (!data) return { ok: false, reason: 'unknown' }
     if (!data.ok) return { ok: false, reason: normalizeReason(data.reason) }
+    if (d.children > 0) await setChildren(data.booking_id as string, Math.min(d.children, d.guests))
     return { ok: true, bookingId: data.booking_id as string, total: (data.total_huf as number | null) ?? null }
   } catch (e) {
     return { ok: false, reason: normalizeThrown(e, 'createBooking') }
@@ -151,8 +152,45 @@ export async function requestQuote(listingId: string, input: RequestQuoteInput):
     const data = row?.r
     if (!data) return { ok: false, reason: 'unknown' }
     if (!data.ok) return { ok: false, reason: normalizeReason(data.reason) }
+    if (d.children > 0) await setChildren(data.booking_id as string, d.guests ? Math.min(d.children, d.guests) : d.children)
     return { ok: true, bookingId: data.booking_id as string, status: 'quote_request' }
   } catch (e) {
     return { ok: false, reason: normalizeThrown(e, 'requestQuote') }
+  }
+}
+
+/** Children are part of `guests` (total persons); stored separately for the owner (IFA is 18+). */
+async function setChildren(bookingId: string, children: number): Promise<void> {
+  try {
+    await query('update bookings set children_count = $2 where id = $1', [bookingId, children])
+  } catch (e) {
+    // never fail a booking over the split; the total head count is already stored
+    console.error('[booking] children_count update failed', (e as Error).message)
+  }
+}
+
+export type LookupResult =
+  | { ok: true; booking: { code: string; status: string; checkIn: string | null; checkOut: string | null; nights: number | null; guests: number | null; children: number; pet: boolean; isEvent: boolean; total: number | null; createdAt: string } }
+  | { ok: false; reason: 'validation_error' | 'not_found' | 'unknown' }
+
+/** "Foglalásom": a guest's own booking by code + e-mail. Same answer for a
+ *  wrong code and a wrong e-mail, so the endpoint cannot be used to probe. */
+export async function lookupBooking(listingId: string, input: LookupInput): Promise<LookupResult> {
+  const parsed = lookupSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, reason: 'validation_error' }
+  const { code, email } = parsed.data
+  try {
+    const row = await queryOne<{ id: string; status: string; check_in: string | null; check_out: string | null; nights: number | null; guests_count: number | null; children_count: number; pet: boolean; is_event: boolean; total_huf: number | null; created_at: string }>(
+      `select id, status, check_in::text as check_in, check_out::text as check_out, nights, guests_count, children_count, pet, is_event, total_huf, created_at::text as created_at
+         from bookings
+        where listing_id = $1 and left(id::text, 8) = lower($2) and lower(guest_email) = lower($3)
+        limit 1`,
+      [listingId, code, email]
+    )
+    if (!row) return { ok: false, reason: 'not_found' }
+    return { ok: true, booking: { code: row.id.slice(0, 8).toUpperCase(), status: row.status, checkIn: row.check_in, checkOut: row.check_out, nights: row.nights, guests: row.guests_count, children: row.children_count ?? 0, pet: row.pet, isEvent: row.is_event, total: row.total_huf, createdAt: row.created_at } }
+  } catch (e) {
+    console.error('[booking] lookup failed', (e as Error).message)
+    return { ok: false, reason: 'unknown' }
   }
 }

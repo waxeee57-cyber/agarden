@@ -15,10 +15,12 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
         {items.map((item, idx) => (
           <button
+            data-reveal
+            style={{ '--i': idx % 4 } as React.CSSProperties}
             key={item.id}
             type="button"
             onClick={() => setOpen(idx)}
-            className="group relative block aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-[12px] bg-surface-2"
+            className="zoom-tile relative block aspect-[4/5] w-full cursor-zoom-in rounded-[12px] bg-surface-2"
             aria-label={`${item.alt || 'Fotó'}, nagyítás`}
           >
             <Image
@@ -26,7 +28,7 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
               alt={item.alt}
               fill
               sizes="(min-width: 1024px) 270px, (min-width: 768px) 33vw, 50vw"
-              className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]"
+              className="object-cover"
             />
           </button>
         ))}

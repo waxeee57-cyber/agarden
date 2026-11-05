@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     after(() =>
       sendBookingEmails(site, listingId, {
         kind: 'quote', id: result.bookingId!, guestName: d.guestName, guestEmail: d.guestEmail, guestPhone: d.guestPhone,
-        checkIn: d.checkIn, checkOut: d.checkOut, guests: d.guests, pet: d.pet, isEvent: d.isEvent, message: d.message,
+        checkIn: d.checkIn, checkOut: d.checkOut, guests: d.guests, children: d.children, pet: d.pet, isEvent: d.isEvent, message: d.message,
       })
     )
   }

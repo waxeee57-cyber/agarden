@@ -13,6 +13,7 @@ export function buildNav(listing: { settings: SiteSettings }, docs: Partial<Reco
     !!docs.hazirend && { href: '/hazirend', label: 'Házirend' },
     { href: '/aszf', label: 'ÁSZF' },
     { href: '/kapcsolat', label: 'Kapcsolat' },
+    { href: '/foglalasom', label: 'Foglalásom' },
     listing.settings.menuGyik && !!docs.gyik && { href: '/gyik', label: 'GYIK' },
     listing.settings.menuKornyek && !!docs.kornyek && { href: '/kornyek', label: 'Környék & programok' },
     { href: sisterOrigin, label: 'Testvérházunk', external: true },

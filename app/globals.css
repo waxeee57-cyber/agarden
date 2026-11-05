@@ -116,13 +116,19 @@ body {
 .skin-root { min-height: 100dvh; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); }
 .site-root { min-height: 100dvh; }
 
-h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 500; }
-/* Prata has one weight: hierarchy comes from size, never faux bold */
-[data-skin] :is(h1, h2, h3, h4, .display) { font-family: var(--font-display); font-weight: 400; line-height: 1.2; letter-spacing: 0; color: var(--color-fg); }
+/* Element defaults live in the base layer, so a utility on the element
+   (truncate, text-white, tracking-*, font-ui…) always wins over them. */
+@layer base {
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 500; }
+  /* Prata has one weight: hierarchy comes from size, never faux bold */
+  [data-skin] :is(h1, h2, h3, h4, .display) { font-family: var(--font-display); font-weight: 400; line-height: 1.2; letter-spacing: 0; color: var(--color-fg); }
+  [data-skin] :is(strong, b, label, dt) { color: var(--color-fg); }
+  [data-skin] :is(p, li, dd) { text-wrap: pretty; }
+}
 [data-skin] { line-height: 1.8; font-size: 16px; color: var(--color-soft); }
-[data-skin] :is(strong, b, label, dt) { color: var(--color-fg); }
 .font-ui { font-family: var(--font-ui); }
-[data-skin] :is(p, li, dd) { text-wrap: pretty; }
+/* the house sites are white edge to edge (overscroll included) */
+body:has(.skin-root) { background-color: #FFFFFF; }
 
 ::selection { background-color: var(--color-band); color: var(--color-band-fg); }
 
@@ -192,6 +198,7 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   [data-admin] .err { color: var(--color-danger); }
 
   /* owner-edited documents (markdown-lite) */
+  .doc { overflow-wrap: anywhere; }
   .doc > * + * { margin-top: 1rem; }
   .doc h2 { font-size: clamp(1.45rem, 2.6vw, 1.85rem); margin-top: 2.6rem; }
   .doc p, .doc li { line-height: 1.7; color: color-mix(in oklab, var(--color-fg) 90%, transparent); }
@@ -233,7 +240,11 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
 }
 @keyframes bk-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .bk-step { animation: none; } }
-@media (max-width: 1023.98px) { body.has-bookbar { padding-bottom: 84px; } }
+/* room for the fixed booking bar on phones/tablets: a spacer INSIDE the dark
+   footer (so no light strip shows under it), sized with the home-indicator inset */
+@media (max-width: 1023.98px) {
+  body.has-bookbar [data-skin] > footer::after { content: ''; display: block; height: calc(82px + env(safe-area-inset-bottom)); }
+}
 
 /* reference hero overlay: blue → teal over the photo */
 .hero-tint { background: linear-gradient(180deg, rgba(43, 135, 218, 0.45) 0%, rgba(41, 196, 169, 0.5) 100%); }
@@ -242,3 +253,70 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   .nav-drop { animation: nav-drop 0.18s ease-out; }
 }
 @keyframes nav-drop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* ---------- motion layer (reference: Divi fixed header, button arrow, gallery overlay) ---------- */
+@layer components {
+  /* sticky header: outer box keeps its height (no layout shift), the bar shrinks */
+  .site-bar-inner { height: 76px; transition: height 0.4s ease; }
+  @media (min-width: 768px) { .site-bar-inner { height: 84px; } }
+  .site-bar { transition: box-shadow 0.4s ease; }
+  .site-logo > span { transform-origin: left center; transition: transform 0.4s ease; }
+  .site-header[data-scrolled] .site-bar-inner { height: 60px; }
+  .site-header[data-scrolled] .site-bar { box-shadow: 0 0 7px rgba(0, 0, 0, 0.1); border-bottom-color: transparent; }
+  .site-header[data-scrolled] .site-logo > span { transform: scale(0.8); }
+
+  /* Divi-style button: a chevron fades in on hover, inside the right padding */
+  [data-skin] .btn { position: relative; transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, padding 0.3s ease, transform 0.15s ease; }
+  [data-skin] .btn:not(.btn-plain)::after {
+    content: ''; position: absolute; right: 9px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px;
+    background: currentColor; opacity: 0; transform: translateX(-5px); transition: opacity 0.3s ease, transform 0.3s ease;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3 1l4 4-4 4' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3 1l4 4-4 4' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  @media (hover: hover) {
+    [data-skin] .btn:not(.btn-plain):hover:not(:disabled)::after { opacity: 1; transform: none; }
+  }
+
+  /* photo tiles: the reference's light overlay with a round "+" on hover */
+  .zoom-tile { position: relative; overflow: hidden; }
+  .zoom-tile img { transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+  .zoom-tile::after {
+    content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.72); opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+  }
+  .zoom-tile::before {
+    content: ''; position: absolute; left: 50%; top: 50%; z-index: 1; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 999px;
+    background: var(--color-nav, #2EA3F2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 6v12M6 12h12' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / 22px no-repeat;
+    opacity: 0; transform: scale(0.6); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none;
+  }
+  @media (hover: hover) {
+    .zoom-tile:hover img { transform: scale(1.05); }
+    .zoom-tile:hover::after { opacity: 1; }
+    .zoom-tile:hover::before { opacity: 1; transform: none; }
+  }
+  .zoom-tile:focus-visible::after { opacity: 1; }
+  .zoom-tile:focus-visible::before { opacity: 1; transform: none; }
+
+  /* hero entrance (text only; the hero photo is the LCP and paints at once) */
+  .hero-in > * { animation: hero-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .hero-in > :nth-child(2) { animation-delay: 0.08s; }
+  .hero-in > :nth-child(3) { animation-delay: 0.16s; }
+  .hero-in > :nth-child(4) { animation-delay: 0.26s; }
+  .hero-photo { animation: hero-photo 1.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+@keyframes hero-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes hero-photo { from { transform: scale(1.06); } to { transform: none; } }
+
+/* reveal on scroll ([data-reveal], stagger with style="--i:n") */
+.reveal-on [data-reveal]:not(.is-in) { opacity: 0; transform: translateY(26px); }
+.reveal-on [data-reveal] { transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.35s ease; transition-delay: calc(var(--i, 0) * 90ms); }
+
+@media (prefers-reduced-motion: reduce) {
+  .site-bar-inner, .site-bar, .site-logo > span { transition: none; }
+  .hero-in > *, .hero-photo { animation: none; }
+  .reveal-on [data-reveal] { opacity: 1 !important; transform: none !important; transition: none; }
+  [data-skin] .btn::after { transition: none; }
+  .zoom-tile img, .zoom-tile::after, .zoom-tile::before { transition: none; }
+}
+.cal-in { animation: cal-in 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes cal-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cal-in { animation: none; } }

@@ -19,6 +19,7 @@ export type AdminBooking = {
   checkOut: string | null
   nights: number | null
   guests: number | null
+  children: number
   pet: boolean
   isEvent: boolean
   total: number | null
@@ -37,12 +38,12 @@ export type FilterKey = keyof typeof FILTERS
 export async function listBookings(listingId: string, filter: FilterKey): Promise<AdminBooking[]> {
   const rows = await query<{
     id: string; status: BookingStatus; source: 'web' | 'manual'; guest_name: string; guest_email: string; guest_phone: string | null
-    check_in: string | null; check_out: string | null; nights: number | null; guests_count: number | null
+    check_in: string | null; check_out: string | null; nights: number | null; guests_count: number | null; children_count: number
     pet: boolean; is_event: boolean; total_huf: number | null; notes: string | null; created_at: string
   }>(
     `select id, status, source, guest_name, guest_email, guest_phone,
             to_char(check_in, 'YYYY-MM-DD') as check_in, to_char(check_out, 'YYYY-MM-DD') as check_out,
-            nights, guests_count, pet, is_event, total_huf, notes, created_at::text as created_at
+            nights, guests_count, children_count, pet, is_event, total_huf, notes, created_at::text as created_at
        from bookings
       where listing_id = $1 and status = any($2::text[])
       order by case when status in ('pending', 'quote_request') then 0 else 1 end, coalesce(check_in, created_at::date) asc, created_at desc
@@ -51,7 +52,7 @@ export async function listBookings(listingId: string, filter: FilterKey): Promis
   )
   return rows.map((r) => ({
     id: r.id, status: r.status, source: r.source, guestName: r.guest_name, guestEmail: r.guest_email, guestPhone: r.guest_phone,
-    checkIn: r.check_in, checkOut: r.check_out, nights: r.nights, guests: r.guests_count, pet: r.pet, isEvent: r.is_event,
+    checkIn: r.check_in, checkOut: r.check_out, nights: r.nights, guests: r.guests_count, children: r.children_count ?? 0, pet: r.pet, isEvent: r.is_event,
     total: r.total_huf, notes: r.notes, createdAt: r.created_at,
   }))
 }

@@ -43,6 +43,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
               depositLine: depositLine(t),
               extraCosts: t.extraCosts,
               cover: cover ? { url: cover.url, alt: cover.alt } : null,
+              address: l.address,
             }}
             sister={{ name: sisterBrand.fullName, origin: ctx.sisterOrigin, pitch: ctx.sister?.content.sister_pitch ?? '' }}
           />

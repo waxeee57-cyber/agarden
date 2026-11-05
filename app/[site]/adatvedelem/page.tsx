@@ -87,9 +87,9 @@ function TechnicalNotice({ listing, operator, heading: H }: { listing: Awaited<R
 
       <H>6. Az Ön jogai</H>
       <p>
-        Kérhetsz hozzáférést az adataidhoz, helyesbítést, törlést, az adatkezelés korlátozását, adathordozhatóságot,
-        és tiltakozhatsz a jogos érdeken alapuló adatkezelés ellen. Kérésedre legfeljebb egy hónapon belül válaszolunk.
-        Panasszal a Nemzeti Adatvédelmi és Információszabadság Hatósághoz fordulhatsz (NAIH, 1055 Budapest, Falk Miksa utca 9–11.,{' '}
+        Kérhet hozzáférést az adataihoz, helyesbítést, törlést, az adatkezelés korlátozását, adathordozhatóságot,
+        és tiltakozhat a jogos érdeken alapuló adatkezelés ellen. Kérésére legfeljebb egy hónapon belül válaszolunk.
+        Panasszal a Nemzeti Adatvédelmi és Információszabadság Hatósághoz fordulhat (NAIH, 1055 Budapest, Falk Miksa utca 9–11.,{' '}
         <a href="https://naih.hu">naih.hu</a>), vagy bírósághoz.
       </p>
 

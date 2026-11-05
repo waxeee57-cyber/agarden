@@ -51,7 +51,7 @@ export function ConsumerSupplement({ contact }: { contact: string }) {
         </p>
         <p>
           Panaszát kérjük, elsősorban közvetlenül nekünk jelezze: {contact}. Fogyasztói jogvita esetén a lakóhelye szerinti, vagy a szálláshely szerint
-          illetékes békéltető testülethez fordulhatsz: Fejér Vármegyei Békéltető Testület, 8000 Székesfehérvár, Hosszúsétatér 4–6.; telefon: (22) 510-310;
+          illetékes békéltető testülethez fordulhat: Fejér Vármegyei Békéltető Testület, 8000 Székesfehérvár, Hosszúsétatér 4–6.; telefon: (22) 510-310;
           e-mail: <a href="mailto:bekeltetes@fmkik.hu">bekeltetes@fmkik.hu</a>; <a href="https://www.bekeltetesfejer.hu">bekeltetesfejer.hu</a>
         </p>
       </div>

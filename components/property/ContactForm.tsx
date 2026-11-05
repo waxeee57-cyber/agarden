@@ -8,7 +8,7 @@ import { telHref } from '@/lib/brand'
 // phone number always one tap away if something goes wrong.
 
 const MSG: Record<string, string> = {
-  name: 'Add meg a neved.',
+  name: 'Kérjük, adja meg a nevét.',
   email: 'Kérjük, érvényes e-mail címet adjon meg, ide válaszolunk.',
   message: 'Kérjük, írjon legalább pár szót.',
 }
@@ -54,7 +54,7 @@ export function ContactForm({ phone }: { phone: string }) {
       <div className="panel p-6 md:p-8" role="status">
         <p className="kicker">Üzenet elküldve</p>
         <h3 className="mt-2 text-2xl">Köszönjük, megkaptuk.</h3>
-        <p className="mt-3 text-soft">Hamarosan válaszolunk a megadott e-mail címre. Sürgős? Hívj: <a href={telHref(phone)} className="font-semibold text-fg underline underline-offset-4">{phone}</a></p>
+        <p className="mt-3 text-soft">Hamarosan válaszolunk a megadott e-mail címre. Sürgős? Hívjon minket: <a href={telHref(phone)} className="font-semibold text-fg underline underline-offset-4">{phone}</a></p>
       </div>
     )
   }

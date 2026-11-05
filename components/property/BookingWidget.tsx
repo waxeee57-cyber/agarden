@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Calendar, addDays, parseISO, toISO, fmtDay } from './Calendar'
+import { Calendar, addDays, parseISO, toISO, fmtDay, fmtShort } from './Calendar'
 import { formatHuf } from '@/lib/format'
 import { telHref } from '@/lib/brand'
 
@@ -29,6 +29,7 @@ export type WidgetListing = {
   depositLine: string | null
   extraCosts: string[]
   cover: { url: string; alt: string } | null
+  address: string | null
 }
 export type SisterInfo = { name: string; origin: string; pitch: string }
 
@@ -63,7 +64,9 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   const [mode, setMode] = useState<'book' | 'inquiry'>(params.get('ajanlat') === '1' ? 'inquiry' : 'book')
   const [checkIn, setCheckIn] = useState<string | null>(valid(initIn) ? initIn : null)
   const [checkOut, setCheckOut] = useState<string | null>(valid(initIn) && valid(initOut) && initOut! > initIn! ? initOut : null)
-  const [guests, setGuests] = useState(Math.min(4, maxGuests))
+  const [adults, setAdults] = useState(Math.min(4, maxGuests))
+  const [children, setChildren] = useState(0)
+  const guests = adults + children
   const [pet, setPet] = useState(false)
   const [isEvent, setIsEvent] = useState(params.get('rendezveny') === '1')
   const [name, setName] = useState('')
@@ -83,11 +86,13 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   // the bar is portalled to <body> because page sections use content-visibility
   // (contain: paint), which would trap position:fixed inside the section
   const [portal, setPortal] = useState<{ el: HTMLElement; skin: string | null } | null>(null)
+  const barShown = !success
   useEffect(() => {
+    if (!barShown) return
     document.body.classList.add('has-bookbar')
     setPortal({ el: document.body, skin: top.current?.closest('[data-skin]')?.getAttribute('data-skin') ?? null })
     return () => document.body.classList.remove('has-bookbar')
-  }, [])
+  }, [barShown])
 
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -157,8 +162,8 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(mode === 'book'
-          ? { checkIn, checkOut, guests, pet, isEvent, ...contact }
-          : { ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), guests, pet, isEvent, ...contact }),
+          ? { checkIn, checkOut, guests, children, pet, isEvent, ...contact }
+          : { ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), guests, children, pet, isEvent, ...contact }),
       })
       const data = await res.json()
       if (data.ok) {
@@ -184,6 +189,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
     : { label: submitting ? 'Küldés…' : mode === 'book' ? 'Foglalási kérelem elküldése' : 'Ajánlatkérés elküldése', onClick: submit, disabled: submitting }
 
   if (success) {
+    const code = success.id ? success.id.slice(0, 8).toUpperCase() : null
     return (
       <div ref={top} className="bk-step mx-auto max-w-2xl scroll-mt-24 rounded-[var(--radius-xl)] border border-rule bg-surface p-7 text-center shadow-[0_30px_80px_-50px_rgb(20_24_22/0.5)] md:p-12" role="status">
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sel text-sel-fg" aria-hidden="true">
@@ -194,17 +200,21 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
           {success.kind === 'book' ? 'A dátumokat fenntartjuk Önnek, pénzt nem vontunk le.' : 'Az ajánlatkérés még nem foglal le dátumot.'}{' '}
           {listing.confirmHours ? `${listing.confirmHours} órán belül` : 'Hamarosan'} {success.kind === 'book' ? 'e-mailben visszaigazoljuk' : 'e-mailben vagy telefonon küldjük az ajánlatot'}: <strong className="text-fg">{email.trim()}</strong>
         </p>
-        <dl className="mx-auto mt-8 max-w-sm divide-y divide-rule rounded-[var(--radius-lg)] border border-rule text-left text-sm">
-          {success.id && <Line dt="Azonosító" dd={<span className="tnum">{success.id.slice(0, 8).toUpperCase()}</span>} />}
+        {code && <CodeBox code={code} />}
+        <dl className="mx-auto mt-6 max-w-sm divide-y divide-rule rounded-[var(--radius-lg)] border border-rule text-left text-sm">
           {checkIn && checkOut && <Line dt="Időpont" dd={`${fmtDay(parseISO(checkIn))} – ${fmtDay(parseISO(checkOut))}`} />}
-          <Line dt="Vendégek" dd={`${guests} fő`} />
+          <Line dt="Vendégek" dd={children ? `${adults} felnőtt + ${children} gyerek` : `${guests} fő`} />
           {success.kind === 'book' && success.total != null && <Line dt="Tájékoztató végösszeg" dd={<span className="tnum">{formatHuf(success.total)}</span>} />}
         </dl>
         {success.kind === 'book' && listing.depositLine && <p className="mx-auto mt-5 max-w-[46ch] text-sm text-soft">{listing.depositLine} A számlaszámot a visszaigazoló levélben küldjük.</p>}
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/" className="btn btn-act">Vissza a főoldalra</Link>
-          <a href={telHref(listing.phone)} className="btn btn-line">Kérdésem van</a>
+        <div className="mx-auto mt-8 grid max-w-sm gap-3 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
+          {success.kind === 'book' && checkIn && checkOut && (
+            <a href={`/api/ics?checkIn=${checkIn}&checkOut=${checkOut}${code ? `&kod=${code}` : ''}`} className="btn btn-act">Naptárba mentés</a>
+          )}
+          {code && <Link href={`/foglalasom?kod=${code}`} className="btn btn-line">Foglalásom</Link>}
+          <Link href="/" className="btn btn-line">Főoldal</Link>
         </div>
+        <p className="mt-6 text-sm text-soft">Kérdése van? <a href={telHref(listing.phone)} className="font-semibold text-fg underline underline-offset-2">{listing.phone}</a></p>
       </div>
     )
   }
@@ -233,7 +243,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
         {/* ---------- main column ---------- */}
-        <div className="min-w-0 pb-28 lg:pb-0">
+        <div className="min-w-0">
           {step === 0 && (
             <div key="s0" className="bk-step space-y-6">
               <Card>
@@ -269,13 +279,19 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
               </Card>
 
               <Card>
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-[1.35rem]">Vendégek</h3>
-                    <p className="mt-0.5 text-sm text-soft">Legfeljebb {listing.capacityMax}+{listing.capacityExtra} fő{listing.capacityExtra ? ` (a +${listing.capacityExtra} pótágyon)` : ''}</p>
+                <h3 className="text-[1.35rem]">Vendégek</h3>
+                <p className="mt-0.5 text-sm text-soft">Legfeljebb {listing.capacityMax}+{listing.capacityExtra} fő{listing.capacityExtra ? ` (a +${listing.capacityExtra} pótágyon)` : ''}, gyerekekkel együtt.</p>
+                <div className="mt-4 divide-y divide-rule border-y border-rule">
+                  <div className="flex items-center justify-between gap-4 py-3.5">
+                    <div><p className="font-semibold text-fg">Felnőttek</p><p className="text-sm text-soft">18 év felett</p></div>
+                    <Stepper value={adults} min={1} max={maxGuests - children} onChange={setAdults} label="Felnőttek száma" unit="fő" />
                   </div>
-                  <Stepper value={guests} min={1} max={maxGuests} onChange={setGuests} />
+                  <div className="flex items-center justify-between gap-4 py-3.5">
+                    <div><p className="font-semibold text-fg">Gyerekek</p><p className="text-sm text-soft">0–17 év</p></div>
+                    <Stepper value={children} min={0} max={maxGuests - adults} onChange={setChildren} label="Gyerekek száma" unit="fő" />
+                  </div>
                 </div>
+                <p className="mt-3 text-sm text-soft" aria-live="polite">Összesen <strong className="text-fg">{guests} fő</strong>{guests >= maxGuests ? ' – ez a ház teljes kapacitása.' : '.'}</p>
                 {errors.guests && <p className="err mt-2">{errors.guests}</p>}
               </Card>
 
@@ -345,7 +361,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
             <div className="p-6">
               {!listing.cover && <p className="mb-4 font-display text-[1.5rem] leading-tight">{listing.siteName}</p>}
               <Summary
-                checkIn={checkIn} checkOut={checkOut} nights={nights} guests={guests} pet={pet} isEvent={isEvent}
+                checkIn={checkIn} checkOut={checkOut} nights={nights} guests={guests} kids={children} pet={pet} isEvent={isEvent}
                 quote={quote} loading={quoteLoading} priced={priced} mode={mode} step={step}
                 onEdit={() => go(0)}
               />
@@ -357,12 +373,14 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
         </aside>
       </div>
 
+      <TrustRow confirmHours={listing.confirmHours} />
+
       {/* ---------- bottom bar (phone / tablet) ---------- */}
       {portal && createPortal(<div data-skin={portal.skin ?? undefined} className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <div className="min-w-0 text-sm leading-tight">
             {priced ? <p className="font-semibold tnum">{formatHuf(quote!.total)}</p> : <p className="font-semibold">{hasDates ? 'Egyedi ajánlat' : mode === 'inquiry' ? 'Ajánlatkérés' : 'Válasszon dátumot'}</p>}
-            <p className="truncate text-soft">{hasDates ? `${fmtDay(parseISO(checkIn!))} – ${fmtDay(parseISO(checkOut!))} · ${nights} éj · ${guests} fő` : `${guests} fő`}</p>
+            <p className="truncate text-soft">{hasDates ? `${fmtShort(parseISO(checkIn!))} – ${fmtShort(parseISO(checkOut!))} · ${nights} éj · ${guests} fő` : `${guests} fő`}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {step === 1 && <button type="button" onClick={() => go(0)} aria-label="Vissza" className="flex h-12 w-12 items-center justify-center rounded-full border border-rule"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button>}
@@ -387,8 +405,8 @@ function DateBox({ label, value, active, border }: { label: string; value: strin
   )
 }
 
-function Summary({ checkIn, checkOut, nights, guests, pet, isEvent, quote, loading, priced, mode, step, onEdit }: {
-  checkIn: string | null; checkOut: string | null; nights: number; guests: number; pet: boolean; isEvent: boolean
+function Summary({ checkIn, checkOut, nights, guests, kids, pet, isEvent, quote, loading, priced, mode, step, onEdit }: {
+  checkIn: string | null; checkOut: string | null; nights: number; guests: number; kids: number; pet: boolean; isEvent: boolean
   quote: Quote | null; loading: boolean; priced: boolean; mode: 'book' | 'inquiry'; step: number; onEdit: () => void
 }) {
   const extras = [pet && 'kisállat', isEvent && 'rendezvény'].filter(Boolean).join(', ')
@@ -397,7 +415,7 @@ function Summary({ checkIn, checkOut, nights, guests, pet, isEvent, quote, loadi
       <div className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-md)] border border-rule text-sm">
         <div className="px-3 py-2.5"><p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-soft">Érkezés</p><p className="mt-0.5 font-semibold">{checkIn ? fmtDay(parseISO(checkIn)) : '–'}</p></div>
         <div className="border-l border-rule px-3 py-2.5"><p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-soft">Távozás</p><p className="mt-0.5 font-semibold">{checkOut ? fmtDay(parseISO(checkOut)) : '–'}</p></div>
-        <div className="col-span-2 border-t border-rule px-3 py-2.5"><p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-soft">Vendégek</p><p className="mt-0.5 font-semibold">{guests} fő{extras ? <span className="font-normal text-soft"> · {extras}</span> : null}</p></div>
+        <div className="col-span-2 border-t border-rule px-3 py-2.5"><p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-soft">Vendégek</p><p className="mt-0.5 font-semibold">{kids ? `${guests - kids} felnőtt + ${kids} gyerek` : `${guests} fő`}{extras ? <span className="font-normal text-soft"> · {extras}</span> : null}</p></div>
       </div>
       {step > 0 && <button type="button" onClick={onEdit} className="mt-2 min-h-9 text-sm font-semibold underline underline-offset-4 hover:text-pop">Módosítás</button>}
 
@@ -477,15 +495,15 @@ function Line({ dt, dd }: { dt: React.ReactNode; dd: React.ReactNode }) {
   )
 }
 
-function Stepper({ value, min, max, onChange }: { value: number; min: number; max: number; onChange: (n: number) => void }) {
+function Stepper({ value, min, max, onChange, label, unit }: { value: number; min: number; max: number; onChange: (n: number) => void; label: string; unit?: string }) {
   const btn = 'flex h-11 w-11 items-center justify-center rounded-full border border-fg/25 text-fg transition-colors hover:border-fg disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-fg/25'
   return (
-    <div className="flex shrink-0 items-center gap-3" role="group" aria-label="Vendégek száma">
-      <button type="button" aria-label="Kevesebb fő" className={btn} onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}>
+    <div className="flex shrink-0 items-center gap-3" role="group" aria-label={label}>
+      <button type="button" aria-label={`${label}: kevesebb`} className={btn} onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
       </button>
-      <span className="w-12 text-center text-lg font-semibold tnum" aria-live="polite">{value} fő</span>
-      <button type="button" aria-label="Több fő" className={btn} onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>
+      <span className="w-12 text-center text-lg font-semibold tnum" aria-live="polite">{value}{unit ? <span className="sr-only"> {unit}</span> : null}</span>
+      <button type="button" aria-label={`${label}: több`} className={btn} onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
       </button>
     </div>
@@ -502,5 +520,45 @@ function Choice({ checked, onChange, label, hint, icon }: { checked: boolean; on
         {checked && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12.5 9.5 18 20 6" /></svg>}
       </span>
     </label>
+  )
+}
+
+function CodeBox({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+  async function copy() {
+    try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2200) } catch { /* clipboard blocked: the code stays selectable */ }
+  }
+  return (
+    <div className="mx-auto mt-8 flex max-w-sm flex-col items-center gap-3 border border-dashed border-sel/45 bg-range px-5 py-4 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:text-left">
+      <div className="min-w-0">
+        <p className="font-ui text-[0.66rem] font-bold uppercase tracking-[0.22em] text-soft">Foglalási kód</p>
+        <p className="mt-1 select-all font-ui text-[1.6rem] font-bold leading-none tracking-[0.14em] text-fg tnum">{code}</p>
+      </div>
+      <button type="button" onClick={copy} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-fg/20 bg-surface px-3.5 text-sm font-semibold transition-colors hover:border-fg" aria-live="polite">
+        {copied
+          ? <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6" /></svg>Másolva</>
+          : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="1.5" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></svg>Másolás</>}
+      </button>
+    </div>
+  )
+}
+
+/** Booking-engine trust row. Every line is a fact of THIS system — nothing invented. */
+function TrustRow({ confirmHours }: { confirmHours: number | null }) {
+  const items: { t: string; d: string; icon: React.ReactNode }[] = [
+    { t: 'Közvetlenül a háztól', d: 'Közvetítő és foglalási díj nélkül', icon: <path d="M3 10.5 12 3l9 7.5M5 9v11h14V9M10 20v-6h4v6" /> },
+    { t: 'Most nem fizet', d: 'Online nem vonunk le pénzt', icon: <><rect x="2.5" y="5.5" width="19" height="13" rx="2" /><path d="M2.5 10h19M6.5 15h4" /></> },
+    { t: confirmHours ? `${confirmHours} órán belül` : 'Gyors visszaigazolás', d: 'E-mailben visszaigazoljuk', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
+    { t: 'Biztonságos kapcsolat', d: 'Titkosított adatküldés (HTTPS)', icon: <><rect x="4.5" y="10.5" width="15" height="10" rx="2" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></> },
+  ]
+  return (
+    <ul className="mt-12 grid gap-x-5 gap-y-5 border-t border-rule pt-8 min-[400px]:grid-cols-2 min-[400px]:gap-y-6 lg:grid-cols-4" aria-label="Miért foglaljon nálunk">
+      {items.map((it) => (
+        <li key={it.t} className="flex items-start gap-3">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-act">{it.icon}</svg>
+          <span className="min-w-0"><span className="block text-[0.95rem] font-semibold leading-snug text-fg">{it.t}</span><span className="block text-[0.82rem] leading-snug text-soft">{it.d}</span></span>
+        </li>
+      ))}
+    </ul>
   )
 }

@@ -52,12 +52,12 @@ export function BookingsBoard({ bookings, filters, current, emailOn }: { booking
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS[b.status].cls}`}>{STATUS[b.status].label}</span>
                   {b.source === 'manual' && <span className="rounded-full bg-paper-2 px-2.5 py-1 text-xs font-semibold text-muted">kézi</span>}
-                  <span className="ml-auto text-xs text-muted tnum">{b.id.slice(0, 8)}</span>
+                  <span className="ml-auto text-xs text-muted tnum">{b.id.slice(0, 8).toUpperCase()}</span>
                 </div>
                 <p className="mt-2 font-display text-lg text-deep">{b.guestName}</p>
                 <p className="text-sm text-ink/80">
                   {b.checkIn ? `${d(b.checkIn)} – ${d(b.checkOut)} · ${b.nights} éj` : 'dátum nélkül'}
-                  {b.guests ? ` · ${b.guests} fő` : ''}
+                  {b.guests ? ` · ${b.guests} fő${b.children ? ` (${b.children} gyerek)` : ''}` : ''}
                   {b.total != null ? ` · ${formatHuf(b.total)}` : ''}
                 </p>
               </button>

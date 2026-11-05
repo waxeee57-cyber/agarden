@@ -7,6 +7,7 @@ import { Icon, Mark, type IconName } from '@/components/property/ui'
 import { AvailabilityTeaser } from '@/components/property/AvailabilityTeaser'
 import { PhotoStrip } from '@/components/property/PhotoStrip'
 import { NotesSlider } from '@/components/property/NotesSlider'
+import { Parallax } from '@/components/property/Motion'
 
 const lb = (p: Photo) => ({ id: p.id, url: p.url, width: p.width, height: p.height, alt: p.alt })
 
@@ -56,10 +57,14 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 1. HERO ---------- */}
       <section aria-labelledby="hero-title" className="mx-auto max-w-[1400px] px-3 pt-3 md:px-10 md:pt-8">
         <div className="relative isolate flex min-h-[390px] items-center overflow-hidden rounded-[10px] bg-band text-white md:min-h-[540px]">
-          {cover && <Image src={cover.url} alt={cover.alt} fill preload fetchPriority="high" sizes="(min-width: 1400px) 1320px, 100vw" quality={70} className="-z-10 object-cover" />}
+          {cover && (
+            <Parallax speed={0.14}>
+              <Image src={cover.url} alt={cover.alt} fill preload fetchPriority="high" sizes="(min-width: 1400px) 1320px, 100vw" quality={72} className="hero-photo object-cover" />
+            </Parallax>
+          )}
           <div aria-hidden="true" className="hero-tint absolute inset-0 -z-10" />
           <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(0_0_0/0.12)]" />
-          <div className="mx-auto w-full max-w-6xl px-6 py-14 text-center md:py-[6vw]">
+          <div className="hero-in mx-auto w-full max-w-6xl px-6 py-14 text-center md:py-[6vw]">
             {c.hero_kicker && <p className="font-ui text-[12px] font-bold uppercase tracking-[0.3em] text-white md:text-[14px]">{c.hero_kicker}</p>}
             <h1 id="hero-title" className="mt-4 text-[clamp(1.85rem,5.4vw,4.5rem)] leading-[1.2] !text-white md:mt-5">{brand.fullName}</h1>
             {listing.address && <p className="mt-3 font-display text-[clamp(1rem,2vw,1.5rem)] text-white md:mt-5">{listing.address}</p>}
@@ -82,7 +87,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
 
       {/* ---------- 3. AVAILABILITY ---------- */}
       <section aria-labelledby="foglaltsag-title" className={`${SECTION} grid gap-10 py-20 md:py-28 lg:grid-cols-[0.9fr_1.4fr] lg:gap-20`}>
-        <div>
+        <div data-reveal>
           <h2 id="foglaltsag-title" className={H2}>Foglaltság</h2>
           <p className="mt-4 max-w-[40ch] text-soft">Válassza ki az érkezést és a távozást: a foglalásnál már ezek a napok lesznek kijelölve.</p>
           <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-rule pt-6">
@@ -92,12 +97,12 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
             <Fact dt="Online fizetés" dd="nincs" />
           </dl>
         </div>
-        <AvailabilityTeaser phone={ctx.phone} email={listing.contactEmail} />
+        <div data-reveal style={{ '--i': 1 } as React.CSSProperties}><AvailabilityTeaser phone={ctx.phone} email={listing.contactEmail} /></div>
       </section>
 
       {/* ---------- 4. ABOUT ---------- */}
       <section aria-labelledby="haz-title" className={`${SECTION} grid gap-10 pb-20 md:grid-cols-[0.9fr_1.4fr] md:items-center md:gap-20 md:pb-28`}>
-        <div className="flex flex-col gap-6">
+        <div data-reveal className="flex flex-col gap-6">
           {facade && (
             <span className="relative block h-24 w-24 overflow-hidden rounded-full">
               <Image src={facade.url} alt={facade.alt} fill sizes="96px" className="object-cover" />
@@ -105,7 +110,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
           )}
           <h2 id="haz-title" className={H2}>A házról</h2>
         </div>
-        <div>
+        <div data-reveal style={{ '--i': 1 } as React.CSSProperties}>
           <p className="max-w-[60ch] text-[15px] leading-[1.8] md:text-[16px]">{c.lead}</p>
           {chips.length > 0 && (
             <ul className="mt-1 text-[15px] leading-[1.8] md:text-[16px]">
@@ -122,9 +127,9 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {chips.length > 0 && (
         <section aria-label="A ház röviden" className="mx-auto max-w-[1400px] px-3 md:px-10">
           <div className="relative isolate overflow-hidden rounded-[10px] bg-deep px-4 py-14 md:px-10 md:py-24">
-            {bandPhoto && <Image src={bandPhoto.url} alt="" fill sizes="100vw" className="-z-10 object-cover" />}
+            {bandPhoto && <Parallax speed={0.2}><Image src={bandPhoto.url} alt="" fill sizes="100vw" className="object-cover" /></Parallax>}
             {bandPhoto && <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(18_22_20/0.18)]" />}
-            <ul className="mx-auto grid max-w-4xl grid-cols-2 rounded-[10px] bg-surface shadow-[0_24px_60px_-28px_rgb(18_22_20/0.45)] md:grid-cols-4">
+            <ul data-reveal className="mx-auto grid max-w-4xl grid-cols-2 rounded-[10px] bg-surface shadow-[0_24px_60px_-28px_rgb(18_22_20/0.45)] md:grid-cols-4">
               {chips.map((x, i) => (
                 <li key={x} className={`flex flex-col items-center gap-3 px-4 py-8 text-center ${i % 2 ? 'border-l border-rule' : ''} ${i > 1 ? 'border-t border-rule md:border-t-0' : ''} ${i === 2 ? 'md:border-l' : ''}`}>
                   <Icon name={chipIcon(x)} size={30} stroke={1.25} className="text-fg/80" />
@@ -139,10 +144,10 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 6. FEATURES ---------- */}
       {features.length > 0 && (
         <section aria-labelledby="felszereltseg-title" className={`${SECTION} py-20 md:py-28`}>
-          <h2 id="felszereltseg-title" className={`${H2} mx-auto max-w-[24ch] text-center`}>Fedezze fel teljes mértékben a {brand.fullName} lehetőségeit!</h2>
+          <h2 data-reveal id="felszereltseg-title" className={`${H2} mx-auto max-w-[24ch] text-center`}>Fedezze fel teljes mértékben a {brand.fullName} lehetőségeit!</h2>
           <ul className="mt-14 grid gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((f) => (
-              <li key={f.t} className="flex flex-col items-center text-center">
+            {features.map((f, i) => (
+              <li key={f.t} data-reveal style={{ '--i': i % 3 } as React.CSSProperties} className="flex flex-col items-center text-center">
                 <Icon name={f.i as IconName} size={34} stroke={1.15} className="text-fg/75" />
                 <h3 className="mt-4 text-[1.5rem]">{f.t}</h3>
                 <p className="mt-2 max-w-[30ch] text-[0.95rem] text-soft">{f.d}</p>
@@ -156,13 +161,13 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {why.length > 0 && (
         <section aria-labelledby="miert-title" className={SECTION}>
           <div className="grid gap-4 md:grid-cols-[1fr_1.2fr] md:gap-6">
-            <div className="flex flex-col justify-center rounded-[10px] bg-deep p-8 text-deep-fg md:p-12">
+            <div data-reveal className="flex flex-col justify-center rounded-[10px] bg-deep p-8 text-deep-fg md:p-12">
               <h2 id="miert-title" className={`${H2} !text-white`}>{why[0].t}</h2>
               <p className="mt-5 max-w-[42ch] text-deep-fg/85">{why[0].d}</p>
               <Link href="/foglalas" className="btn btn-light mt-9 self-start">Foglalás</Link>
             </div>
             {splitPhoto && (
-              <div className="relative min-h-[280px] overflow-hidden rounded-[10px] bg-surface-2">
+              <div data-reveal style={{ '--i': 1 } as React.CSSProperties} className="relative min-h-[280px] overflow-hidden rounded-[10px] bg-surface-2">
                 <Image src={splitPhoto.url} alt={splitPhoto.alt} fill sizes="(min-width: 768px) 55vw, 100vw" className="object-cover" />
               </div>
             )}
@@ -174,7 +179,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {notes.length > 0 && (
         <section aria-labelledby="tudnivalok-title" className={`${SECTION} py-20 md:py-28`}>
           <h2 id="tudnivalok-title" className="sr-only">Jó tudni</h2>
-          <NotesSlider notes={notes} />
+          <div data-reveal><NotesSlider notes={notes} /></div>
           <p className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-2">
             {ctx.docs.hazirend && <Link href="/hazirend" className="inline-flex min-h-11 items-center font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Teljes házirend</Link>}
             {listing.settings.menuGyik && ctx.docs.gyik && <Link href="/gyik" className="inline-flex min-h-11 items-center font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Gyakori kérdések</Link>}
@@ -185,7 +190,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 9. SISTER HOUSE ---------- */}
       {sister && (
         <section aria-labelledby="testver-title" className={`${SECTION} pb-20 md:pb-28`}>
-          <a href={ctx.sisterOrigin} className="group grid overflow-hidden rounded-[10px] border border-rule bg-surface md:grid-cols-[1fr_1.1fr]">
+          <a data-reveal href={ctx.sisterOrigin} className="group grid overflow-hidden rounded-[10px] border border-rule bg-surface transition-shadow duration-300 hover:shadow-[0_24px_60px_-34px_rgb(18_22_20/0.5)] md:grid-cols-[1fr_1.1fr]">
             <span className="relative block aspect-[16/10] bg-surface-2 md:aspect-auto md:min-h-[300px]">
               {sisterCover ? (
                 <Image src={sisterCover.url} alt="" fill sizes="(min-width: 768px) 45vw, 100vw" className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]" />

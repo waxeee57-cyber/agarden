@@ -260,12 +260,54 @@ async function main() {
   await t('menu toggle: GYIK hidden when switched off or empty; Környék needs text', async () => {
     const docs = { gyik: {}, hazirend: {} }
     const labels = (s: { menuGyik: boolean; menuKornyek: boolean }, d: object) => buildNav({ settings: s }, d, 'https://x.test').map((n) => n.label)
-    assert.deepEqual(labels({ menuGyik: true, menuKornyek: true }, docs), ['A ház', 'Foglalás', 'Képek', 'Házirend', 'ÁSZF', 'Kapcsolat', 'GYIK', 'Testvérházunk'])
+    assert.deepEqual(labels({ menuGyik: true, menuKornyek: true }, docs), ['A ház', 'Foglalás', 'Képek', 'Házirend', 'ÁSZF', 'Kapcsolat', 'Foglalásom', 'GYIK', 'Testvérházunk'])
     assert.ok(!labels({ menuGyik: false, menuKornyek: true }, docs).includes('GYIK'))
     assert.ok(labels({ menuGyik: true, menuKornyek: true }, { ...docs, kornyek: {} }).includes('Környék & programok'))
     const base = { social: {}, menuKornyek: true, depositPct: null, cancelDays: null, confirmHours: null, quoteValidDays: null, extraCosts: [], bankAccount: '' }
     assert.deepEqual(await actions.saveSettings(napsugar, { ...base, menuGyik: false }), { ok: true })
     assert.equal((await getListing('napsugar'))!.settings.menuGyik, false)
+  })
+
+  await t('children + "Foglalásom" lookup: code + e-mail only, same answer for wrong code or e-mail, house-scoped', async () => {
+    const b = await booking.createBooking(garden, { guestName: 'Kis Anna', guestEmail: 'Anna@Example.com', guests: 5, children: 2, checkIn: '2029-03-05', checkOut: '2029-03-08' })
+    assert.ok(b.ok && b.bookingId, JSON.stringify(b))
+    const code = b.bookingId!.slice(0, 8).toUpperCase()
+    const hit = await booking.lookupBooking(garden, { code, email: 'anna@example.com' })
+    assert.ok(hit.ok)
+    if (hit.ok) {
+      assert.equal(hit.booking.code, code)
+      assert.equal(hit.booking.children, 2)
+      assert.equal(hit.booking.guests, 5)
+      assert.equal(hit.booking.status, 'pending')
+      assert.equal(hit.booking.checkIn, '2029-03-05')
+      assert.ok(!('guestEmail' in hit.booking) && !('guestName' in hit.booking), 'no personal data echoed')
+    }
+    assert.deepEqual(await booking.lookupBooking(garden, { code, email: 'masik@example.com' }), { ok: false, reason: 'not_found' })
+    assert.deepEqual(await booking.lookupBooking(garden, { code: '00000000', email: 'anna@example.com' }), { ok: false, reason: 'not_found' })
+    assert.deepEqual(await booking.lookupBooking(napsugar, { code, email: 'anna@example.com' }), { ok: false, reason: 'not_found' }, 'other house cannot see it')
+    assert.deepEqual(await booking.lookupBooking(garden, { code: "x' or 1=1", email: 'anna@example.com' } as never), { ok: false, reason: 'validation_error' })
+    // children never exceed the head count
+    const c = await booking.createBooking(garden, { guestName: 'Kis Béla', guestEmail: 'bela@example.com', guests: 2, children: 9, checkIn: '2029-04-05', checkOut: '2029-04-08' })
+    const rows = await query<{ children_count: number }>('select children_count from bookings where id = $1', [c.bookingId])
+    assert.equal(rows[0].children_count, 2)
+  })
+
+  await t('/api/ics: valid calendar file from public data only; bad params -> 400', async () => {
+    const { GET } = await import('../app/api/ics/route')
+    const ok = await GET(new NextRequest('https://garden.test/api/ics?checkIn=2029-03-05&checkOut=2029-03-08&kod=abcd1234', { headers: { host: 'garden.test' } }))
+    assert.equal(ok.status, 200)
+    assert.match(ok.headers.get('content-type') ?? '', /^text\/calendar/)
+    const body = await ok.text()
+    assert.match(body, /^BEGIN:VCALENDAR\r\n/)
+    assert.match(body, /DTSTART;VALUE=DATE:20290305\r\n/)
+    assert.match(body, /DTEND;VALUE=DATE:20290308\r\n/)
+    assert.match(body, /ABCD1234/)
+    assert.ok(body.split('\r\n').every((l) => new TextEncoder().encode(l).length <= 75), 'lines folded at 75 octets')
+    assert.ok(!body.includes('11773000'), 'no bank account')
+    for (const q of ['checkIn=2029-03-08&checkOut=2029-03-05', 'checkIn=x&checkOut=2029-03-05', 'checkIn=2029-03-05&checkOut=2029-03-08&kod=%3Cscript%3E']) {
+      const bad = await GET(new NextRequest(`https://garden.test/api/ics?${q}`, { headers: { host: 'garden.test' } }))
+      assert.equal(bad.status, 400, q)
+    }
   })
 
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {

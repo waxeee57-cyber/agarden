@@ -12,16 +12,15 @@ export function PhotoStrip({ strip, all }: { strip: LightboxItem[]; all: Lightbo
   return (
     <>
       <ul className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
-        {strip.map((p) => (
-          <li key={p.id}>
+        {strip.map((p, i) => (
+          <li key={p.id} data-reveal style={{ '--i': i } as React.CSSProperties}>
             <button
               type="button"
               onClick={() => setOpen(Math.max(0, items.findIndex((x) => x.id === p.id)))}
               aria-label={`${p.alt || 'Fotó'}, nagyítás`}
-              className="group relative block aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-[10px] bg-surface-2 md:aspect-[4/5]"
+              className="zoom-tile relative block aspect-[4/3] w-full cursor-zoom-in rounded-[12px] bg-surface-2 md:aspect-[4/5]"
             >
-              <Image src={p.url} alt={p.alt} fill sizes="(min-width: 768px) 270px, 50vw" className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]" />
-              <span aria-hidden="true" className="absolute inset-0 bg-[rgb(18_22_20/0)] transition-colors duration-300 group-hover:bg-[rgb(18_22_20/0.12)]" />
+              <Image src={p.url} alt={p.alt} fill sizes="(min-width: 768px) 270px, 50vw" className="object-cover" />
             </button>
           </li>
         ))}

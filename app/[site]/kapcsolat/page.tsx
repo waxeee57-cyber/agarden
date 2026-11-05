@@ -71,7 +71,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
           <div className="h-[360px] overflow-hidden rounded-[var(--radius-xl)] border border-rule md:h-[440px]">
             <LocationMap lat={listing.geo.lat} lng={listing.geo.lng} label={BRANDS[ctx.site].fullName} color={BRANDS[ctx.site].colors.action} />
           </div>
-          <p className="mt-2 text-xs text-soft">A jelölő az utca szintjén pontos; a pontos cím: {listing.address}.</p>
+          {listing.address && <p className="mt-2 text-xs text-soft">A jelölő az utca szintjén pontos; a pontos cím: {listing.address.replace(/\.$/, '')}.</p>}
         </section>
       )}
     </SitePage>

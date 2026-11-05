@@ -34,6 +34,7 @@ export type MailBooking = {
   checkOut?: string | null
   nights?: number | null
   guests?: number | null
+  children?: number | null
   pet?: boolean
   isEvent?: boolean
   total?: number | null
@@ -80,11 +81,11 @@ function details(b: MailBooking): string {
     ['Érkezés', b.checkIn ? esc(huDate(b.checkIn)) : null],
     ['Távozás', b.checkOut ? esc(huDate(b.checkOut)) : null],
     ['Éjszakák', b.nights ? esc(b.nights) : null],
-    ['Létszám', b.guests ? `${esc(b.guests)} fő` : null],
+    ['Létszám', b.guests ? `${esc(b.guests)} fő${b.children ? ` (ebből ${esc(b.children)} gyerek)` : ''}` : null],
     ['Kisállat', b.pet ? 'igen' : null],
     ['Rendezvény / búcsú', b.isEvent ? 'igen' : null],
     ['Tájékoztató végösszeg', b.total != null ? esc(huf.format(b.total)) : null],
-    ['Azonosító', esc(b.id.slice(0, 8))],
+    ['Foglalási kód', esc(b.id.slice(0, 8).toUpperCase())],
   ])
 }
 
@@ -96,8 +97,9 @@ export function guestEmail(house: MailHouse, b: MailBooking): { subject: string;
     b.kind === 'booking'
       ? `Megkaptuk foglalási kérelmét. ${paymentIntro(t)}`
       : `Megkaptuk ajánlatkérését. ${t?.confirmHours ? `${t.confirmHours} órán belül` : 'Hamarosan'} jelentkezünk a részletekkel. Az ajánlatkérés még nem foglal le dátumot.${t?.quoteValidDays ? ` Az ajánlatunk ${t.quoteValidDays} napig érvényes.` : ''}`
-  const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}!</h1>
+  const body = `<h1 style="margin:0 0 12px;font-size:21px;">Kedves ${first}!</h1>
 <p style="margin:0;font-size:15px;line-height:1.6;">${intro}</p>${details(b)}
+<p style="margin:16px 0 0;font-size:14px;line-height:1.6;">Foglalása állapotát bármikor megnézheti a foglalási kóddal: <a href="${esc(house.origin)}/foglalasom?kod=${esc(b.id.slice(0, 8).toUpperCase())}" style="color:#496572;">${esc(house.origin.replace(/^https?:\/\//, ''))}/foglalasom</a>${b.kind === 'booking' && b.checkIn && b.checkOut ? ` · <a href="${esc(house.origin)}/api/ics?checkIn=${esc(b.checkIn)}&amp;checkOut=${esc(b.checkOut)}&amp;kod=${esc(b.id.slice(0, 8).toUpperCase())}" style="color:#496572;">Naptárba mentés</a>` : ''}</p>
 <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#5F6F64;">Kérdése van? Válaszoljon erre a levélre${house.phone ? `, vagy hívjon: ${esc(house.phone)}` : ''}.</p>`
   return {
     subject: b.kind === 'booking' ? `Foglalási kérelem rögzítve – ${name}` : `Ajánlatkérés megérkezett – ${name}`,
@@ -137,7 +139,7 @@ function depositBlock(b: MailBooking, t: Terms | undefined, bank: string | null 
 ${rows([
   ['Előleg', amount],
   ['Számlaszám', bank ? esc(bank) : 'telefonon vagy válaszlevélben egyeztetjük'],
-  ['Közlemény', esc(b.id.slice(0, 8))],
+  ['Közlemény', esc(b.id.slice(0, 8).toUpperCase())],
 ])}
 <p style="margin:0;font-size:14px;line-height:1.6;">A fennmaradó összeget, az idegenforgalmi adót és a kauciót érkezéskor, készpénzben vagy átutalással kérjük.</p>
 ${t.extraCosts.length ? `<p style="margin:10px 0 0;font-size:13px;line-height:1.6;color:#5F6F64;">${t.extraCosts.map(esc).join('<br>')}</p>` : ''}`
@@ -150,17 +152,17 @@ export function guestStatusEmail(house: MailHouse, b: MailBooking, status: 'conf
   const accent = BRANDS[house.site].deep
   const call = house.phone ? `, vagy hívjon: ${esc(house.phone)}` : ''
   if (status === 'confirmed') {
-    const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}, visszaigazoltuk!</h1>
+    const body = `<h1 style="margin:0 0 12px;font-size:21px;">Kedves ${first}, visszaigazoltuk foglalását!</h1>
 <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">Foglalása rendben van, szeretettel várjuk.</p>${depositBlock(b, house.terms, x.bankAccount)}${details(b)}
 ${rows([
   ['Bejelentkezés', x.checkinWindow ? esc(x.checkinWindow) : null],
   ['Kijelentkezés', x.checkoutTime ? `${esc(x.checkoutTime)}-ig` : null],
   ['Cím', x.address ? esc(x.address) : null],
 ])}
-<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#5F6F64;">Ha bármi változik, válaszolj erre a levélre${call}.</p>`
+<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#5F6F64;">Ha bármi változik, válaszoljon erre a levélre${call}.</p>`
     return { subject: `Foglalás visszaigazolva – ${name}`, html: layout(house.site, house, body) }
   }
-  const body = `<h1 style="margin:0 0 12px;font-size:21px;">Szia ${first}!</h1>
+  const body = `<h1 style="margin:0 0 12px;font-size:21px;">Kedves ${first}!</h1>
 <p style="margin:0;font-size:15px;line-height:1.6;">Sajnos ezt a foglalást nem tudjuk teljesíteni, ezért lemondtuk. Pénzt nem vontunk le.</p>${details(b)}
 <p style="margin:16px 0 0;font-size:15px;line-height:1.6;">Másik időpontot keres? Írjon vagy hívjon, segítünk${call ? call.replace(', vagy hívjon', '. Telefon') : ''}.</p>
 <p style="margin:20px 0 0;font-size:14px;line-height:1.6;">A testvérházunkban is lehet szabad hely: <a href="${esc(x.sister.origin)}" style="color:${accent};font-weight:700;">${esc(x.sister.name)}</a></p>`

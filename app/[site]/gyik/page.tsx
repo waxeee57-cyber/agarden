@@ -38,7 +38,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
           ))}
         </div>
         <p className="mt-10 text-soft">
-          Nem találtad a választ? Hívj: <a href={telHref(ctx.phone)} className="font-semibold text-fg underline underline-offset-4">{ctx.phone}</a>, vagy írj a{' '}
+          Nem találta a választ? Hívjon minket: <a href={telHref(ctx.phone)} className="font-semibold text-fg underline underline-offset-4">{ctx.phone}</a>, vagy írjon nekünk a{' '}
           <Link href="/kapcsolat" className="font-semibold text-fg underline underline-offset-4">Kapcsolat</Link> oldalon.
         </p>
       </div>

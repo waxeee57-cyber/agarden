@@ -5,6 +5,7 @@ import { SOCIAL_LABEL, socialEntries } from '@/lib/social'
 import type { SiteCtx } from '@/lib/page'
 import { Wordmark, Mark, Icon } from './ui'
 import { SiteMenu } from './SiteMenu'
+import { StickyHeader, RevealObserver } from './Motion'
 import { JsonLd, breadcrumbJsonLd } from './JsonLd'
 
 // Header, footer and page shell shared by every public page of both houses.
@@ -42,16 +43,17 @@ export function ContactLinks({ ctx, tone = 'page' }: { ctx: SiteCtx; tone?: 'pag
 }
 
 export function SiteHeader({ ctx }: { ctx: SiteCtx; overlay?: boolean }) {
-  // reference (Divi) header: white bar, logo left, navigation right
+  // reference (Divi) header: white bar, logo left, navigation right; sticks
+  // to the top and shrinks with a soft shadow once the page scrolls
   return (
-    <header className="relative z-40 border-b border-black/[0.08] bg-white">
-      <div className="relative mx-auto flex h-[76px] max-w-[1180px] items-center justify-between gap-4 px-5 md:h-[84px] md:px-8">
-        <Link href="/" className="rounded-md" aria-label={`${BRANDS[ctx.site].fullName}, főoldal`}>
+    <StickyHeader>
+      <div className="site-bar-inner relative mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-5 md:px-8">
+        <Link href="/" className="site-logo rounded-md" aria-label={`${BRANDS[ctx.site].fullName}, főoldal`}>
           <Wordmark site={ctx.site} size={42} />
         </Link>
         <SiteMenu items={ctx.nav} />
       </div>
-    </header>
+    </StickyHeader>
   )
 }
 
@@ -70,7 +72,7 @@ export function SiteFooter({ ctx }: { ctx: SiteCtx }) {
         {listing.address && <p className="mt-3 text-band-fg/80">{listing.address}</p>}
         {listing.ntakId && <p className="mt-1 text-sm text-band-fg/60">NTAK regisztrációs szám: {listing.ntakId}</p>}
 
-        <div className="mx-auto mt-12 grid max-w-2xl gap-8 sm:grid-cols-2">
+        <div className={`mx-auto mt-12 grid max-w-2xl gap-8 ${listing.contactEmail ? 'sm:grid-cols-2' : ''}`}>
           <a href={telHref(ctx.phone)} className="group flex flex-col items-center gap-3">
             <span className={circle}><Icon name="phone" size={18} /></span>
             <span className="font-display text-[1.25rem]">{ctx.phone}</span>
@@ -124,6 +126,7 @@ export function SitePage({ ctx, crumb, children }: { ctx: SiteCtx; crumb?: { nam
       <SiteHeader ctx={ctx} />
       <main id="tartalom">{children}</main>
       <SiteFooter ctx={ctx} />
+      <RevealObserver />
     </div>
   )
 }

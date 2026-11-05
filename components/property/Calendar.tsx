@@ -16,6 +16,9 @@ const wd = (d: Date) => (d.getDay() + 6) % 7 // Monday-first
 export const MONTHS = ['január', 'február', 'március', 'április', 'május', 'június', 'július', 'augusztus', 'szeptember', 'október', 'november', 'december']
 const DOW = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']
 export const fmtDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}.`
+const MONTHS_SHORT = ['jan.', 'febr.', 'márc.', 'ápr.', 'máj.', 'jún.', 'júl.', 'aug.', 'szept.', 'okt.', 'nov.', 'dec.']
+/** Compact day for tight spots (the phone booking bar): "nov. 13." */
+export const fmtShort = (d: Date) => `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}.`
 
 type Range = { from: string; to: string; kind: string }
 type DayMeta = { isPast: boolean; isOccupied: boolean; isStart: boolean; isEnd: boolean; inRange: boolean; selectable: boolean; hasRange: boolean }
@@ -141,7 +144,7 @@ export function Calendar({
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
           </button>
         </div>
-        <div className={`grid gap-x-10 gap-y-8 md:grid-cols-2 transition-opacity ${state === 'loading' ? 'opacity-60' : ''}`}>
+        <div key={toISO(view)} className={`cal-in grid gap-x-10 gap-y-8 md:grid-cols-2 transition-opacity ${state === 'loading' ? 'opacity-60' : ''}`}>
           <MonthGrid month={view} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
           <div className="hidden md:block">
             <MonthGrid month={addMonths(view, 1)} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
