@@ -18,7 +18,7 @@ const DOW = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']
 export const fmtDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}.`
 
 type Range = { from: string; to: string; kind: string }
-type DayMeta = { isPast: boolean; isOccupied: boolean; isStart: boolean; isEnd: boolean; inRange: boolean; selectable: boolean }
+type DayMeta = { isPast: boolean; isOccupied: boolean; isStart: boolean; isEnd: boolean; inRange: boolean; selectable: boolean; hasRange: boolean }
 type LoadState = 'loading' | 'ready' | 'error'
 
 export function Calendar({
@@ -102,7 +102,7 @@ export function Calendar({
     const isEnd = !!previewEnd && sameDay(day, previewEnd)
     const inRange = !!ci && !!previewEnd && day > ci && day < previewEnd
     const selectable = ci && !co && day > ci ? spanFree(ci, day) : !isPast && !isOccupied
-    return { isPast, isOccupied, isStart, isEnd, inRange, selectable }
+    return { isPast, isOccupied, isStart, isEnd, inRange, selectable, hasRange: !!ci && !!previewEnd }
   }
 
   const canPrev = startOfMonth(today) < view
@@ -114,22 +114,16 @@ export function Calendar({
       ? `A távozás legkésőbb ${fmtDay(cap)} lehet, utána foglalt időszak jön. Kérjük, válasszon korábbi távozást vagy másik érkezést.`
       : 'Válassza ki a távozás napját.'
 
+  const nights = ci && co ? Math.round((co.getTime() - ci.getTime()) / 86_400_000) : 0
+  const arrow = 'flex h-10 w-10 items-center justify-center rounded-full text-fg transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-30'
+
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <button type="button" onClick={() => canPrev && setView(addMonths(view, -1))} disabled={!canPrev} aria-label="Előző hónap" className="btn btn-line btn-sm !h-11 !min-h-11 !w-11 !p-0">‹</button>
-        <div className="text-center font-display text-lg" aria-live="polite">
-          {view.getFullYear()}. {MONTHS[view.getMonth()]}
-          <span className="hidden md:inline"> – {addMonths(view, 1).getFullYear()}. {MONTHS[addMonths(view, 1).getMonth()]}</span>
-        </div>
-        <button type="button" onClick={() => setView(addMonths(view, 1))} aria-label="Következő hónap" className="btn btn-line btn-sm !h-11 !min-h-11 !w-11 !p-0">›</button>
-      </div>
-
       {state === 'error' && (
-        <div role="alert" className="mb-3 rounded-[var(--radius-md)] border border-bad/40 bg-bad/10 px-4 py-3 text-sm">
+        <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-bad/30 bg-bad/5 px-4 py-3 text-sm">
           <p className="font-semibold text-bad">A foglaltságot most nem sikerült betölteni.</p>
           <p className="mt-1 text-fg/85">
-            Hívj minket: <a className="font-semibold underline underline-offset-2" href={telHref(contact.phone)}>{contact.phone}</a>
+            Kérjük, hívjon minket: <a className="font-semibold underline underline-offset-2" href={telHref(contact.phone)}>{contact.phone}</a>
             {contact.email && <> · <a className="font-semibold underline underline-offset-2" href={`mailto:${contact.email}`}>{contact.email}</a></>}
           </p>
           <button type="button" className="mt-2 font-semibold text-pop underline underline-offset-2" onClick={() => { setState('loading'); setAttempt((n) => n + 1) }}>
@@ -138,53 +132,59 @@ export function Calendar({
         </div>
       )}
 
-      {(checkIn || checkOut) && (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-rule bg-surface-2 px-3 py-2 text-sm">
-          <span className="text-fg/90">
-            {ci && <><span className="font-semibold">{fmtDay(ci)}</span>{co ? <> – <span className="font-semibold">{fmtDay(co)}</span></> : <span className="text-soft"> → válassza ki a távozást</span>}</>}
-          </span>
-          <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 shrink-0 px-1 font-semibold text-pop underline underline-offset-2">
-            Dátum törlése
+      <div className="relative" onMouseLeave={() => setHover(null)} aria-busy={state === 'loading'}>
+        <div className="absolute inset-x-0 top-0 z-10 flex justify-between">
+          <button type="button" onClick={() => canPrev && setView(addMonths(view, -1))} disabled={!canPrev} aria-label="Előző hónap" className={arrow}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <button type="button" onClick={() => setView(addMonths(view, 1))} aria-label="Következő hónap" className={arrow}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
           </button>
         </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2" onMouseLeave={() => setHover(null)} aria-busy={state === 'loading'}>
-        <MonthGrid month={view} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
-        <div className="hidden md:block">
-          <MonthGrid month={addMonths(view, 1)} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
+        <div className={`grid gap-x-10 gap-y-8 md:grid-cols-2 transition-opacity ${state === 'loading' ? 'opacity-60' : ''}`}>
+          <MonthGrid month={view} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
+          <div className="hidden md:block">
+            <MonthGrid month={addMonths(view, 1)} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
+          </div>
         </div>
       </div>
 
-      {guidance && (
-        <p role="status" aria-live="polite" className={`mt-3 rounded-[var(--radius-md)] px-3 py-2 text-sm ${cap ? 'bg-band/15 text-fg' : 'bg-surface-2 text-fg'}`}>
-          {guidance}
-        </p>
-      )}
-
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-soft">
-        <Legend swatch="bg-surface border border-rule" label="szabad" />
+      <div className="mt-5 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-rule pt-4 text-sm" aria-live="polite">
+        <span className="text-fg/90">
+          {ci && co ? <><span className="font-semibold">{fmtDay(ci)} – {fmtDay(co)}</span><span className="text-soft"> · {nights} éjszaka</span></>
+            : ci ? <><span className="font-semibold">{fmtDay(ci)}</span><span className="text-soft"> → {guidance}</span></>
+            : <span className="text-soft">{state === 'loading' ? 'Foglaltság betöltése…' : 'Válassza ki az érkezés napját.'}</span>}
+        </span>
+        {(checkIn || checkOut) && (
+          <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 font-semibold underline underline-offset-4 hover:text-pop">
+            Dátumok törlése
+          </button>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-soft">
         <Legend swatch="bg-sel" label="kiválasztva" />
-        <Legend swatch="bg-taken border border-taken-fg/50" label="foglalt (kattintson: szabad-e a testvérházunk)" />
-        {state === 'loading' && <span aria-live="polite">foglaltság betöltése…</span>}
+        <Legend swatch="bg-taken" strike label="foglalt (kattintva megnézzük a testvérházat)" />
       </div>
     </div>
   )
 }
 
-function Legend({ swatch, label }: { swatch: string; label: string }) {
+function Legend({ swatch, label, strike }: { swatch: string; label: string; strike?: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`inline-block h-3 w-3 rounded-[3px] ${swatch}`} aria-hidden="true" />
+      <span className={`relative inline-block h-3.5 w-3.5 rounded-full ${swatch}`} aria-hidden="true">
+        {strike && <span className="absolute left-0.5 right-0.5 top-1/2 h-px -rotate-45 bg-taken-fg" />}
+      </span>
       {label}
     </span>
   )
 }
 
 function MonthGrid({
-  month, dayMeta, onPick, onHover, choosingEnd,
+  month, today, dayMeta, onPick, onHover, choosingEnd,
 }: {
   month: Date
+  today: Date
   dayMeta: (d: Date) => DayMeta
   onPick: (d: Date, m: DayMeta) => void
   onHover: (d: Date | null) => void
@@ -199,37 +199,46 @@ function MonthGrid({
 
   return (
     <div>
-      <div className="mb-1 grid grid-cols-7 text-center text-[0.72rem] font-semibold text-soft" aria-hidden="true">
-        {DOW.map((d) => <div key={d} className="py-1">{d}</div>)}
+      <p className="flex h-10 items-center justify-center font-display text-[1.15rem]">{month.getFullYear()}. {MONTHS[month.getMonth()]}</p>
+      <div className="mt-3 grid grid-cols-7 text-center text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-soft" aria-hidden="true">
+        {DOW.map((d) => <div key={d} className="pb-2">{d}</div>)}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-y-1">
         {cells.map((day, i) => {
           if (!day) return <div key={i} />
           const m = dayMeta(day)
-          let cls = 'flex h-11 items-center justify-center rounded-[8px] text-sm tnum transition-colors '
-          if (m.isStart || m.isEnd) cls += 'bg-sel text-sel-fg font-semibold'
-          else if (m.inRange) cls += 'bg-range text-fg'
-          else if (m.isOccupied && !m.isPast) cls += 'bg-taken text-taken-fg line-through cursor-help'
-          else if (!m.selectable) cls += 'text-fg/30 cursor-not-allowed'
-          else cls += 'bg-surface border border-rule text-fg hover:border-focus'
+          const edge = m.isStart || m.isEnd
+          const both = m.isStart && m.isEnd
+          // continuous range band behind the circles (half band on the edges)
+          const band = m.inRange ? 'bg-range' : m.isStart && !both && m.hasRange ? 'bg-[linear-gradient(90deg,transparent_50%,var(--color-range)_50%)]' : m.isEnd && !both ? 'bg-[linear-gradient(90deg,var(--color-range)_50%,transparent_50%)]' : ''
+          let cls = 'relative mx-auto flex aspect-square w-full max-w-11 items-center justify-center rounded-full text-[0.95rem] tnum transition-[background-color,box-shadow,color] duration-150 '
+          if (edge) cls += 'bg-sel font-semibold text-sel-fg shadow-[0_6px_16px_-8px_rgb(0_0_0/0.45)]'
+          else if (m.inRange) cls += 'text-fg hover:shadow-[inset_0_0_0_1.5px_var(--color-fg)]'
+          else if (m.isOccupied && !m.isPast) cls += 'cursor-help text-taken-fg/70 line-through decoration-1'
+          else if (!m.selectable) cls += 'cursor-not-allowed text-fg/25'
+          else cls += 'font-medium text-fg hover:shadow-[inset_0_0_0_1.5px_var(--color-fg)]'
+          const isToday = sameDay(day, today)
           const label = `${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? ', foglalt (testvérházunk ellenőrzése)' : !m.selectable ? ', nem választható' : ''}`
           return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onPick(day, m)}
-              onMouseEnter={() => choosingEnd && m.selectable && onHover(day)}
-              disabled={m.isPast && !m.selectable}
-              aria-disabled={(!m.selectable && !(m.isOccupied && !m.isPast)) || undefined}
-              aria-pressed={m.isStart || m.isEnd}
-              aria-label={label}
-              className={cls}
-            >
-              {day.getDate()}
-            </button>
+            <div key={i} className={`py-px ${band}`}>
+              <button
+                type="button"
+                onClick={() => onPick(day, m)}
+                onMouseEnter={() => choosingEnd && m.selectable && onHover(day)}
+                disabled={m.isPast && !m.selectable}
+                aria-disabled={(!m.selectable && !(m.isOccupied && !m.isPast)) || undefined}
+                aria-pressed={edge}
+                aria-label={label}
+                className={cls}
+              >
+                {day.getDate()}
+                {isToday && !edge && <span aria-hidden="true" className="absolute bottom-1.5 h-1 w-1 rounded-full bg-current opacity-60" />}
+              </button>
+            </div>
           )
         })}
       </div>
     </div>
   )
 }
+

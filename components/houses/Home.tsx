@@ -5,6 +5,9 @@ import type { Photo } from '@/lib/listing'
 import type { SiteCtx } from '@/lib/page'
 import { Icon, Mark, type IconName } from '@/components/property/ui'
 import { AvailabilityTeaser } from '@/components/property/AvailabilityTeaser'
+import { PhotoStrip } from '@/components/property/PhotoStrip'
+
+const lb = (p: Photo) => ({ id: p.id, url: p.url, width: p.width, height: p.height, alt: p.alt })
 
 // The homepage, same structure for both houses. Section order follows the
 // reference the owner picked (velenceviolavilla.hu): inset hero → photo strip
@@ -69,15 +72,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 2. PHOTO STRIP ---------- */}
       {strip.length > 0 && (
         <section aria-label="Fotók a házról" className={`${SECTION} pt-8 md:pt-10`}>
-          <ul className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
-            {strip.map((p) => (
-              <li key={p.id}>
-                <Link href="/kepek" className="group relative block aspect-[4/3] overflow-hidden rounded-[10px] bg-surface-2 md:aspect-[4/5]">
-                  <Image src={p.url} alt={p.alt} fill sizes="(min-width: 768px) 270px, 50vw" className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]" />
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <PhotoStrip strip={strip.map(lb)} all={photos.map(lb)} />
           <p className="mt-5 text-center">
             <Link href="/kepek" className="inline-flex min-h-11 items-center gap-2 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Mind a {photos.length} fotó <Icon name="arrow" size={15} /></Link>
           </p>

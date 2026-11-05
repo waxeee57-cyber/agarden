@@ -4,6 +4,8 @@ import { BRANDS } from '@/lib/brand'
 import { depositLine } from '@/lib/terms'
 import { SitePage, PageHead, pageMeta } from '@/components/property/SiteChrome'
 import { BookingWidget } from '@/components/property/BookingWidget'
+import { getPhotos } from '@/lib/listing'
+import { coverOf } from '@/components/houses/Home'
 
 export const revalidate = 300
 
@@ -18,14 +20,15 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   const l = ctx.listing
   const t = l.terms
   const sisterBrand = BRANDS[ctx.site === 'velence' ? 'napsugar' : 'velence']
+  const cover = coverOf(await getPhotos(l.id))
   return (
     <SitePage ctx={ctx} crumb={{ name: 'Foglalás', path: '/foglalas' }} sticky={false}>
       <PageHead
         title="Foglalás"
-        lead={`Négy rövid lépés. Most nem vonunk le pénzt: ${t.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'} e-mailben visszaigazoljuk kérését.`}
+        lead={`Két rövid lépés. Most nem vonunk le pénzt: ${t.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'} e-mailben visszaigazoljuk kérését.`}
       />
-      <div className="mx-auto max-w-4xl px-4 pb-20 md:px-8">
-        <Suspense fallback={<div className="panel min-h-[640px]" aria-hidden="true" />}>
+      <div className="mx-auto max-w-6xl px-4 pb-20 md:px-8">
+        <Suspense fallback={<div className="min-h-[720px] rounded-[var(--radius-xl)] bg-surface-2" aria-hidden="true" />}>
           <BookingWidget
             listing={{
               siteName: l.siteName,
@@ -39,6 +42,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
               confirmHours: t.confirmHours,
               depositLine: depositLine(t),
               extraCosts: t.extraCosts,
+              cover: cover ? { url: cover.url, alt: cover.alt } : null,
             }}
             sister={{ name: sisterBrand.fullName, origin: ctx.sisterOrigin, pitch: ctx.sister?.content.sister_pitch ?? '' }}
           />

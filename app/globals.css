@@ -213,3 +213,24 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; font-weight: 
   .prose-legal a { color: var(--color-pop); text-decoration: underline; text-underline-offset: 3px; }
   .tbd { background: var(--color-surface-2); border: 1px dashed var(--color-rule); padding: 0 0.35rem; border-radius: 6px; font-weight: 600; }
 }
+
+/* ---------- lightbox ---------- */
+@layer components {
+  .lb-in { animation: lb-fade 0.22s ease-out; }
+  .lb-img { opacity: 0; transform: scale(0.985); transition: opacity 0.28s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+  .lb-img.is-loaded { opacity: 1; transform: none; }
+  .lb-btn { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 999px; background: rgb(255 255 255 / 0.08); color: #F4F4F1; transition: background-color 0.15s ease; }
+  .lb-btn:hover { background: rgb(255 255 255 / 0.18); }
+}
+@keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .lb-in { animation: none; } .lb-img { transition: none; } }
+
+/* ---------- booking ---------- */
+@layer components {
+  .bk-step { animation: bk-in 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+  [data-skin] .bk-input { border-width: 1px; border-radius: 10px; min-height: 52px; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  [data-skin] .bk-input:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-focus) 18%, transparent); }
+}
+@keyframes bk-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bk-step { animation: none; } }
+@media (max-width: 1023.98px) { body.has-bookbar { padding-bottom: 84px; } }
