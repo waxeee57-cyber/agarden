@@ -40,9 +40,12 @@ export function settingsFromDb(raw: unknown): SiteSettings {
 
 /** Payment model (fixed): request → owner confirms by e-mail → cash on site.
  *  No deposit, no transfer, no card. One sentence for the booking flow. */
+/** The ONE payment sentence — booking page and every guest letter use it verbatim. */
+export const CASH_LINE = 'Előleget nem kérünk: a szállásdíjat érkezéskor, a helyszínen, készpénzben kell kiegyenlíteni.'
+
 export function paymentLine(t: Terms): string {
   const cancel = t.cancelDays != null ? ` Lemondani érkezés előtt ${t.cancelDays} napig díjmentesen lehet.` : ''
-  return `Előleget nem kérünk: a szállásdíjat érkezéskor, a helyszínen, készpénzben kell kiegyenlíteni.${cancel}`
+  return `${CASH_LINE}${cancel}`
 }
 
 export const DOC_KINDS = ['hazirend', 'aszf', 'gyik', 'kornyek', 'adatvedelem'] as const

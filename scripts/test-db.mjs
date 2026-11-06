@@ -189,14 +189,14 @@ async function run() {
     assert.equal(left.n, 0)
   })
 
-  await t('garden facts (09): address, rooms, social, cash on site (20: no deposit); bank account empty', async () => {
-    const g = await one('select address, bedrooms, bathrooms, open_all_year, social, terms, bank_account, checkin_window from listings where slug = $1', ['velence'])
+  await t('garden facts (09): address, rooms, social, cash on site (20: no deposit; 21: no bank account column)', async () => {
+    const g = await one('select address, bedrooms, bathrooms, open_all_year, social, terms, checkin_window from listings where slug = $1', ['velence'])
     assert.equal(g.address, '2481 Velence, Szabolcsi út 83/B.')
     assert.deepEqual([g.bedrooms, g.bathrooms, g.open_all_year], [4, 2, true])
     assert.equal(g.social.instagram, 'https://www.instagram.com/garden_vendeghaz_velence/')
     assert.equal(g.social.tiktok, undefined, 'no TikTok URL is known')
     assert.deepEqual([g.terms.deposit_pct, g.terms.cancel_days, g.terms.confirm_hours, g.terms.quote_valid_days], [undefined, 30, 24, 4])
-    assert.equal(g.bank_account, null)
+    assert.equal((await one("select count(*)::int as n from information_schema.columns where table_name = 'listings' and column_name ~ '(bank|iban|deposit)'")).n, 0, 'no bank/deposit column')
     const docs = await q("select kind from listing_documents d join listings l on l.id = d.listing_id where l.slug = 'velence' order by kind")
     assert.deepEqual(docs.map((d) => d.kind), ['adatvedelem', 'aszf', 'gyik', 'hazirend', 'kornyek'])
     const hr = await one("select body from listing_documents where listing_id = $1 and kind = 'hazirend'", [VELENCE])

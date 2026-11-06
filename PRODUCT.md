@@ -10,7 +10,9 @@ register: brand (public house sites) · product (admin)
 Két önálló weboldal két, egyben bérelhető vendégházhoz a Velencei-tó déli partján,
 közös foglalási rendszerrel és tulajdonosi adminnal. Nincs online fizetés: a foglalás
 foglalási kérelem, amit a tulaj az adminban átnéz és visszaigazol vagy elutasít. Mindkét ház:
-előleg nincs, a teljes összeg érkezéskor, a helyszínen, készpénzben fizetendő.
+„Előleget nem kérünk: a szállásdíjat érkezéskor, a helyszínen, készpénzben kell kiegyenlíteni.”
+Nincs online fizetés, bankszámlaszám, kártya; a honlap levelet sem küld: a vendéglevelet a tulaj
+az admin kész `mailto:` gombjával a saját levelezőjéből küldi. Működési költség: 0 Ft.
 
 ## Felhasználók
 - **Vendég (elsődleges):** magyar baráti társaság, nagycsalád, legény-/lánybúcsút szervező

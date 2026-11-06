@@ -1,6 +1,6 @@
 import 'server-only'
 import type { Site } from '../site-map'
-import type { Terms } from '../terms'
+import { CASH_LINE, type Terms } from '../terms'
 
 // Hungarian transactional e-mails, branded per house. Adapted from the
 // costasol templates (table layout, inline styles for mail clients).
@@ -48,7 +48,7 @@ export type MailHouse = { site: Site; phone: string | null; email: string | null
 // for the guest to pay before arrival, nothing for the system to chase.
 function paymentIntro(t: Terms | undefined): string {
   const when = t?.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'
-  return `A dátumokat addig fenntartjuk, amíg ${when} e-mailben visszaigazoljuk. <strong>Előleget nem kérünk</strong>: a szállásdíjat érkezéskor, a helyszínen, készpénzben kell kiegyenlíteni.`
+  return `A dátumokat addig fenntartjuk, amíg ${when} e-mailben visszaigazoljuk. ${esc(CASH_LINE)}`
 }
 
 function layout(site: Site, house: MailHouse, body: string): string {
@@ -129,7 +129,7 @@ export type StatusExtras = {
 
 /** Payment block of the confirmation: cash on site, the known total, the owner's extra-cost notes. */
 function cashBlock(b: MailBooking, t: Terms | undefined): string {
-  return `<p style="margin:0;font-size:15px;line-height:1.6;"><strong>Fizetés érkezéskor, a helyszínen, készpénzben.</strong> Előleget nem kérünk.</p>
+  return `<p style="margin:0;font-size:15px;line-height:1.6;"><strong>${esc(CASH_LINE)}</strong></p>
 ${b.total != null ? rows([['Fizetendő szállásdíj', esc(huf.format(b.total))]]) : ''}
 ${t?.extraCosts.length ? `<p style="margin:10px 0 0;font-size:13px;line-height:1.6;color:#5F6F64;">${t.extraCosts.map(esc).join('<br>')}</p>` : ''}`
 }

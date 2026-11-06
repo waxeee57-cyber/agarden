@@ -12,6 +12,11 @@ import { randomBytes } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import { upsertAdmin } from '../scripts/admin-create.mjs'
+import pg from 'pg'
+
+// keep in sync with CASH_LINE in lib/terms.ts
+const CASH_LINE = 'Előleget nem kérünk: a szállásdíjat érkezéskor, a helyszínen, készpénzben kell kiegyenlíteni.'
+const sql = async (text) => { const c = new pg.Client({ connectionString: process.env.ADMIN_DATABASE_URL }); await c.connect(); try { await c.query(text) } finally { await c.end() } }
 
 const { chromium } = createRequire(import.meta.url)('playwright')
 const out = process.argv[2] ?? 'admin-e2e-out'
@@ -30,24 +35,29 @@ const page = await ctx.newPage()
 // every confirm() in the admin (delete, restore) is answered "yes"
 page.on('dialog', (d) => d.accept())
 
-// 1) guest books through the step-by-step wizard (/foglalas)
+// 1) guest sends a booking REQUEST through the 2-step wizard (/foglalas)
 await page.goto(`${G}/foglalas?checkIn=2028-03-06&checkOut=2028-03-09`, { waitUntil: 'networkidle' })
-await page.getByText('Szabad. Az árat').waitFor({ timeout: 30000 })
-assert.ok(await page.getByRole('link', { name: /Inkább felhívlak/ }).isVisible(), 'call button visible on step 1')
-await page.getByRole('button', { name: 'Tovább: létszám' }).click()
-await page.getByRole('button', { name: 'Tovább: adataid' }).click()
-await page.getByRole('button', { name: 'Tovább: összegzés' }).click()
-await page.getByText('Add meg a neved.').waitFor()
+await page.getByText('Mikor érkeznek?').waitFor({ timeout: 30000 })
+await page.getByRole('button', { name: 'Tovább', exact: true }).first().click()
+await page.getByRole('button', { name: /^(Elküldöm|Foglalási kérelem elküldése)$/ }).first().click()
+await page.getByText('Kérjük, adja meg a nevét.').waitFor()
 log('wizard: empty contact step shows the error next to the field')
+await page.getByText(CASH_LINE).first().waitFor()
+log('booking step states: no deposit, pay on arrival, in cash')
 await page.fill('#bw-name', 'E2E Vendég')
 await page.fill('#bw-email', 'e2e-guest@test.invalid')
-await page.getByRole('button', { name: 'Tovább: összegzés' }).click()
-await page.getByText('Minden stimmel?').waitFor()
-await page.screenshot({ path: `${out}/wizard-summary-390.png`, fullPage: true })
-await page.getByRole('button', { name: 'Foglalási kérelem elküldése' }).click()
-await page.getByText('Megkaptuk a foglalási kérelmed!').waitFor()
+await page.screenshot({ path: `${out}/wizard-contact-390.png`, fullPage: true })
+await page.getByRole('button', { name: /^(Elküldöm|Foglalási kérelem elküldése)$/ }).first().click()
+await page.getByText('Megkaptuk foglalási kérelmét').waitFor()
+await page.getByText('Ez még foglalási kérelem').waitFor()
 await page.screenshot({ path: `${out}/wizard-success-390.png`, fullPage: true })
-log('guest booking request submitted on Garden through all 4 steps')
+log('guest request submitted on Garden; success screen says it is a request, cash on site')
+
+// an external calendar (Airbnb) reports the same nights -> recorded clash
+await sql(`insert into ical_feeds (listing_id, label, url, conflicts)
+  select id, 'E2E Airbnb', 'https://e2e.invalid/a.ics', jsonb_build_array(jsonb_build_object('from', '2028-03-07', 'to', '2028-03-08', 'code',
+    (select upper(left(b.id::text, 8)) from bookings b where b.guest_email = 'e2e-guest@test.invalid' order by created_at desc limit 1), 'status', 'pending', 'kind', 'booking'))
+  from listings where slug = 'velence' on conflict (listing_id, url) do update set conflicts = excluded.conflicts`)
 
 // 2) admin without session -> login page
 await page.goto(`${G}/admin`)
@@ -57,26 +67,37 @@ await page.fill('#password', password)
 await page.getByRole('button', { name: 'Belépés' }).click()
 await page.waitForURL(`${G}/admin`)
 await page.getByText('Mi a teendőd?').waitFor()
-await page.getByText('E2E Vendég').waitFor()
+await page.getByText('E2E Vendég', { exact: true }).waitFor()
 await page.screenshot({ path: `${out}/admin-inbox-390.png`, fullPage: true })
 log('login works; booking visible in Garden admin inbox')
+await page.getByText(/Ütközés: a\(z\) E2E Airbnb naptár 2028-03-07/).waitFor()
+await page.getByText('Ne igazold vissza, amíg nem tisztáztad.').first().waitFor()
+log('"Mi a teendőd?" shows the iCal clash with the pending request as urgent')
+await page.getByText('E2E Vendég', { exact: true }).click()
+assert.ok(await page.getByRole('button', { name: 'Elutasítás', exact: true }).isVisible(), 'pending request can be rejected')
+const mail = await page.getByRole('link', { name: /e-mail megírása/ }).first().getAttribute('href')
+assert.match(mail, /^mailto:e2e-guest%40test\.invalid\?subject=/)
+assert.ok(decodeURIComponent(mail).includes('Kedves E2E Vendég'), 'letter greets the guest by name')
+await page.getByText('E2E Vendég', { exact: true }).click()
+await sql("delete from ical_feeds where url = 'https://e2e.invalid/a.ics'")
+log('pending request: Elutasítás available; prefilled mailto with correct greeting')
 
 // 3) confirm, then delete
-await page.getByText('E2E Vendég').click()
+await page.getByText('E2E Vendég', { exact: true }).click()
 const [resp] = await Promise.all([page.waitForResponse((r) => r.url().includes('/api/admin/bookings/') && r.request().method() === 'PATCH'), page.getByRole('button', { name: 'Visszaigazolás', exact: true }).click()])
   const body = await resp.json(); assert.equal(body.ok, true, 'confirm: ' + JSON.stringify(body))
 await page.goto(`${G}/admin?szuro=visszaigazolt`)
-await page.getByText('E2E Vendég').waitFor()
+await page.getByText('E2E Vendég', { exact: true }).waitFor()
 log('confirm moves it to "Visszaigazolt"')
-await page.getByText('E2E Vendég').click()
+await page.getByText('E2E Vendég', { exact: true }).click()
 await page.getByRole('button', { name: 'Törlés', exact: true }).click()
-await page.waitForFunction(() => !document.body.innerText.includes('E2E Vendég'), null, { timeout: 15000 })
+await page.getByText('E2E Vendég', { exact: true }).waitFor({ state: 'detached', timeout: 15000 }) // the activity log may still name the guest
 const freed = await page.evaluate(async () => (await fetch('/api/availability?from=2028-03-01&to=2028-03-31')).json())
 assert.equal(freed.ranges.length, 0)
 log('delete from admin frees the dates (availability empty again)')
 
 // 4) block + calendar
-await page.goto(`${G}/admin/naptar`)
+await page.goto(`${G}/admin/naptar`, { waitUntil: "networkidle" })
 await page.fill('#b-from', '2028-04-10')
 await page.fill('#b-to', '2028-04-12')
 await page.getByRole('button', { name: 'Blokk hozzáadása' }).click()
@@ -87,7 +108,7 @@ assert.equal(blocked.ranges[0]?.kind, 'manual')
 log('manual block created and visible to the public availability API')
 
 // 5) pricing -> fixed mode -> public quote shows a total
-await page.goto(`${G}/admin/arak`)
+await page.goto(`${G}/admin/arak`, { waitUntil: "networkidle" })
 await page.fill('#rate', '55000')
 await page.getByRole('button', { name: 'Árak mentése' }).click()
 await page.getByText('Mentve. A foglalónál').waitFor()

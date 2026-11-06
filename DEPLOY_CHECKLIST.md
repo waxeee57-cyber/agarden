@@ -10,7 +10,7 @@
 | Térkép | OpenStreetMap (Leaflet) | 0 Ft |
 | Naptár-szinkron | iCal export/import, Vercel Cron 3 óránként | 0 Ft |
 | **E-mail** | **nincs külső szolgáltató.** A honlap maga nem küld levelet; minden foglalás kérelemként az adminba kerül, a vendégnek szóló kész levelet az admin a tulaj saját levelezőjében nyitja meg (`mailto:`) | 0 Ft |
-| **Fizetés** | **érkezéskor, a helyszínen, készpénzben.** Nincs előleg, átutalás, kártya, fizetési szolgáltató | 0 Ft |
+| **Fizetés** | **érkezéskor, a helyszínen, készpénzben.** Nincs előleg, átutalás, kártya, bankszámla, fizetési szolgáltató | 0 Ft |
 
 Az oldalmegtekintés nem ébreszti az adatbázist: az oldalak statikusak (admin-mentéskor azonnal frissülnek),
 a foglaltság tárolt példányból jön, és csak foglaláskor / admin-változáskor / iCal-szinkronkor frissül.
@@ -19,7 +19,7 @@ a foglaltság tárolt példányból jön, és csak foglaláskor / admin-változ�
 
 | Elem | Állapot |
 |---|---|
-| Deploy, migrációk (1–20) | ✅ automatikus (a Production build futtatja) |
+| Deploy, migrációk (1–21) | ✅ automatikus (a Production build futtatja) |
 | `CRON_SECRET` | ✅ beállítva a Vercelben; nélküle is biztonságosan fut (10 perces globális korlát) |
 | Foglalás → admin | ✅ minden webes foglalás **kérelem** (`pending`), automatikus visszaigazolás nincs; a napokat azonnal fenntartja, a döntés a tulajé |
 | iCal-ütközés | ✅ ha egy külső naptár (Airbnb/Booking) olyan napot jelez, amire nálunk kérelem/foglalás van, az admin „Mi a teendőd?” sürgős tételként mutatja |

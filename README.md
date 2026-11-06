@@ -29,7 +29,7 @@ kérelem (a tulaj hagyja jóvá; fizetés érkezéskor, a helyszínen, készpén
   ház admin-API-ja 401-et ad. Login rate-limit DB-ből (IP + fiók).
 - **Fotók** — Vercel Blob; feltöltéskor `sharp` (≤1200 px, WebP, EXIF törölve) → `listing_photos`.
 - **Foglalási modell** — kérelem-alapú: minden webes foglalás `pending` (a kliens nem kérhet `confirmed`-et), a napokat azonnal fenntartja (exclusion constraint), a tulaj az adminban **Visszaigazolás** / **Elutasítás**. Automatikus visszaigazolás nincs. Minden kérelem és döntés a `booking_events` naplóba kerül (DB-trigger, 19).
-- **Fizetés** — érkezéskor, a helyszínen, készpénzben. Előleg, átutalás, kártya, fizetési szolgáltató nincs; `listings.bank_account` a kódban sehol nem olvasott (20).
+- **Fizetés** — érkezéskor, a helyszínen, készpénzben. Előleg, átutalás, kártya, fizetési szolgáltató nincs; bankszámla-mező sincs (a `bank_account` oszlop a 21-es migrációval törölve). Egyetlen mondat (`CASH_LINE`, `lib/terms.ts`) a foglalási oldalon és minden levélben: „Előleget nem kérünk: a szállásdíjat érkezéskor, a helyszínen, készpénzben kell kiegyenlíteni.”
 - **E-mail** — a honlap nem küld levelet (nincs külső szolgáltató); a vendéglevelet (`lib/email/compose.ts` + `templates.ts`) az admin `mailto:` gombja a tulaj saját levelezőjében nyitja meg, az állapothoz illő kész szöveggel.
 - **iCal** — export `/api/ical/<token>`, import 3 óránként (`/api/cron/ical`). Ha egy külső naptár napja a mi kérelmünkkel/foglalásunkkal ütközik, nem írja felül, hanem `ical_feeds.conflicts`-ba rögzíti, és az admin sürgős teendőként mutatja (20).
 - **SEO** — hostonkénti `robots.txt`, `sitemap.xml`, canonical/`metadataBase`, OG-kép

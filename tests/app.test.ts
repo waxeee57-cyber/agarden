@@ -238,9 +238,9 @@ async function main() {
   await t('cash on site: no deposit/bank setting is stored, old clients cannot sneak one in', async () => {
     const base = { social: {}, menuGyik: true, menuKornyek: true, cancelDays: 30, confirmHours: 24, quoteValidDays: 4, extraCosts: [] }
     assert.deepEqual(await actions.saveSettings(garden, { ...base, depositPct: 20, bankAccount: '11773000-00000000-00000000' }), { ok: true })
-    const [row] = await query<{ terms: Record<string, unknown>; bank_account: string | null }>('select terms, bank_account from listings where id = $1', [garden])
+    const [row] = await query<{ terms: Record<string, unknown> }>('select terms from listings where id = $1', [garden])
     assert.ok(!('deposit_pct' in row!.terms), 'no deposit stored')
-    assert.notEqual(row!.bank_account, '11773000-00000000-00000000', 'no bank account stored')
+    assert.ok(!JSON.stringify(await query('select * from listings where id = $1', [garden])).includes('11773000'), 'no bank account stored anywhere on the listing')
     const { paymentLine, termsFromDb } = await import('../lib/terms')
     assert.match(paymentLine(termsFromDb(row!.terms)), /helyszínen, készpénzben.*30 napig díjmentesen/)
   })
@@ -409,8 +409,8 @@ async function main() {
     const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     assert.ok(!pkg.dependencies?.nodemailer && !pkg.dependencies?.resend, 'no mail dependency')
     const { mailContext, guestMailFor } = await import('../lib/email/compose')
-    // even a legacy account number / deposit key left in the DB must not leak into any letter
-    await query("update listings set bank_account = '11773000-11111111-22222222', terms = jsonb_set(coalesce(terms,'{}'::jsonb), '{deposit_pct}', '20') where id = $1", [garden])
+    // even a legacy deposit key left in the DB must not leak into any letter
+    await query("update listings set terms = jsonb_set(coalesce(terms,'{}'::jsonb), '{deposit_pct}', '20') where id = $1", [garden])
     const ctx = (await mailContext('velence', garden))!
     const base = { id: '00000000-0000-4000-8000-0000000000ab', source: 'web' as const, guestName: 'Kiss Anna', guestEmail: 'anna@example.com', guestPhone: null, checkIn: '2027-07-01', checkOut: '2027-07-04', nights: 3, guests: 4, children: 1, pet: false, isEvent: false, total: null, notes: null, createdAt: '' }
     const conf = guestMailFor(ctx, { ...base, status: 'confirmed' })
@@ -418,12 +418,13 @@ async function main() {
     assert.match(conf.href, /^mailto:anna%40example\.com\?subject=/)
     const body = decodeURIComponent(conf.href.split('&body=')[1])
     assert.match(body, /Kedves Kiss Anna/)
-    assert.match(body, /Fizetés érkezéskor, a helyszínen, készpénzben/)
+    const { CASH_LINE } = await import('../lib/terms')
+    assert.ok(body.includes(CASH_LINE), 'the exact cash-on-site sentence')
     assert.ok(!/11773000|Számlaszám|átutal/i.test(body), 'no bank details, no transfer request')
     const pend = decodeURIComponent(guestMailFor(ctx, { ...base, status: 'pending' }).href.split('&body=')[1])
-    assert.match(pend, /Előleget nem kérünk/)
+    assert.ok(pend.includes(CASH_LINE))
     assert.ok(!/11773000|Számlaszám/.test(pend))
-    await query("update listings set bank_account = null, terms = terms - 'deposit_pct' where id = $1", [garden])
+    await query("update listings set terms = terms - 'deposit_pct' where id = $1", [garden])
     assert.equal(guestMailFor(ctx, { ...base, status: 'cancelled' }).label, 'Lemondó e-mail')
   })
 

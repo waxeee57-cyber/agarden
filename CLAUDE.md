@@ -19,7 +19,7 @@ rendszerrel és tulajdonosi adminnal. Részletek: `README.md`, `PRODUCT.md`.
 - Árak HUF-ban (magyar piac). Nincs kitalált adat: ismeretlen = null/TBD, nem renderelődik.
 - `pnpm build` előtt `scripts/secret-guard.mjs` fut — ha elbukik, NE kerüld meg.
 - Egységes arculat (2026-10-30): `[data-skin=velence|napsugar]` csak az akcentust váltja (`app/globals.css`); Gilda Display + Hanken Grotesk mindkét házon. Közös oldalkeret: `components/property/SiteChrome.tsx` (`SitePage`), adatok: `lib/page.ts` (`loadSite`), menü: `lib/nav.ts`.
-- Tulajdonosi szövegek (házirend, ÁSZF, GYIK, Környék, adatkezelés): `listing_documents` markdown-lite (`lib/markdown.ts`), minden mentés verzió (utolsó 20, `save_listing_document`). Fizetés: érkezéskor, a helyszínen, készpénzben (20) — előleg/átutalás/kártya NINCS; `listings.bank_account` sehol nem olvasott, ne vezesd vissza kérés nélkül.
+- Tulajdonosi szövegek (házirend, ÁSZF, GYIK, Környék, adatkezelés): `listing_documents` markdown-lite (`lib/markdown.ts`), minden mentés verzió (utolsó 20, `save_listing_document`). Fizetés: érkezéskor, a helyszínen, készpénzben (20) — előleg/átutalás/kártya/bankszámla NINCS (`bank_account` oszlop törölve, 21); a fizetési mondat egyetlen forrása `CASH_LINE` (`lib/terms.ts`). Ne vezesd vissza kérés nélkül.
 - A gyökér és a `[site]` not-found kliens-komponens: szerveroldali `headers()` ott minden házoldalt dinamikussá tenne (ISR elveszne).
 - Logó/OG: kézi SVG (`lib/mark.ts`) + valódi font (GildaDisplay/Schibsted TTF az `assets/fonts`-ban, ő/ű ellenőrizve). AI-szöveges kép tilos.
 - E2E: `node scripts/e2e-server.mjs` (agarden_test DB, :3100) + `node --env-file=.e2e-env tests/admin-e2e.mjs <out>`.
