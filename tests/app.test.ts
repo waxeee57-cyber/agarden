@@ -185,7 +185,7 @@ async function main() {
     assert.deepEqual(r, { sent: true })
     assert.equal(outbox.length, 2)
     const [g, o] = outbox
-    assert.equal(g.from, 'Garden Vendégház <gardenhaz@example.invalid>')
+    assert.equal(g.from, 'Garden Vendégház Velence <gardenhaz@example.invalid>')
     assert.equal(g.to, 'vendeg@example.com')
     assert.match(g.subject, /Foglalási kérelem rögzítve/)
     assert.match(g.text, /Kedves Mail!/)
@@ -197,7 +197,7 @@ async function main() {
     const n = await booking.createBooking(napsugar, { guestName: 'Nap Teszt', guestEmail: 'nap@example.com', guests: 2, checkIn: '2027-06-02', checkOut: '2027-06-05' })
     await setBookingStatus({ site: 'napsugar', listingId: napsugar } as never, n.bookingId!, 'confirmed')
     assert.deepEqual(await sendStatusEmail('napsugar', napsugar, n.bookingId!, 'confirmed'), { sent: true })
-    assert.equal(outbox[0].from, 'Napsugár Vendégház <napsugar@example.invalid>')
+    assert.equal(outbox[0].from, 'Napsugár Vendégház Velence <napsugar@example.invalid>')
     assert.match(outbox[0].subject, /visszaigazolva/)
     for (const k of ['EMAIL_ENABLED', 'EMAIL_TRANSPORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_USER_NAPSUGAR', 'SMTP_PASSWORD_NAPSUGAR']) delete process.env[k]
   })
@@ -428,6 +428,23 @@ async function main() {
     delete process.env.CRON_SECRET
     const first = await (await call()).json(); const second = await (await call()).json()
     assert.equal(first.done, true); assert.equal(second.skipped, 'throttled')
+  })
+
+  await t('managed relay (no owner mailbox): Resend API, house display name, reply to the house; failure logged, never thrown', async () => {
+    const { sendBookingEmails } = await import('../lib/email/send')
+    const sent: { url: string; body: Record<string, unknown> }[] = []
+    const real = globalThis.fetch
+    Object.assign(process.env, { EMAIL_ENABLED: 'true', RESEND_API_KEY: 're_test', EMAIL_FROM: 'foglalas@relay.example' })
+    globalThis.fetch = (async (url: string, init: RequestInit) => { sent.push({ url, body: JSON.parse(String(init.body)) }); return new Response('{"id":"x"}', { status: 200 }) }) as typeof fetch
+    const mail = { kind: 'booking' as const, id: '00000000-0000-4000-8000-000000000001', guestName: 'Relay Teszt', guestEmail: 'r@example.com', guestPhone: null, checkIn: '2027-09-01', checkOut: '2027-09-03', nights: 2, guests: 2, children: 0, pet: false, isEvent: false, total: null }
+    assert.deepEqual(await sendBookingEmails('napsugar', napsugar, mail), { sent: true })
+    assert.equal(sent[0].url, 'https://api.resend.com/emails')
+    assert.equal(sent[0].body.from, 'Napsugár Vendégház Velence <foglalas@relay.example>')
+    assert.deepEqual(sent[0].body.to, ['r@example.com'])
+    globalThis.fetch = (async () => new Response('{"message":"domain not verified"}', { status: 403 })) as typeof fetch
+    assert.deepEqual(await sendBookingEmails('napsugar', napsugar, mail), { sent: false, reason: 'rejected' })
+    globalThis.fetch = real
+    for (const k of ['EMAIL_ENABLED', 'RESEND_API_KEY', 'EMAIL_FROM']) delete process.env[k]
   })
 
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {

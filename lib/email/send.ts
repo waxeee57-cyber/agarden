@@ -25,9 +25,29 @@ function credsFor(site: Site): Creds | null {
   return user && pass ? { user, pass } : null
 }
 
+/** Managed relay (developer-run, no owner account needed): Resend HTTP API on
+ *  a domain we already verified. Used when no SMTP mailbox is configured for
+ *  the house. Display name = the house; replies go to the house inbox. */
+function relayFrom(): string | null {
+  const key = process.env.RESEND_API_KEY, from = process.env.EMAIL_FROM?.trim()
+  if (!key || !from) return null
+  return from.match(/<([^>]+)>/)?.[1] ?? from
+}
+
 export function emailEnabled(site?: Site): boolean {
   if (process.env.EMAIL_ENABLED !== 'true') return false
+  if (relayFrom()) return true
   return site ? !!credsFor(site) : !!(process.env.SMTP_USER && process.env.SMTP_PASSWORD)
+}
+
+async function sendViaRelay(fromName: string, address: string, msg: { to: string; subject: string; html: string; text: string; replyTo?: string | null }): Promise<void> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ from: `${fromName} <${address}>`, to: [msg.to], subject: msg.subject, html: msg.html, text: msg.text, ...(msg.replyTo ? { reply_to: msg.replyTo } : {}) }),
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!res.ok) throw new Error(`relay ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`)
 }
 
 /** Test hook: EMAIL_TRANSPORT=json captures messages here instead of sending. */
@@ -66,13 +86,15 @@ async function logMail(listingId: string, kind: string, to: string, ok: boolean,
 
 async function deliver(site: Site, listingId: string, mails: Mail[], where: string): Promise<boolean> {
   const c = credsFor(site)
-  if (!c) return false
-  const from = { name: BRANDS[site].fullName.replace(' Velence', ''), address: c.user }
-  const t = transportFor(c)
+  const relay = c ? null : relayFrom()
+  if (!c && !relay) return false
+  const from = { name: BRANDS[site].fullName, address: c ? c.user : relay! }
+  const t = c ? transportFor(c) : null
   const results = await Promise.allSettled(mails.map(async (m) => {
     const msg = { from, to: m.to, subject: m.subject, html: m.html, text: toText(m.html), ...(m.replyTo ? { replyTo: m.replyTo } : {}) }
     try {
-      await t.sendMail(msg)
+      if (t) await t.sendMail(msg)
+      else if (process.env.EMAIL_TRANSPORT !== 'json') await sendViaRelay(from.name, from.address, msg)
     } catch (e) {
       await logMail(listingId, where, m.to, false, e instanceof Error ? e.message : String(e))
       throw e
@@ -111,10 +133,10 @@ export async function sendBookingEmails(site: Site, listingId: string, b: MailBo
     const house = { site, phone: l.contact_phone, email: l.contact_email, origin: siteOrigin(site), terms: termsFromDb(l.terms) }
     const g = guestEmail(house, b)
     const o = ownerEmail(house, b)
-    const houseInbox = l.contact_email ?? l.owner_email ?? credsFor(site)!.user
+    const houseInbox = l.contact_email ?? l.owner_email ?? credsFor(site)?.user ?? null
     const ok = await deliver(site, listingId, [
       { to: b.guestEmail, subject: g.subject, html: g.html, replyTo: houseInbox },
-      { to: houseInbox, subject: o.subject, html: o.html, replyTo: b.guestEmail },
+      ...(houseInbox ? [{ to: houseInbox, subject: o.subject, html: o.html, replyTo: b.guestEmail }] : []),
     ], 'booking')
     if (!ok) return { sent: false, reason: 'rejected' }
     return { sent: true }

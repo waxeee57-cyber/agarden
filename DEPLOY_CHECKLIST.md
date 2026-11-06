@@ -11,7 +11,7 @@ Az alábbi lépéseket csak a tulajdonos (vagy Roli) tudja elvégezni, mert fió
 | Tárhely, adatbázis, migrációk (1–17), deploy | ✅ automatikusan kész, élesben |
 | `CRON_SECRET` + 3 óránkénti naptár-szinkron | ✅ beállítva a Vercelben (Production); titok nélkül is biztonságosan fut (10 perces globális korlát) |
 | Adatvédelmi oldal: Google (Gmail) adatfeldolgozó, Resend nincs | ✅ élesben ellenőrizve mindkét házon |
-| E-mail küldés | ⏳ **egy hitelesítő adat kell** (1–2. lépés) – ingyenes, hitelesítés nélküli levélküldés nincs: a nyílt relay-eket minden levelezőrendszer spamként dobja |
+| E-mail küldés | ⏳ kód kész (kezelt Resend relay, tulajdonosi fiók nélkül); a küldő kulcs elkészült, **a Vercelbe beírás egy kattintás** (`RESEND_API_KEY`, `EMAIL_FROM=foglalas@drivecostasol.com`, `EMAIL_ENABLED=true`, majd Redeploy) — az automatikus beírást a jogosultsági rendszer letiltotta |
 | Árak, szezonok | ⏳ **a tulaj számai kellenek** (3. lépés) – sehol nincs nyilvános listaár; kitalált ár nem kerül ki (a vendég felé ajánlatnak minősülne). Addig a foglaló „egyedi ajánlatot” mutat, foglalni így is lehet |
 | Adatfeldolgozói jóváhagyás | ⏳ **a tulaj nyilatkozata** (4. lépés) – adatkezelői jognyilatkozat, más nem teheti meg helyette; addig az oldalon „pótlásra vár” |
 
