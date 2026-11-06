@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { requireAdminPage } from '@/lib/admin/guard'
-import { listBookings, bookingCounts, listMessages, getAdminSettings, FILTERS, type FilterKey } from '@/lib/admin/data'
+import { listBookings, bookingCounts, listMessages, getAdminSettings, getOpsAlerts, FILTERS, type FilterKey } from '@/lib/admin/data'
 import { getListing, getPhotos } from '@/lib/listing'
 import { BookingsBoard } from '@/components/admin/BookingsBoard'
 import { ManualBookingForm } from '@/components/admin/ManualBookingForm'
@@ -14,12 +14,13 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   const session = await requireAdminPage(params)
   const { szuro } = await searchParams
   const filter: FilterKey = szuro && szuro in FILTERS ? (szuro as FilterKey) : 'uj'
-  const [bookings, counts, listing, messages, settings] = await Promise.all([
+  const [bookings, counts, listing, messages, settings, ops] = await Promise.all([
     listBookings(session.listingId, filter),
     bookingCounts(session.listingId),
     getListing(session.site),
     listMessages(session.listingId),
     getAdminSettings(session.listingId),
+    getOpsAlerts(session.listingId),
   ])
   const photos = listing ? await getPhotos(listing.id) : []
   const filters = (Object.keys(FILTERS) as FilterKey[]).map((key) => ({
@@ -39,6 +40,8 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   if (missing) todos.push({ text: `${missing} üzemeltetői adat hiányzik a generált jogi oldalakból.`, href: '/admin/adatok', action: 'Kitöltöm' })
   const noAlt = photos.filter((p) => !p.alt.trim()).length
   if (noAlt) todos.push({ text: `${noAlt} fotónak nincs leírása.`, href: '/admin/fotok', action: 'Pótolom' })
+  if (ops.mailFailed) todos.push({ text: `${ops.mailFailed} e-mail nem ment ki az elmúlt 14 napban${ops.mailLastTo ? ` (utolsó címzett: ${ops.mailLastTo})` : ''}. Értesítsd a vendéget telefonon, és ellenőrizd a Gmail alkalmazásjelszót.${ops.mailLastError ? ` Hiba: ${ops.mailLastError}` : ''}`, href: '/admin', action: 'Rendben', urgent: true })
+  for (const f of ops.feedErrors) todos.push({ text: `A(z) ${f.label} naptár legutóbbi frissítése nem sikerült (${f.error}). A korábban beolvasott napok érvényben maradnak.`, href: '/admin/naptar', action: 'Megnézem', urgent: true })
   const mailOff = !emailEnabled(session.site)
 
   return (

@@ -180,8 +180,8 @@ async function main() {
     process.env.SMTP_USER = 'gardenhaz@example.invalid'; process.env.SMTP_PASSWORD = 'abcd efgh ijkl mnop'
     process.env.SMTP_USER_NAPSUGAR = 'napsugar@example.invalid'; process.env.SMTP_PASSWORD_NAPSUGAR = 'qrst uvwx yzab cdef'
     outbox.length = 0
-    const b = await booking.createBooking(garden, { guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guests: 3, children: 1, checkIn: '2029-06-02', checkOut: '2029-06-05' })
-    const r = await sendBookingEmails('velence', garden, { kind: 'booking', id: b.bookingId!, guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guestPhone: null, checkIn: '2029-06-02', checkOut: '2029-06-05', nights: 3, guests: 3, children: 1, pet: false, isEvent: false, total: null })
+    const b = await booking.createBooking(garden, { guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guests: 3, children: 1, checkIn: '2027-06-02', checkOut: '2027-06-05' })
+    const r = await sendBookingEmails('velence', garden, { kind: 'booking', id: b.bookingId!, guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guestPhone: null, checkIn: '2027-06-02', checkOut: '2027-06-05', nights: 3, guests: 3, children: 1, pet: false, isEvent: false, total: null })
     assert.deepEqual(r, { sent: true })
     assert.equal(outbox.length, 2)
     const [g, o] = outbox
@@ -194,7 +194,7 @@ async function main() {
     assert.ok(!/szia|válaszolj\b/i.test(g.text), 'formal register')
     // per-house mailbox for Napsugár
     outbox.length = 0
-    const n = await booking.createBooking(napsugar, { guestName: 'Nap Teszt', guestEmail: 'nap@example.com', guests: 2, checkIn: '2029-06-02', checkOut: '2029-06-05' })
+    const n = await booking.createBooking(napsugar, { guestName: 'Nap Teszt', guestEmail: 'nap@example.com', guests: 2, checkIn: '2027-06-02', checkOut: '2027-06-05' })
     await setBookingStatus({ site: 'napsugar', listingId: napsugar } as never, n.bookingId!, 'confirmed')
     assert.deepEqual(await sendStatusEmail('napsugar', napsugar, n.bookingId!, 'confirmed'), { sent: true })
     assert.equal(outbox[0].from, 'Napsugár Vendégház <napsugar@example.invalid>')
@@ -298,7 +298,7 @@ async function main() {
   })
 
   await t('children + "Foglalásom" lookup: code + e-mail only, same answer for wrong code or e-mail, house-scoped', async () => {
-    const b = await booking.createBooking(garden, { guestName: 'Kis Anna', guestEmail: 'Anna@Example.com', guests: 5, children: 2, checkIn: '2029-03-05', checkOut: '2029-03-08' })
+    const b = await booking.createBooking(garden, { guestName: 'Kis Anna', guestEmail: 'Anna@Example.com', guests: 5, children: 2, checkIn: '2027-03-05', checkOut: '2027-03-08' })
     assert.ok(b.ok && b.bookingId, JSON.stringify(b))
     const code = b.bookingId!.slice(0, 8).toUpperCase()
     const hit = await booking.lookupBooking(garden, { code, email: 'anna@example.com' })
@@ -308,7 +308,7 @@ async function main() {
       assert.equal(hit.booking.children, 2)
       assert.equal(hit.booking.guests, 5)
       assert.equal(hit.booking.status, 'pending')
-      assert.equal(hit.booking.checkIn, '2029-03-05')
+      assert.equal(hit.booking.checkIn, '2027-03-05')
       assert.ok(!('guestEmail' in hit.booking) && !('guestName' in hit.booking), 'no personal data echoed')
     }
     assert.deepEqual(await booking.lookupBooking(garden, { code, email: 'masik@example.com' }), { ok: false, reason: 'not_found' })
@@ -316,7 +316,7 @@ async function main() {
     assert.deepEqual(await booking.lookupBooking(napsugar, { code, email: 'anna@example.com' }), { ok: false, reason: 'not_found' }, 'other house cannot see it')
     assert.deepEqual(await booking.lookupBooking(garden, { code: "x' or 1=1", email: 'anna@example.com' } as never), { ok: false, reason: 'validation_error' })
     // children never exceed the head count
-    const c = await booking.createBooking(garden, { guestName: 'Kis Béla', guestEmail: 'bela@example.com', guests: 2, children: 9, checkIn: '2029-04-05', checkOut: '2029-04-08' })
+    const c = await booking.createBooking(garden, { guestName: 'Kis Béla', guestEmail: 'bela@example.com', guests: 2, children: 9, checkIn: '2027-04-05', checkOut: '2027-04-08' })
     const rows = await query<{ children_count: number }>('select children_count from bookings where id = $1', [c.bookingId])
     assert.equal(rows[0].children_count, 2)
   })
@@ -344,21 +344,21 @@ async function main() {
     const s = { site: 'velence', listingId: garden } as never
     const base = { nightlyRate: 60000, surcharges: [], extraGuestFrom: 8, extraGuestHuf: 5000 }
     assert.deepEqual(await actions.updatePricing(s, { ...base, seasons: [
-      { label: 'Főszezon', from: '2030-07-01', to: '2030-08-31', rate: 90000, minNights: 3 },
-      { label: 'Átfedő', from: '2030-08-31', to: '2030-09-05', rate: 70000, minNights: null },
+      { label: 'Főszezon', from: '2027-07-01', to: '2027-08-31', rate: 90000, minNights: 3 },
+      { label: 'Átfedő', from: '2027-08-31', to: '2027-09-05', rate: 70000, minNights: null },
     ] }), { ok: false, reason: 'season_overlap' })
-    assert.deepEqual(await actions.updatePricing(s, { ...base, seasons: [{ label: 'Főszezon', from: '2030-07-01', to: '2030-08-31', rate: 90000, minNights: 3 }] }), { ok: true })
-    const q = await booking.getQuote(garden, { checkIn: '2030-06-28', checkOut: '2030-07-03', guests: 10 })
+    assert.deepEqual(await actions.updatePricing(s, { ...base, seasons: [{ label: 'Főszezon', from: '2027-07-01', to: '2027-08-31', rate: 90000, minNights: 3 }] }), { ok: true })
+    const q = await booking.getQuote(garden, { checkIn: '2027-06-28', checkOut: '2027-07-03', guests: 10 })
     assert.equal(q.valid, true)
     assert.deepEqual(q.breakdown, [{ label: 'Alapár', nights: 3, rate: 60000 }, { label: 'Főszezon', nights: 2, rate: 90000 }])
     assert.equal(q.subtotal, 360000)
     assert.ok(q.surcharges.some((x) => x.code === 'extra_guest' && x.amount === 2 * 5000 * 5))
     assert.equal(q.total, 410000)
     // last night of the season is Aug 31 (inclusive): Aug 30 -> Sep 2 = 2 season nights + 1 base night
-    const edge = await booking.getQuote(garden, { checkIn: '2030-08-30', checkOut: '2030-09-02', guests: 4 })
+    const edge = await booking.getQuote(garden, { checkIn: '2027-08-30', checkOut: '2027-09-02', guests: 4 })
     assert.deepEqual(edge.breakdown, [{ label: 'Főszezon', nights: 2, rate: 90000 }, { label: 'Alapár', nights: 1, rate: 60000 }])
-    assert.equal((await booking.getQuote(garden, { checkIn: '2030-07-10', checkOut: '2030-07-12', guests: 4 })).reason, 'min_nights')
-    const b = await booking.createBooking(garden, { guestName: 'Szezon Teszt', guestEmail: 'sz@example.com', guests: 4, checkIn: '2030-07-10', checkOut: '2030-07-13' })
+    assert.equal((await booking.getQuote(garden, { checkIn: '2027-07-10', checkOut: '2027-07-12', guests: 4 })).reason, 'min_nights')
+    const b = await booking.createBooking(garden, { guestName: 'Szezon Teszt', guestEmail: 'sz@example.com', guests: 4, checkIn: '2027-07-10', checkOut: '2027-07-13' })
     assert.equal(b.total, 270000, 'stored total = SQL quote')
     // back to quote-only so other tests see the seeded state
     assert.deepEqual(await actions.updatePricing(s, { nightlyRate: null, surcharges: [], seasons: [], extraGuestFrom: null, extraGuestHuf: null }), { ok: true })
@@ -397,6 +397,25 @@ async function main() {
     assert.ok(!/Ical Teszt|ic@example/.test(out.ics), 'no guest data')
     assert.equal(await ical.exportFor('0'.repeat(64)), null)
     assert.equal(await ical.exportFor("x' or 1=1"), null)
+  })
+
+  await t('edge guards: past arrival (Budapest day), > 2 years ahead, > 90 nights; SMTP outage is logged for the admin, booking kept', async () => {
+    const day = (n: number) => { const d = new Date(Date.now() + n * 86_400_000); return d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Budapest' }) }
+    assert.equal((await booking.getQuote(garden, { checkIn: day(-1), checkOut: day(2), guests: 2 })).reason, 'past_dates')
+    assert.equal((await booking.getQuote(garden, { checkIn: day(0), checkOut: day(2), guests: 2 })).valid, true, 'arriving today (Budapest) is fine')
+    assert.equal((await booking.getQuote(garden, { checkIn: day(800), checkOut: day(803), guests: 2 })).reason, 'too_far')
+    assert.equal((await booking.getQuote(garden, { checkIn: day(10), checkOut: day(101), guests: 2 })).reason, 'too_long')
+    const past = await booking.createBooking(garden, { guestName: 'Múlt Teszt', guestEmail: 'm@example.com', guests: 2, checkIn: day(-3), checkOut: day(-1) })
+    assert.deepEqual(past, { ok: false, reason: 'past_dates' })
+    // Gmail unreachable: the send fails fast, is logged, and surfaces in the admin alerts
+    const { sendContactEmail } = await import('../lib/email/send')
+    const { getOpsAlerts } = await import('../lib/admin/data')
+    Object.assign(process.env, { EMAIL_ENABLED: 'true', SMTP_USER: 'haz@example.invalid', SMTP_PASSWORD: 'x', SMTP_HOST: '127.0.0.1', SMTP_PORT: '9' })
+    const r = await sendContactEmail('velence', garden, { name: 'Teszt', email: 'v@example.com', message: 'Szia' })
+    assert.deepEqual(r, { sent: false, reason: 'rejected' })
+    const ops = await getOpsAlerts(garden)
+    assert.ok(ops.mailFailed >= 1 && ops.mailLastError, JSON.stringify(ops))
+    for (const k of ['EMAIL_ENABLED', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_HOST', 'SMTP_PORT']) delete process.env[k]
   })
 
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {

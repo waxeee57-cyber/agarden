@@ -1,6 +1,6 @@
 import 'server-only'
 import nodemailer, { type Transporter } from 'nodemailer'
-import { queryOne } from '../db'
+import { query, queryOne } from '../db'
 import { siteOrigin, sisterOf, type Site } from '../site-map'
 import { BRANDS } from '../brand'
 import { guestEmail, ownerEmail, guestStatusEmail, contactEmail, type MailBooking } from './templates'
@@ -54,14 +54,30 @@ function transportFor(c: Creds): Transporter {
 
 type Mail = { to: string; subject: string; html: string; replyTo?: string | null }
 
-async function deliver(site: Site, mails: Mail[], where: string): Promise<boolean> {
+/** Outcome per message, shown to the owner in the admin (never blocks a send). */
+async function logMail(listingId: string, kind: string, to: string, ok: boolean, error?: string) {
+  try {
+    await query('insert into email_log (listing_id, kind, recipient, ok, error) values ($1, $2, $3, $4, $5)', [listingId, kind, to, ok, error?.slice(0, 300) ?? null])
+    if (Math.random() < 0.05) await query("delete from email_log where created_at < now() - interval '90 days'")
+  } catch (e) {
+    console.error('[email:log]', e instanceof Error ? e.message : e)
+  }
+}
+
+async function deliver(site: Site, listingId: string, mails: Mail[], where: string): Promise<boolean> {
   const c = credsFor(site)
   if (!c) return false
   const from = { name: BRANDS[site].fullName.replace(' Velence', ''), address: c.user }
   const t = transportFor(c)
   const results = await Promise.allSettled(mails.map(async (m) => {
     const msg = { from, to: m.to, subject: m.subject, html: m.html, text: toText(m.html), ...(m.replyTo ? { replyTo: m.replyTo } : {}) }
-    await t.sendMail(msg)
+    try {
+      await t.sendMail(msg)
+    } catch (e) {
+      await logMail(listingId, where, m.to, false, e instanceof Error ? e.message : String(e))
+      throw e
+    }
+    await logMail(listingId, where, m.to, true)
     if (process.env.EMAIL_TRANSPORT === 'json') outbox.push({ from: `${from.name} <${from.address}>`, to: m.to, replyTo: m.replyTo ?? undefined, subject: m.subject, text: msg.text })
   }))
   const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
@@ -96,7 +112,7 @@ export async function sendBookingEmails(site: Site, listingId: string, b: MailBo
     const g = guestEmail(house, b)
     const o = ownerEmail(house, b)
     const houseInbox = l.contact_email ?? l.owner_email ?? credsFor(site)!.user
-    const ok = await deliver(site, [
+    const ok = await deliver(site, listingId, [
       { to: b.guestEmail, subject: g.subject, html: g.html, replyTo: houseInbox },
       { to: houseInbox, subject: o.subject, html: o.html, replyTo: b.guestEmail },
     ], 'booking')
@@ -143,7 +159,7 @@ export async function sendStatusEmail(site: Site, listingId: string, bookingId: 
       { checkinWindow: r.checkin_window, checkoutTime: r.checkout_time, address: r.address, sister: { name: BRANDS[sister].fullName, origin: siteOrigin(sister) }, bankAccount: r.bank_account }
     )
     const houseInbox = r.contact_email ?? r.owner_email
-    if (!(await deliver(site, [{ to: r.guest_email, subject: mail.subject, html: mail.html, replyTo: houseInbox }], 'status'))) return { sent: false, reason: 'rejected' }
+    if (!(await deliver(site, listingId, [{ to: r.guest_email, subject: mail.subject, html: mail.html, replyTo: houseInbox }], 'status'))) return { sent: false, reason: 'rejected' }
     return { sent: true }
   } catch (e) {
     console.error('[email:status]', e instanceof Error ? e.message : e)
@@ -164,7 +180,7 @@ export async function sendContactEmail(site: Site, listingId: string, m: { name:
     const inbox = l?.contact_email ?? l?.owner_email ?? credsFor(site)?.user
     if (!l || !inbox) return { sent: false, reason: 'no_inbox' }
     const mail = contactEmail({ site, phone: l.contact_phone, email: l.contact_email, origin: siteOrigin(site) }, m)
-    if (!(await deliver(site, [{ to: inbox, subject: mail.subject, html: mail.html, replyTo: m.email }], 'contact'))) return { sent: false, reason: 'rejected' }
+    if (!(await deliver(site, listingId, [{ to: inbox, subject: mail.subject, html: mail.html, replyTo: m.email }], 'contact'))) return { sent: false, reason: 'rejected' }
     return { sent: true }
   } catch (e) {
     console.error('[email:contact]', e instanceof Error ? e.message : e)

@@ -40,6 +40,9 @@ function humanError(code: string | null | undefined, minNights: number): string 
     case 'overlap': return 'Ez az időszak közben foglalt lett. Kérjük, válasszon másik dátumot.'
     case 'min_nights': return `Legalább ${minNights} éjszaka foglalható. Rövidebb tartózkodáshoz kérjen ajánlatot.`
     case 'invalid_dates': return 'A távozás legyen későbbi az érkezésnél.'
+    case 'past_dates': return 'Az érkezés napja már elmúlt. Kérjük, válasszon mai vagy későbbi dátumot.'
+    case 'too_far': return 'Legfeljebb két évre előre foglalható. Távolabbi időpontra kérjen ajánlatot.'
+    case 'too_long': return 'Online legfeljebb 90 éjszaka foglalható. Hosszabb tartózkodáshoz kérjen ajánlatot.'
     case 'capacity_unavailable': return 'Ennyi főre a ház nem foglalható. Kérjen ajánlatot, és egyeztetünk.'
     case 'listing_not_found': return 'A ház jelenleg nem foglalható online. Kérjük, hívjon minket.'
     case 'validation_error': return 'Kérjük, ellenőrizze a megadott adatokat.'
@@ -75,6 +78,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   const [message, setMessage] = useState('')
   const [quote, setQuote] = useState<Quote | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
+  const [quoteFailed, setQuoteFailed] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -102,9 +106,14 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
       setQuoteLoading(true)
       try {
         const res = await fetch('/api/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checkIn, checkOut, guests, pet, isEvent }) })
-        setQuote(await res.json())
+        const q = (await res.json()) as Quote
+        // a server hiccup is not a "no" for the guest: show a soft notice, keep booking possible
+        const broken = res.status >= 500 || (!q.valid && (!q.reason || q.reason === 'unknown'))
+        setQuoteFailed(broken)
+        setQuote(broken ? null : q)
       } catch {
         setQuote(null)
+        setQuoteFailed(true)
       } finally {
         setQuoteLoading(false)
       }
@@ -362,7 +371,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
               {!listing.cover && <p className="mb-4 font-display text-[1.5rem] leading-tight">{listing.siteName}</p>}
               <Summary
                 checkIn={checkIn} checkOut={checkOut} nights={nights} guests={guests} kids={children} pet={pet} isEvent={isEvent}
-                quote={quote} loading={quoteLoading} priced={priced} mode={mode} step={step}
+                quote={quote} loading={quoteLoading} failed={quoteFailed} priced={priced} mode={mode} step={step}
                 onEdit={() => go(0)}
               />
               <button type="button" className="btn btn-act mt-6 w-full" onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</button>
@@ -405,9 +414,9 @@ function DateBox({ label, value, active, border }: { label: string; value: strin
   )
 }
 
-function Summary({ checkIn, checkOut, nights, guests, kids, pet, isEvent, quote, loading, priced, mode, step, onEdit }: {
+function Summary({ checkIn, checkOut, nights, guests, kids, pet, isEvent, quote, loading, failed, priced, mode, step, onEdit }: {
   checkIn: string | null; checkOut: string | null; nights: number; guests: number; kids: number; pet: boolean; isEvent: boolean
-  quote: Quote | null; loading: boolean; priced: boolean; mode: 'book' | 'inquiry'; step: number; onEdit: () => void
+  quote: Quote | null; loading: boolean; failed: boolean; priced: boolean; mode: 'book' | 'inquiry'; step: number; onEdit: () => void
 }) {
   const extras = [pet && 'kisállat', isEvent && 'rendezvény'].filter(Boolean).join(', ')
   return (
@@ -426,6 +435,8 @@ function Summary({ checkIn, checkOut, nights, guests, kids, pet, isEvent, quote,
           <p className="text-soft">Válassza ki az érkezést és a távozást az árhoz.</p>
         ) : loading && !quote ? (
           <p className="text-soft">Ár számítása…</p>
+        ) : failed ? (
+          <p className="text-soft">Az árat most nem tudjuk kiszámolni. A kérést ettől még elküldheti, a pontos árat a visszaigazolásban küldjük.</p>
         ) : priced ? (
           <>
             {quote!.breakdown && quote!.breakdown.length > 1

@@ -6,6 +6,9 @@ export const BOOKING_ERROR_CODES = [
   'overlap',              // dates already taken (DB exclusion constraint)
   'min_nights',           // stay shorter than the listing minimum
   'invalid_dates',        // check_out <= check_in, or unparseable dates
+  'past_dates',           // arrival before today (Europe/Budapest)
+  'too_far',              // arrival more than 2 years ahead
+  'too_long',             // stay over 90 nights
   'capacity_unavailable', // guests exceed capacity
   'listing_not_found',    // no such (active) listing
   'validation_error',     // zod input validation failed (DB NOT called)

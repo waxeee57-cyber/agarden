@@ -165,3 +165,21 @@ export async function listMessages(listingId: string): Promise<AdminMessage[]> {
   )
   return rows.map((r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, message: r.message, handled: r.handled, createdAt: r.created_at }))
 }
+
+// ---------- operations alerts (admin home "Mi a teendőd?") ----------
+export type OpsAlerts = { mailFailed: number; mailLastError: string | null; mailLastTo: string | null; feedErrors: { label: string; error: string }[] }
+
+/** Failed e-mails in the last 14 days and iCal feeds whose last sync failed. */
+export async function getOpsAlerts(listingId: string): Promise<OpsAlerts> {
+  const [mail, feeds] = await Promise.all([
+    query<{ n: number; error: string | null; recipient: string | null }>(
+      `select count(*)::int as n,
+              (array_agg(error order by created_at desc))[1] as error,
+              (array_agg(recipient order by created_at desc))[1] as recipient
+         from email_log where listing_id = $1 and not ok and created_at > now() - interval '14 days'`,
+      [listingId]
+    ).catch(() => [{ n: 0, error: null, recipient: null }]),
+    query<{ label: string; last_error: string }>('select label, last_error from ical_feeds where listing_id = $1 and last_error is not null', [listingId]).catch(() => []),
+  ])
+  return { mailFailed: mail[0]?.n ?? 0, mailLastError: mail[0]?.error ?? null, mailLastTo: mail[0]?.recipient ?? null, feedErrors: feeds.map((f) => ({ label: f.label, error: f.last_error })) }
+}
