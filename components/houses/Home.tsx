@@ -86,18 +86,24 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       )}
 
       {/* ---------- 3. AVAILABILITY ---------- */}
-      <section aria-labelledby="foglaltsag-title" className={`${SECTION} grid gap-10 py-20 md:py-28 lg:grid-cols-[0.9fr_1.4fr] lg:gap-20`}>
-        <div data-reveal>
-          <h2 id="foglaltsag-title" className={H2}>Foglaltság</h2>
-          <p className="mt-4 max-w-[40ch] text-soft">Válassza ki az érkezést és a távozást: a foglalásnál már ezek a napok lesznek kijelölve.</p>
-          <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-rule pt-6">
-            {listing.checkinWindow && <Fact dt="Érkezés" dd={listing.checkinWindow} />}
-            {listing.checkoutTime && <Fact dt="Távozás" dd={`${listing.checkoutTime}-ig`} />}
-            <Fact dt="Minimum" dd={`${listing.minNights} éjszaka`} />
-            <Fact dt="Online fizetés" dd="nincs" />
-          </dl>
-        </div>
-        <div data-reveal style={{ '--i': 1 } as React.CSSProperties}><AvailabilityTeaser phone={ctx.phone} email={listing.contactEmail} /></div>
+      <section aria-labelledby="foglaltsag-title" className={`${SECTION} py-20 md:py-28`} data-reveal>
+        <AvailabilityTeaser
+          phone={ctx.phone}
+          email={listing.contactEmail}
+          minNights={listing.minNights}
+          intro={<>
+            <h2 id="foglaltsag-title" className={H2}>Foglaltság</h2>
+            <p className="mt-4 max-w-[40ch] text-soft">Jelölje ki az érkezés és a távozás napját, a foglalásnál pedig már nem kell újra megadnia.</p>
+          </>}
+          facts={
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-rule pt-6 lg:border-0 lg:pt-0">
+              {listing.checkinWindow && <Fact dt="Bejelentkezés" dd={listing.checkinWindow} />}
+              {listing.checkoutTime && <Fact dt="Kijelentkezés" dd={`${listing.checkoutTime}-ig`} />}
+              <Fact dt="Minimális tartózkodás" dd={`${listing.minNights} éjszaka`} />
+              <Fact dt="Fizetés" dd="a helyszínen, készpénzben" />
+            </dl>
+          }
+        />
       </section>
 
       {/* ---------- 4. ABOUT ---------- */}

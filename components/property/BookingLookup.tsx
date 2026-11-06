@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { fmtDay, parseISO } from './Calendar'
+import { fmtRangeISO } from './Calendar'
 import { formatHuf } from '@/lib/format'
 import { telHref } from '@/lib/brand'
 
@@ -71,7 +71,7 @@ export function BookingLookup({ phone }: { phone: string }) {
             </div>
             <p className="mt-4">{s.text}</p>
             <dl className="mt-5 divide-y divide-rule border-y border-rule text-[15px]">
-              {found.checkIn && found.checkOut && <Row dt="Időpont" dd={`${fmtDay(parseISO(found.checkIn))} – ${fmtDay(parseISO(found.checkOut))}${found.nights ? ` · ${found.nights} éj` : ''}`} />}
+              {found.checkIn && found.checkOut && <Row dt="Időpont" dd={`${fmtRangeISO(found.checkIn, found.checkOut)}${found.nights ? ` · ${found.nights} éjszaka` : ''}`} />}
               {found.guests != null && <Row dt="Vendégek" dd={`${found.guests} fő${found.children ? ` (ebből ${found.children} gyerek)` : ''}${found.pet ? ', kisállattal' : ''}${found.isEvent ? ', rendezvény' : ''}`} />}
               {found.total != null && <Row dt="Tájékoztató végösszeg" dd={formatHuf(found.total)} />}
             </dl>

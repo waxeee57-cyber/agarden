@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Calendar, addDays, parseISO, toISO, fmtDay, fmtShort } from './Calendar'
+import { Calendar, addDays, parseISO, toISO, fmtDay, fmtShort, fmtRangeISO } from './Calendar'
 import { formatHuf } from '@/lib/format'
 import { telHref } from '@/lib/brand'
 
@@ -211,7 +211,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
         </p>
         {code && <CodeBox code={code} />}
         <dl className="mx-auto mt-6 max-w-sm divide-y divide-rule rounded-[var(--radius-lg)] border border-rule text-left text-sm">
-          {checkIn && checkOut && <Line dt="Időpont" dd={`${fmtDay(parseISO(checkIn))} – ${fmtDay(parseISO(checkOut))}`} />}
+          {checkIn && checkOut && <Line dt="Időpont" dd={fmtRangeISO(checkIn, checkOut)} />}
           <Line dt="Vendégek" dd={children ? `${adults} felnőtt + ${children} gyerek` : `${guests} fő`} />
           {success.kind === 'book' && success.total != null && <Line dt="Tájékoztató végösszeg" dd={<span className="tnum">{formatHuf(success.total)}</span>} />}
         </dl>
@@ -274,6 +274,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
                     checkIn={checkIn}
                     checkOut={checkOut}
                     contact={{ phone: listing.phone, email: listing.email }}
+                    minNights={listing.singleNightAllowed ? 1 : listing.minNights}
                     onBlockedPick={(d) => void checkSister(d, toISO(addDays(parseISO(d), Math.max(listing.minNights, 1))))}
                     onSelect={(ci, co) => { setCheckIn(ci); setCheckOut(co); setSisterOffer(null); if (ci) setMode('book'); setErrors((e) => ({ ...e, dates: '' })) }}
                   />
@@ -482,7 +483,7 @@ function CallLink({ phone }: { phone: string }) {
 function SisterBox({ offer, sister }: { offer: { href: string; from: string; to: string }; sister: SisterInfo }) {
   return (
     <div className="mt-4 rounded-[var(--radius-lg)] border border-sel/30 bg-range p-4" role="status">
-      <p className="font-semibold">Ezek a napok nálunk foglaltak, de a testvérházunk szabad: {fmtDay(parseISO(offer.from))} – {fmtDay(parseISO(offer.to))}</p>
+      <p className="font-semibold">Ezek a napok nálunk foglaltak, de a testvérházunk szabad: {fmtRangeISO(offer.from, offer.to)}</p>
       {sister.pitch && <p className="mt-1 text-sm text-fg/85">{sister.pitch}</p>}
       <a href={offer.href} className="btn btn-act btn-sm mt-3">Megnézem: {sister.name}</a>
     </div>

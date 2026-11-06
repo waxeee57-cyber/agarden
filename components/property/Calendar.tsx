@@ -16,6 +16,15 @@ const wd = (d: Date) => (d.getDay() + 6) % 7 // Monday-first
 export const MONTHS = ['január', 'február', 'március', 'április', 'május', 'június', 'július', 'augusztus', 'szeptember', 'október', 'november', 'december']
 const DOW = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']
 export const fmtDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}.`
+/** A stay in Hungarian notation (AkH 12): same month "március 6–9.",
+ *  across months "március 30. – április 2.", across years with the years. */
+export const fmtRange = (a: Date, b: Date) =>
+  a.getFullYear() !== b.getFullYear()
+    ? `${a.getFullYear()}. ${fmtDay(a)} – ${b.getFullYear()}. ${fmtDay(b)}`
+    : a.getMonth() === b.getMonth()
+      ? `${MONTHS[a.getMonth()]} ${a.getDate()}–${b.getDate()}.`
+      : `${fmtDay(a)} – ${fmtDay(b)}`
+export const fmtRangeISO = (a: string, b: string) => fmtRange(parseISO(a), parseISO(b))
 const MONTHS_SHORT = ['jan.', 'febr.', 'márc.', 'ápr.', 'máj.', 'jún.', 'júl.', 'aug.', 'szept.', 'okt.', 'nov.', 'dec.']
 /** Compact day for tight spots (the phone booking bar): "nov. 13." */
 export const fmtShort = (d: Date) => `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}.`
@@ -30,6 +39,8 @@ export function Calendar({
   onSelect,
   onBlockedPick,
   contact,
+  minNights,
+  summary = true,
 }: {
   checkIn: string | null
   checkOut: string | null
@@ -37,6 +48,10 @@ export function Calendar({
   /** A booked day was clicked — lets the widget suggest the sister house. */
   onBlockedPick?: (dayIso: string) => void
   contact: { phone: string; email: string | null }
+  /** shown in the hint while the departure is being chosen */
+  minNights?: number
+  /** false: the parent shows its own selection summary (home teaser) */
+  summary?: boolean
 }) {
   const today = useMemo(() => parseISO(toISO(new Date())), [])
   const [view, setView] = useState<Date>(() => startOfMonth(new Date()))
@@ -114,8 +129,8 @@ export function Calendar({
   const guidance = !choosingEnd
     ? null
     : cap
-      ? `A távozás legkésőbb ${fmtDay(cap)} lehet, utána foglalt időszak jön. Kérjük, válasszon korábbi távozást vagy másik érkezést.`
-      : 'Válassza ki a távozás napját.'
+      ? `Most a távozás napját válassza ki; legkésőbb ${fmtDay(cap)}, utána már foglalt a ház.`
+      : `Most a távozás napját válassza ki${minNights && minNights > 1 ? ` (legalább ${minNights} éjszaka)` : ''}.`
 
   const nights = ci && co ? Math.round((co.getTime() - ci.getTime()) / 86_400_000) : 0
   const arrow = 'flex h-10 w-10 items-center justify-center rounded-full text-fg transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-30'
@@ -145,38 +160,42 @@ export function Calendar({
           </button>
         </div>
         <div key={toISO(view)} className={`cal-in grid gap-x-10 gap-y-8 md:grid-cols-2 transition-opacity ${state === 'loading' ? 'opacity-60' : ''}`}>
-          <MonthGrid month={view} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
+          <MonthGrid month={view} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} onBlockedPickable={!!onBlockedPick} />
           <div className="hidden md:block">
-            <MonthGrid month={addMonths(view, 1)} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} />
+            <MonthGrid month={addMonths(view, 1)} today={today} dayMeta={dayMeta} onPick={clickDay} onHover={setHover} choosingEnd={choosingEnd} onBlockedPickable={!!onBlockedPick} />
           </div>
         </div>
       </div>
 
-      <div className="mt-5 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-rule pt-4 text-sm" aria-live="polite">
-        <span className="text-fg/90">
-          {ci && co ? <><span className="font-semibold">{fmtDay(ci)} – {fmtDay(co)}</span><span className="text-soft"> · {nights} éjszaka</span></>
-            : ci ? <><span className="font-semibold">{fmtDay(ci)}</span><span className="text-soft"> → {guidance}</span></>
-            : <span className="text-soft">{state === 'loading' ? 'Foglaltság betöltése…' : 'Válassza ki az érkezés napját.'}</span>}
-        </span>
-        {(checkIn || checkOut) && (
-          <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 font-semibold underline underline-offset-4 hover:text-pop">
-            Dátumok törlése
-          </button>
-        )}
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-soft">
-        <Legend swatch="bg-sel" label="kiválasztva" />
-        <Legend swatch="bg-taken" strike label="foglalt (kattintva megnézzük a testvérházat)" />
+      {summary && (
+        <div className="mt-5 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-rule pt-4 text-sm" aria-live="polite">
+          <span className="text-fg/90">
+            {ci && co ? <><span className="font-semibold">{fmtRange(ci, co)}</span><span className="text-soft"> · {nights} éjszaka</span></>
+              : ci ? <><span className="font-semibold">Érkezés: {fmtDay(ci)}</span><span className="text-soft"> · {guidance}</span></>
+              : <span className="text-soft">{state === 'loading' ? 'A foglaltság betöltése…' : 'Válassza ki az érkezés napját.'}</span>}
+          </span>
+          {(checkIn || checkOut) && (
+            <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 font-semibold underline underline-offset-4 hover:text-pop">
+              Dátumok törlése
+            </button>
+          )}
+        </div>
+      )}
+      <div className={`flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-soft ${summary ? 'mt-2' : 'mt-5 border-t border-rule pt-4'}`}>
+        <Legend kind="free" label="szabad" />
+        <Legend kind="taken" label={onBlockedPick ? 'foglalt (ha rákattint, megmutatjuk a testvérházat)' : 'foglalt'} />
+        <Legend kind="sel" label="kiválasztott napok" />
       </div>
     </div>
   )
 }
 
-function Legend({ swatch, label, strike }: { swatch: string; label: string; strike?: boolean }) {
+function Legend({ kind, label }: { kind: 'free' | 'taken' | 'sel'; label: string }) {
+  const dot = kind === 'sel' ? 'bg-sel' : kind === 'taken' ? 'bg-taken' : 'bg-surface shadow-[inset_0_0_0_1.5px_var(--color-fg)]'
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`relative inline-block h-3.5 w-3.5 rounded-full ${swatch}`} aria-hidden="true">
-        {strike && <span className="absolute left-0.5 right-0.5 top-1/2 h-px -rotate-45 bg-taken-fg" />}
+    <span className="inline-flex items-center gap-2">
+      <span className={`relative inline-block h-4 w-4 shrink-0 rounded-full ${dot}`} aria-hidden="true">
+        {kind === 'taken' && <span className="absolute inset-x-[3px] top-1/2 h-px -translate-y-1/2 bg-taken-fg" />}
       </span>
       {label}
     </span>
@@ -184,7 +203,7 @@ function Legend({ swatch, label, strike }: { swatch: string; label: string; stri
 }
 
 function MonthGrid({
-  month, today, dayMeta, onPick, onHover, choosingEnd,
+  month, today, dayMeta, onPick, onHover, choosingEnd, onBlockedPickable,
 }: {
   month: Date
   today: Date
@@ -192,6 +211,7 @@ function MonthGrid({
   onPick: (d: Date, m: DayMeta) => void
   onHover: (d: Date | null) => void
   choosingEnd: boolean
+  onBlockedPickable: boolean
 }) {
   const first = startOfMonth(month)
   const lead = wd(first)
@@ -202,9 +222,10 @@ function MonthGrid({
 
   return (
     <div>
-      <p className="flex h-10 items-center justify-center font-display text-[1.15rem]">{month.getFullYear()}. {MONTHS[month.getMonth()]}</p>
-      <div className="mt-3 grid grid-cols-7 text-center text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-soft" aria-hidden="true">
-        {DOW.map((d) => <div key={d} className="pb-2">{d}</div>)}
+      <p className="flex h-10 items-center justify-center font-display text-[1.3rem] text-fg">{month.getFullYear()}. {MONTHS[month.getMonth()]}</p>
+      {/* Hungarian weekday abbreviations as written (H, K, Sze…), never upper-cased */}
+      <div className="mt-4 grid grid-cols-7 text-center font-ui text-[12px] font-semibold text-soft" aria-hidden="true">
+        {DOW.map((d, i) => <div key={d} className={`pb-2 ${i > 4 ? 'text-fg/70' : ''}`}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-y-1">
         {cells.map((day, i) => {
@@ -212,16 +233,21 @@ function MonthGrid({
           const m = dayMeta(day)
           const edge = m.isStart || m.isEnd
           const both = m.isStart && m.isEnd
-          // continuous range band behind the circles (half band on the edges)
-          const band = m.inRange ? 'bg-range' : m.isStart && !both && m.hasRange ? 'bg-[linear-gradient(90deg,transparent_50%,var(--color-range)_50%)]' : m.isEnd && !both ? 'bg-[linear-gradient(90deg,var(--color-range)_50%,transparent_50%)]' : ''
-          let cls = 'relative mx-auto flex aspect-square w-full max-w-11 items-center justify-center rounded-full text-[0.95rem] tnum transition-[background-color,box-shadow,color] duration-150 '
+          // continuous range band behind the circles (half band on the edges,
+          // none past a row's end: a Sunday start / Monday end has no neighbour)
+          const col = wd(day)
+          const band = m.inRange
+            ? `bg-range ${col === 0 ? 'rounded-l-full' : ''} ${col === 6 ? 'rounded-r-full' : ''}`
+            : m.isStart && !both && m.hasRange && col !== 6 ? 'bg-[linear-gradient(90deg,transparent_50%,var(--color-range)_50%)]'
+            : m.isEnd && !both && col !== 0 ? 'bg-[linear-gradient(90deg,var(--color-range)_50%,transparent_50%)]' : ''
+          let cls = 'relative mx-auto flex aspect-square w-full max-w-12 items-center justify-center rounded-full text-[0.98rem] tnum transition-[background-color,box-shadow,color] duration-150 '
           if (edge) cls += 'bg-sel font-semibold text-sel-fg shadow-[0_6px_16px_-8px_rgb(0_0_0/0.45)]'
-          else if (m.inRange) cls += 'text-fg hover:shadow-[inset_0_0_0_1.5px_var(--color-fg)]'
-          else if (m.isOccupied && !m.isPast) cls += 'cursor-help text-taken-fg/70 line-through decoration-1'
+          else if (m.inRange) cls += 'font-semibold text-fg hover:shadow-[inset_0_0_0_1.5px_var(--color-fg)]'
+          else if (m.isOccupied && !m.isPast) cls += 'bg-taken text-taken-fg line-through decoration-1 ' + (onBlockedPickable ? 'cursor-pointer' : 'cursor-not-allowed')
           else if (!m.selectable) cls += 'cursor-not-allowed text-fg/25'
-          else cls += 'font-medium text-fg hover:shadow-[inset_0_0_0_1.5px_var(--color-fg)]'
+          else cls += 'font-semibold text-fg hover:shadow-[inset_0_0_0_1.5px_var(--color-fg)]'
           const isToday = sameDay(day, today)
-          const label = `${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? ', foglalt (testvérházunk ellenőrzése)' : !m.selectable ? ', nem választható' : ''}`
+          const label = `${day.getFullYear()}. ${MONTHS[day.getMonth()]} ${day.getDate()}.${m.isOccupied ? (onBlockedPickable ? ', foglalt; megmutatjuk a testvérházat' : ', foglalt') : !m.selectable ? ', nem választható' : ''}`
           return (
             <div key={i} className={`py-px ${band}`}>
               <button
