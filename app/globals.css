@@ -65,6 +65,10 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-2xl: 32px;
+
+  /* warm section tints (reference rooms page: #FAF5EF / #EBE4DD) */
+  --color-tint: #FAF5EF;
+  --color-tint-2: #EBE4DD;
 }
 
 /* ---------- admin (legacy, light) ---------- */

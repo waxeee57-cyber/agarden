@@ -2,6 +2,7 @@ import { loadSite } from '@/lib/page'
 import { getPhotos } from '@/lib/listing'
 import { PHOTO_CATEGORIES, PHOTO_CATEGORY_LABEL } from '@/lib/terms'
 import { SitePage, PageHead, pageMeta } from '@/components/property/SiteChrome'
+import { CtaBand } from '@/components/property/CtaBand'
 import { Gallery } from '@/components/property/Gallery'
 
 export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
@@ -41,6 +42,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
         ))}
         {!photos.length && <p className="text-soft">A fotók feltöltés alatt.</p>}
       </div>
+      <CtaBand ctx={ctx} />
     </SitePage>
   )
 }

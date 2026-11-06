@@ -7,6 +7,7 @@ import { SitePage, PageHead, pageMeta } from '@/components/property/SiteChrome'
 import { Icon, type IconName } from '@/components/property/ui'
 import { formatHuf } from '@/lib/format'
 import { SpaceSlider } from '@/components/property/SpaceSlider'
+import { CtaBand } from '@/components/property/CtaBand'
 
 export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
@@ -38,11 +39,12 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     <SitePage ctx={ctx} crumb={{ name: 'A ház', path: '/a-haz' }}>
       <PageHead title="A ház" lead={c.lead} />
 
-      <div className="mx-auto max-w-6xl space-y-16 px-5 pb-20 md:px-8">
-        {(c.spaces ?? []).map((s, i) => {
-          const shots = of(SPACE_PHOTO[s.tag] ?? ['egyeb'])
-          return (
-            <section key={s.tag} aria-labelledby={`sp-${i}`} className="grid items-center gap-8 md:grid-cols-2 md:gap-14">
+      {/* Full-width bands alternate warm tints like the reference's rooms page. */}
+      {(c.spaces ?? []).map((s, i) => {
+        const shots = of(SPACE_PHOTO[s.tag] ?? ['egyeb'])
+        return (
+          <div key={s.tag} className={i % 2 === 0 ? 'bg-tint' : ''}>
+            <section aria-labelledby={`sp-${i}`} className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-14 md:grid-cols-2 md:gap-14 md:px-8 md:py-20">
               {shots.length > 0 && (
                 <div data-reveal className={i % 2 ? 'md:order-2' : ''}>
                   <SpaceSlider items={shots} label={s.title} />
@@ -60,11 +62,13 @@ export default async function Page({ params }: { params: Promise<{ site: string 
                 </div>
               </div>
             </section>
-          )
-        })}
+          </div>
+        )
+      })}
 
-        {(c.wellness ?? []).length > 0 && (
-          <section aria-labelledby="wellness-t" className="grid items-center gap-8 md:grid-cols-2 md:gap-14">
+      {(c.wellness ?? []).length > 0 && (
+        <div className="bg-tint-2">
+          <section aria-labelledby="wellness-t" className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-14 md:grid-cols-2 md:gap-14 md:px-8 md:py-20">
             <div data-reveal>
               <p className="kicker">{c.wellness_eyebrow ?? 'Wellness'}</p>
               <h2 id="wellness-t" className="mt-2 text-[clamp(1.8rem,3.6vw,2.6rem)]">{c.wellness_title}</h2>
@@ -83,16 +87,18 @@ export default async function Page({ params }: { params: Promise<{ site: string 
               </div>
             )}
           </section>
-        )}
+        </div>
+      )}
 
+      <div className="mx-auto max-w-6xl space-y-16 px-5 py-16 md:px-8 md:py-20">
         {(c.features ?? []).length > 0 && (
           <section aria-labelledby="feat-t">
             <h2 id="feat-t" className="text-[clamp(1.8rem,3.6vw,2.6rem)]">{c.amenities_title ?? 'Kert és praktikum'}</h2>
-            <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
               {c.features!.map((f) => (
-                <li key={f.t} className="flex gap-4 border-t border-rule pt-5">
-                  <Icon name={f.i as IconName} size={26} className="shrink-0 text-pop" />
-                  <span><strong className="block">{f.t}</strong><span className="text-soft">{f.d}</span></span>
+                <li key={f.t} className="flex gap-5 border-t border-rule pt-6">
+                  <Icon name={f.i as IconName} size={40} stroke={1.35} className="shrink-0 text-fg/80" />
+                  <span><strong className="block font-display text-[1.2rem] font-normal">{f.t}</strong><span className="mt-1 block text-soft">{f.d}</span></span>
                 </li>
               ))}
             </ul>
@@ -108,11 +114,11 @@ export default async function Page({ params }: { params: Promise<{ site: string 
           </section>
         )}
 
-        <div className="flex flex-wrap gap-3 border-t border-rule pt-10">
-          <Link href="/foglalas" className="btn btn-act">Foglalás</Link>
-          <Link href="/kepek" className="btn btn-line">Mind a {photos.length} fotó</Link>
-        </div>
+        <p>
+          <Link href="/kepek" className="inline-flex min-h-11 items-center gap-2 font-ui text-[13px] font-bold uppercase tracking-[0.16em] text-fg/80 underline-offset-[6px] hover:text-pop hover:underline">Mind a {photos.length} fotó <Icon name="arrow" size={15} /></Link>
+        </p>
       </div>
+      <CtaBand ctx={ctx} />
     </SitePage>
   )
 }

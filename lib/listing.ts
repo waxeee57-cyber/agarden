@@ -70,7 +70,7 @@ export type Listing = {
   openAllYear: boolean | null
   social: SocialLinks
   settings: SiteSettings
-  /** Public booking terms. The bank account is NOT here (only in the owner-sent confirmation, lib/email/compose). */
+  /** Public booking terms (cash on site; no deposit or bank data exists). */
   terms: Terms
 }
 

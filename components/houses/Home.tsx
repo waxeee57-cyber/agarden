@@ -132,7 +132,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
             <ul data-reveal className="mx-auto grid max-w-4xl grid-cols-2 rounded-2xl bg-surface shadow-[0_24px_60px_-28px_rgb(18_22_20/0.45)] md:grid-cols-4">
               {chips.map((x, i) => (
                 <li key={x} className={`flex flex-col items-center gap-3 px-4 py-8 text-center ${i % 2 ? 'border-l border-rule' : ''} ${i > 1 ? 'border-t border-rule md:border-t-0' : ''} ${i === 2 ? 'md:border-l' : ''}`}>
-                  <Icon name={chipIcon(x)} size={30} stroke={1.25} className="text-fg/80" />
+                  <Icon name={chipIcon(x)} size={38} stroke={1.35} className="text-fg/85" />
                   <span className="font-ui text-[13px] font-bold uppercase tracking-[0.06em] text-fg md:text-[15px]">{x}</span>
                 </li>
               ))}
@@ -148,7 +148,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
           <ul className="mt-14 grid gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f, i) => (
               <li key={f.t} data-reveal style={{ '--i': i % 3 } as React.CSSProperties} className="flex flex-col items-center text-center">
-                <Icon name={f.i as IconName} size={34} stroke={1.15} className="text-fg/75" />
+                <Icon name={f.i as IconName} size={54} stroke={1.2} className="text-fg/80" />
                 <h3 className="mt-4 text-[1.5rem]">{f.t}</h3>
                 <p className="mt-2 max-w-[30ch] text-[0.95rem] text-soft">{f.d}</p>
               </li>
