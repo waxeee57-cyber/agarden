@@ -87,11 +87,14 @@ export type AdminListing = {
   lead: string; introBody: string; houseRules: { t: string; d: string }[]
   checkinWindow: string | null; checkoutTime: string | null; legal: LegalData
   surcharges: { code: 'single_night' | 'pet' | 'event'; label: string; amount: number; calc: 'per_stay' | 'per_night' | 'flat'; active: boolean }[]
+  /** seasons: `to` is the LAST night (inclusive), as the owner thinks of it */
+  seasons: { label: string; from: string; to: string; rate: number; minNights: number | null }[]
+  extraGuestFrom: number | null; extraGuestHuf: number | null
 }
 
 export async function getAdminListing(listingId: string): Promise<AdminListing | null> {
-  const l = await queryOne<{ id: string; name: string; nightly_rate_huf: number | null; pricing_mode: string; tagline: string | null; contact_email: string | null; contact_phone: string | null; content: { lead?: string; intro_body?: string }; house_rules: { t: string; d: string }[]; checkin_window: string | null; checkout_time: string | null; legal: unknown }>(
-    'select id, name, nightly_rate_huf, pricing_mode, tagline, contact_email, contact_phone, content, house_rules, checkin_window, checkout_time, legal from listings where id = $1',
+  const l = await queryOne<{ id: string; name: string; nightly_rate_huf: number | null; pricing_mode: string; tagline: string | null; contact_email: string | null; contact_phone: string | null; content: { lead?: string; intro_body?: string }; house_rules: { t: string; d: string }[]; checkin_window: string | null; checkout_time: string | null; legal: unknown; extra_guest_from: number | null; extra_guest_huf: number | null }>(
+    'select id, name, nightly_rate_huf, pricing_mode, tagline, contact_email, contact_phone, content, house_rules, checkin_window, checkout_time, legal, extra_guest_from, extra_guest_huf from listings where id = $1',
     [listingId]
   )
   if (!l) return null
@@ -99,7 +102,14 @@ export async function getAdminListing(listingId: string): Promise<AdminListing |
     'select code, label, amount_huf, calc, active from listing_surcharges where listing_id = $1 order by code',
     [listingId]
   )
+  const seasons = await query<{ label: string; from: string; to: string; nightly_rate_huf: number; min_nights: number | null }>(
+    `select label, to_char(lower(during), 'YYYY-MM-DD') as "from", to_char(upper(during) - 1, 'YYYY-MM-DD') as "to", nightly_rate_huf, min_nights
+       from listing_seasons where listing_id = $1 order by lower(during)`,
+    [listingId]
+  )
   return {
+    seasons: seasons.map((x) => ({ label: x.label, from: x.from, to: x.to, rate: x.nightly_rate_huf, minNights: x.min_nights })),
+    extraGuestFrom: l.extra_guest_from, extraGuestHuf: l.extra_guest_huf,
     id: l.id, name: l.name, nightlyRate: l.nightly_rate_huf, pricingMode: l.pricing_mode, tagline: l.tagline,
     contactEmail: l.contact_email, contactPhone: l.contact_phone,
     lead: l.content?.lead ?? '', introBody: l.content?.intro_body ?? '', houseRules: l.house_rules ?? [],

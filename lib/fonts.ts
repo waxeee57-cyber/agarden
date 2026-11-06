@@ -9,7 +9,7 @@ import { Inter, Open_Sans } from 'next/font/google'
 //   Inter      tracked uppercase labels and buttons (700).
 //   Open Sans  body text.
 export const prata = localFont({ src: '../assets/fonts/PrataHU-Regular.woff2', weight: '400', variable: '--font-prata', display: 'swap', preload: true, fallback: ['Georgia', 'serif'] })
-export const inter = Inter({ subsets: ['latin', 'latin-ext'], weight: ['500', '600', '700'], variable: '--font-inter', display: 'swap', preload: true })
+export const inter = Inter({ subsets: ['latin', 'latin-ext'], weight: ['500', '600', '700'], variable: '--font-inter', display: 'swap', preload: false }) // labels and buttons only: not worth competing with the hero photo
 export const openSans = Open_Sans({ subsets: ['latin', 'latin-ext'], weight: ['400', '600', '700'], variable: '--font-open', display: 'swap', preload: true })
 
 export const fontVars = [prata.variable, inter.variable, openSans.variable].join(' ')

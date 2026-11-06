@@ -165,12 +165,41 @@ async function main() {
     const b = await booking.createBooking(napsugar, { ...guest, checkIn: '2028-11-10', checkOut: '2028-11-13' })
     delete process.env.EMAIL_ENABLED
     assert.deepEqual(await sendStatusEmail('napsugar', napsugar, b.bookingId!, 'confirmed'), { sent: false, reason: 'disabled' })
-    process.env.EMAIL_ENABLED = 'true'; process.env.RESEND_API_KEY = 're_test_not_used'; process.env.EMAIL_FROM = 'foglalas@example.invalid'
+    process.env.EMAIL_ENABLED = 'true'; process.env.SMTP_USER = 'haz@example.invalid'; process.env.SMTP_PASSWORD = 'abcd efgh ijkl mnop'; process.env.EMAIL_TRANSPORT = 'json'
     // Garden session (listing = garden) asking about a Napsugár booking: rejected before any network call
     assert.deepEqual(await sendStatusEmail('velence', garden, b.bookingId!, 'cancelled'), { sent: false, reason: 'not_found' })
     // status must match what the DB holds (pending != confirmed) -> no mail
     assert.deepEqual(await sendStatusEmail('napsugar', napsugar, b.bookingId!, 'confirmed'), { sent: false, reason: 'not_found' })
-    delete process.env.EMAIL_ENABLED; delete process.env.RESEND_API_KEY; delete process.env.EMAIL_FROM
+    delete process.env.EMAIL_ENABLED; delete process.env.SMTP_USER; delete process.env.SMTP_PASSWORD; delete process.env.EMAIL_TRANSPORT
+  })
+
+  await t('SMTP e-mail (0 Ft): From = authenticated mailbox with the house name, guest + owner mails, reply routing, per-house override', async () => {
+    const { sendBookingEmails, sendStatusEmail, outbox } = await import('../lib/email/send')
+    const { setBookingStatus } = await import('../lib/admin/actions')
+    process.env.EMAIL_ENABLED = 'true'; process.env.EMAIL_TRANSPORT = 'json'
+    process.env.SMTP_USER = 'gardenhaz@example.invalid'; process.env.SMTP_PASSWORD = 'abcd efgh ijkl mnop'
+    process.env.SMTP_USER_NAPSUGAR = 'napsugar@example.invalid'; process.env.SMTP_PASSWORD_NAPSUGAR = 'qrst uvwx yzab cdef'
+    outbox.length = 0
+    const b = await booking.createBooking(garden, { guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guests: 3, children: 1, checkIn: '2029-06-02', checkOut: '2029-06-05' })
+    const r = await sendBookingEmails('velence', garden, { kind: 'booking', id: b.bookingId!, guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guestPhone: null, checkIn: '2029-06-02', checkOut: '2029-06-05', nights: 3, guests: 3, children: 1, pet: false, isEvent: false, total: null })
+    assert.deepEqual(r, { sent: true })
+    assert.equal(outbox.length, 2)
+    const [g, o] = outbox
+    assert.equal(g.from, 'Garden Vendégház <gardenhaz@example.invalid>')
+    assert.equal(g.to, 'vendeg@example.com')
+    assert.match(g.subject, /Foglalási kérelem rögzítve/)
+    assert.match(g.text, /Kedves Mail!/)
+    assert.match(g.text, /ebből 1 gyerek/)
+    assert.equal(o.replyTo, 'vendeg@example.com', 'owner replies straight to the guest')
+    assert.ok(!/szia|válaszolj\b/i.test(g.text), 'formal register')
+    // per-house mailbox for Napsugár
+    outbox.length = 0
+    const n = await booking.createBooking(napsugar, { guestName: 'Nap Teszt', guestEmail: 'nap@example.com', guests: 2, checkIn: '2029-06-02', checkOut: '2029-06-05' })
+    await setBookingStatus({ site: 'napsugar', listingId: napsugar } as never, n.bookingId!, 'confirmed')
+    assert.deepEqual(await sendStatusEmail('napsugar', napsugar, n.bookingId!, 'confirmed'), { sent: true })
+    assert.equal(outbox[0].from, 'Napsugár Vendégház <napsugar@example.invalid>')
+    assert.match(outbox[0].subject, /visszaigazolva/)
+    for (const k of ['EMAIL_ENABLED', 'EMAIL_TRANSPORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_USER_NAPSUGAR', 'SMTP_PASSWORD_NAPSUGAR']) delete process.env[k]
   })
 
   await t('legal data: napsugar payment terms seeded; save is scoped, validated, partial-friendly', async () => {
@@ -308,6 +337,66 @@ async function main() {
       const bad = await GET(new NextRequest(`https://garden.test/api/ics?${q}`, { headers: { host: 'garden.test' } }))
       assert.equal(bad.status, 400, q)
     }
+  })
+
+  await t('seasons + headcount surcharge: every night priced on its own, arrival-season min nights, admin save validated', async () => {
+    const actions = await import('../lib/admin/actions')
+    const s = { site: 'velence', listingId: garden } as never
+    const base = { nightlyRate: 60000, surcharges: [], extraGuestFrom: 8, extraGuestHuf: 5000 }
+    assert.deepEqual(await actions.updatePricing(s, { ...base, seasons: [
+      { label: 'Főszezon', from: '2030-07-01', to: '2030-08-31', rate: 90000, minNights: 3 },
+      { label: 'Átfedő', from: '2030-08-31', to: '2030-09-05', rate: 70000, minNights: null },
+    ] }), { ok: false, reason: 'season_overlap' })
+    assert.deepEqual(await actions.updatePricing(s, { ...base, seasons: [{ label: 'Főszezon', from: '2030-07-01', to: '2030-08-31', rate: 90000, minNights: 3 }] }), { ok: true })
+    const q = await booking.getQuote(garden, { checkIn: '2030-06-28', checkOut: '2030-07-03', guests: 10 })
+    assert.equal(q.valid, true)
+    assert.deepEqual(q.breakdown, [{ label: 'Alapár', nights: 3, rate: 60000 }, { label: 'Főszezon', nights: 2, rate: 90000 }])
+    assert.equal(q.subtotal, 360000)
+    assert.ok(q.surcharges.some((x) => x.code === 'extra_guest' && x.amount === 2 * 5000 * 5))
+    assert.equal(q.total, 410000)
+    // last night of the season is Aug 31 (inclusive): Aug 30 -> Sep 2 = 2 season nights + 1 base night
+    const edge = await booking.getQuote(garden, { checkIn: '2030-08-30', checkOut: '2030-09-02', guests: 4 })
+    assert.deepEqual(edge.breakdown, [{ label: 'Főszezon', nights: 2, rate: 90000 }, { label: 'Alapár', nights: 1, rate: 60000 }])
+    assert.equal((await booking.getQuote(garden, { checkIn: '2030-07-10', checkOut: '2030-07-12', guests: 4 })).reason, 'min_nights')
+    const b = await booking.createBooking(garden, { guestName: 'Szezon Teszt', guestEmail: 'sz@example.com', guests: 4, checkIn: '2030-07-10', checkOut: '2030-07-13' })
+    assert.equal(b.total, 270000, 'stored total = SQL quote')
+    // back to quote-only so other tests see the seeded state
+    assert.deepEqual(await actions.updatePricing(s, { nightlyRate: null, surcharges: [], seasons: [], extraGuestFrom: null, extraGuestHuf: null }), { ok: true })
+    assert.equal((await getListing('velence'))!.pricingMode, 'quote')
+  })
+
+  await t('iCal: parse folded/datetime/cancelled events; export has dates only; import blocks days and never overwrites our bookings', async () => {
+    const ical = await import('../lib/ical')
+    const ics = ['BEGIN:VCALENDAR', 'BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20280301', 'DTEND;VALUE=DATE:20280304', 'SUMMARY:Airbnb (Not avail', ' able)', 'END:VEVENT',
+      'BEGIN:VEVENT', 'DTSTART:20280310T140000Z', 'DTEND:20280312T100000Z', 'END:VEVENT',
+      'BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20280320', 'STATUS:CANCELLED', 'END:VEVENT',
+      'BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20280401', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
+    assert.deepEqual(ical.parseIcs(ics), [{ from: '2028-03-01', to: '2028-03-04' }, { from: '2028-03-10', to: '2028-03-12' }, { from: '2028-04-01', to: '2028-04-02' }])
+    // our booking 2028-03-02..05 collides with the first external range -> that range is skipped
+    await booking.createBooking(napsugar, { guestName: 'Ical Teszt', guestEmail: 'ic@example.com', guests: 2, checkIn: '2028-03-02', checkOut: '2028-03-05' })
+    const http = await import('node:http')
+    const srv = http.createServer((_q, r) => { r.writeHead(200, { 'content-type': 'text/calendar' }); r.end(ics) })
+    await new Promise<void>((ok) => srv.listen(0, ok))
+    const url = `http://127.0.0.1:${(srv.address() as { port: number }).port}/cal.ics`
+    const feed = (await query<{ id: string; listing_id: string; url: string }>(`insert into ical_feeds (listing_id, label, url) values ($1, 'Airbnb', 'https://x.invalid/a.ics') returning id, listing_id, $2::text as url`, [napsugar, url]))[0]
+    const r1 = await ical.syncFeed(feed)
+    assert.deepEqual(r1, { ok: true, count: 2 })
+    const r2 = await ical.syncFeed(feed) // idempotent: replaces its own rows
+    assert.deepEqual(r2, { ok: true, count: 2 })
+    srv.close()
+    const ext = await query<{ during: string }>(`select during::text from occupancy where feed_id = $1 order by during`, [feed.id])
+    assert.deepEqual(ext.map((x) => x.during), ['[2028-03-10,2028-03-12)', '[2028-04-01,2028-04-02)'])
+    const bad = await ical.syncFeed({ ...feed, url: 'http://127.0.0.1:9/none.ics' })
+    assert.equal(bad.ok, false)
+    // export: token-gated, dates only, external rows not echoed back
+    const tok = (await ical.icalToken(napsugar))!
+    assert.match(tok, /^[0-9a-f]{64}$/)
+    const out = (await ical.exportFor(tok))!
+    assert.match(out.ics, /DTSTART;VALUE=DATE:20280302\r\nDTEND;VALUE=DATE:20280305/)
+    assert.ok(!out.ics.includes('20280310'), 'imported range not re-exported')
+    assert.ok(!/Ical Teszt|ic@example/.test(out.ics), 'no guest data')
+    assert.equal(await ical.exportFor('0'.repeat(64)), null)
+    assert.equal(await ical.exportFor("x' or 1=1"), null)
   })
 
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {

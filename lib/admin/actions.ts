@@ -2,6 +2,7 @@ import 'server-only'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { query, queryOne, tx } from '../db'
+import { invalidateAvailability } from '../booking'
 import type { AdminSession } from './auth'
 import { legalToDb } from '../legal'
 import { DOC_KINDS, termsToDb } from '../terms'
@@ -16,13 +17,14 @@ const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 /** Every public page of the house (home + subpages, all under /[site]). */
 function refresh(s: AdminSession) {
-  revalidatePath(`/${s.site}`, 'layout')
+  try { revalidatePath(`/${s.site}`, 'layout') } catch { /* outside a Next request (tests, scripts) */ }
 }
 
 export async function setBookingStatus(s: AdminSession, bookingId: string, status: unknown): Promise<Result> {
   const p = z.object({ id: z.guid(), status: z.enum(['confirmed', 'cancelled']) }).safeParse({ id: bookingId, status })
   if (!p.success) return { ok: false, reason: 'validation_error' }
   const row = await queryOne<{ r: Result }>('select admin_set_booking_status($1, $2, $3) as r', [p.data.id, s.listingId, p.data.status])
+  invalidateAvailability()
   return row?.r ?? { ok: false, reason: 'unknown' }
 }
 
@@ -30,6 +32,7 @@ export async function deleteBooking(s: AdminSession, bookingId: string): Promise
   if (!z.guid().safeParse(bookingId).success) return { ok: false, reason: 'validation_error' }
   // occupancy rows cascade (occupancy.booking_id on delete cascade)
   const rows = await query('delete from bookings where id = $1 and listing_id = $2 returning id', [bookingId, s.listingId])
+  invalidateAvailability()
   return rows.length ? { ok: true } : { ok: false, reason: 'not_found' }
 }
 
@@ -41,6 +44,7 @@ export async function createBlock(s: AdminSession, body: unknown): Promise<Resul
   const p = blockSchema.safeParse(body)
   if (!p.success) return { ok: false, reason: 'validation_error' }
   const row = await queryOne<{ r: Result }>('select admin_block($1, $2, $3, $4, $5) as r', [s.listingId, p.data.from, p.data.to, p.data.kind, p.data.note ?? null])
+  invalidateAvailability()
   return row?.r ?? { ok: false, reason: 'unknown' }
 }
 
@@ -51,6 +55,7 @@ export async function deleteBlock(s: AdminSession, occupancyId: string): Promise
     "delete from occupancy where id = $1 and listing_id = $2 and kind in ('manual', 'external') returning id",
     [occupancyId, s.listingId]
   )
+  invalidateAvailability()
   return rows.length ? { ok: true } : { ok: false, reason: 'not_found' }
 }
 
@@ -67,17 +72,42 @@ const pricingSchema = z.object({
       })
     )
     .max(3),
+  seasons: z
+    .array(z.object({
+      label: z.string().trim().min(2).max(60),
+      from: dateStr,
+      to: dateStr, // last night, inclusive
+      rate: z.number().int().min(1000).max(5_000_000),
+      minNights: z.number().int().min(1).max(30).nullable(),
+    }).refine((x) => x.to >= x.from, { path: ['to'] }))
+    .max(24)
+    .default([]),
+  extraGuestFrom: z.number().int().min(1).max(50).nullable().default(null),
+  extraGuestHuf: z.number().int().min(0).max(1_000_000).nullable().default(null),
 })
 
-/** A nightly rate switches the listing to 'fixed'; clearing it returns to quote-only. */
+/** Any rate (base or season) switches the listing to 'fixed'; none returns it to quote-only. */
 export async function updatePricing(s: AdminSession, body: unknown): Promise<Result> {
   const p = pricingSchema.safeParse(body)
   if (!p.success) return { ok: false, reason: 'validation_error' }
   if (p.data.surcharges.some((x) => x.active && x.amount <= 0)) return { ok: false, reason: 'surcharge_amount_required' }
+  const d = p.data
+  const sorted = [...d.seasons].sort((a, b) => a.from.localeCompare(b.from))
+  if (sorted.some((x, i) => i > 0 && x.from <= sorted[i - 1].to)) return { ok: false, reason: 'season_overlap' }
+  const priced = d.nightlyRate != null || d.seasons.length > 0
   await tx(async (c) => {
-    await c.query('update listings set nightly_rate_huf = $2, pricing_mode = $3 where id = $1', [
-      s.listingId, p.data.nightlyRate, p.data.nightlyRate == null ? 'quote' : 'fixed',
+    await c.query('update listings set nightly_rate_huf = $2, pricing_mode = $3, extra_guest_from = $4, extra_guest_huf = $5 where id = $1', [
+      s.listingId, d.nightlyRate, priced ? 'fixed' : 'quote',
+      d.extraGuestFrom && d.extraGuestHuf ? d.extraGuestFrom : null, d.extraGuestFrom && d.extraGuestHuf ? d.extraGuestHuf : null,
     ])
+    await c.query('delete from listing_seasons where listing_id = $1', [s.listingId])
+    for (const x of sorted) {
+      await c.query(
+        `insert into listing_seasons (listing_id, label, during, nightly_rate_huf, min_nights)
+         values ($1, $2, daterange($3::date, $4::date + 1, '[)'), $5, $6)`,
+        [s.listingId, x.label, x.from, x.to, x.rate, x.minNights]
+      )
+    }
     for (const x of p.data.surcharges) {
       await c.query(
         `insert into listing_surcharges (listing_id, code, label, amount_huf, calc, active) values ($1, $2, $3, $4, $5, $6)

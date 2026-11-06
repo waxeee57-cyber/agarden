@@ -35,3 +35,4 @@ playwright-report/
 Thumbs.db
 TULAJ-UTMUTATO.md
 .e2e-env
+.smoke/

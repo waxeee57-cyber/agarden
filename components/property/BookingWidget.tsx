@@ -33,7 +33,7 @@ export type WidgetListing = {
 }
 export type SisterInfo = { name: string; origin: string; pitch: string }
 
-type Quote = { valid: boolean; reason: string | null; nights: number; subtotal: number | null; surcharges: { code: string; label: string; amount: number }[]; total: number | null; pricingMode: string | null }
+type Quote = { valid: boolean; reason: string | null; nights: number; subtotal: number | null; breakdown?: { label: string; nights: number; rate: number }[]; surcharges: { code: string; label: string; amount: number }[]; total: number | null; pricingMode: string | null }
 
 function humanError(code: string | null | undefined, minNights: number): string {
   switch (code) {
@@ -428,7 +428,9 @@ function Summary({ checkIn, checkOut, nights, guests, kids, pet, isEvent, quote,
           <p className="text-soft">Ár számítása…</p>
         ) : priced ? (
           <>
-            {quote!.subtotal != null && <SumRow k={`Szállásdíj, ${nights} éjszaka`} v={formatHuf(quote!.subtotal)} />}
+            {quote!.breakdown && quote!.breakdown.length > 1
+              ? quote!.breakdown.map((b) => <SumRow key={b.label + b.rate} k={`${b.label}: ${b.nights} éj × ${formatHuf(b.rate)}`} v={formatHuf(b.nights * b.rate)} />)
+              : quote!.subtotal != null && <SumRow k={`Szállásdíj, ${nights} éjszaka${quote!.breakdown?.[0] ? ` × ${formatHuf(quote!.breakdown[0].rate)}` : ''}`} v={formatHuf(quote!.subtotal)} />}
             {quote!.surcharges.map((s) => <SumRow key={s.code} k={s.label} v={formatHuf(s.amount)} />)}
             <div className="flex items-baseline justify-between border-t border-rule pt-3 text-base font-semibold"><span>Összesen</span><span className="tnum">{formatHuf(quote!.total)}</span></div>
             <p className="text-xs text-soft">Tájékoztató ár; a végleges összeget a visszaigazolásban küldjük.</p>

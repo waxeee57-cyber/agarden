@@ -53,6 +53,9 @@ export type Listing = {
   contactEmail: string | null
   contactPhone: string | null
   nightlyRate: number | null
+  /** lowest current/future nightly rate (base or season): "…-tól / éj" */
+  priceFrom: number | null
+  priceVaries: boolean
   pricingMode: 'fixed' | 'quote' | 'demo'
   address: string | null
   geo: { lat: number; lng: number } | null
@@ -77,7 +80,7 @@ type ListingRow = {
   id: string; slug: string; name: string; site_name: string | null; tagline: string | null
   capacity_max: number | null; capacity_extra: number | null; min_nights: number
   ntak_id: string | null; contact_email: string | null; contact_phone: string | null
-  nightly_rate_huf: number | null; pricing_mode: Listing['pricingMode']
+  nightly_rate_huf: number | null; price_from: number | null; price_varies: boolean; pricing_mode: Listing['pricingMode']
   address: string | null; geo_lat: number | null; geo_lng: number | null
   checkin_window: string | null; checkout_time: string | null
   house_rules: Listing['houseRules']; content: ListingContent; legal: unknown
@@ -88,7 +91,9 @@ type ListingRow = {
 export const getListing = cache(async (slug: Site): Promise<Listing | null> => {
   const row = await queryOne<ListingRow>(
     `select id, slug, name, site_name, tagline, capacity_max, capacity_extra, min_nights, ntak_id,
-            contact_email, contact_phone, nightly_rate_huf, pricing_mode, address, geo_lat, geo_lng,
+            contact_email, contact_phone, nightly_rate_huf, pricing_mode, address,
+            least(nightly_rate_huf, (select min(s.nightly_rate_huf) from listing_seasons s where s.listing_id = listings.id and upper(s.during) > current_date)) as price_from,
+            exists (select 1 from listing_seasons s where s.listing_id = listings.id and upper(s.during) > current_date) as price_varies, geo_lat, geo_lng,
             checkin_window, checkout_time, house_rules, content, legal,
             bedrooms, bathrooms, open_all_year, social, settings, terms
        from listings where slug = $1 and status = 'active'`,
@@ -112,6 +117,8 @@ export const getListing = cache(async (slug: Site): Promise<Listing | null> => {
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
     nightlyRate: row.nightly_rate_huf,
+    priceFrom: row.price_from,
+    priceVaries: row.price_varies,
     pricingMode: row.pricing_mode,
     address: row.address,
     geo: row.geo_lat != null && row.geo_lng != null ? { lat: row.geo_lat, lng: row.geo_lng } : null,

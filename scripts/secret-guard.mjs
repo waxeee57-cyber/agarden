@@ -8,7 +8,7 @@
 //   RULE 1 — Guarded secret modules
 //     Any SHARED module (under lib/ or components/, i.e. importable from
 //     anywhere) that references a high-value secret env var (DATABASE_URL*,
-//     BLOB_READ_WRITE_TOKEN, ADMIN_SESSION_SECRET, RESEND_API_KEY, generic
+//     BLOB_READ_WRITE_TOKEN, ADMIN_SESSION_SECRET, SMTP_PASSWORD, generic
 //     *_SECRET / *_TOKEN / *_API_KEY / password) MUST
 //     start with `import 'server-only'`. Route handlers (app/api/**) and pages
 //     are never client-bundled by Next unless marked 'use client', so they are
@@ -25,7 +25,7 @@
 //
 //   RULE 3 — No server-only packages in the client bundle
 //     A client-reachable module must not value-import a server-only package
-//     (pg, @vercel/blob, sharp, resend, jose, node:*). Belt-and-braces to RULE 2.
+//     (pg, @vercel/blob, sharp, nodemailer, jose, node:*). Belt-and-braces to RULE 2.
 //
 // Usage:
 //   node scripts/secret-guard.mjs            # scan repo root, exit 1 on violation
@@ -45,7 +45,7 @@ const IGNORE_SEGMENTS = new Set(['node_modules', '.next', '.git', '.agents', 'co
 // High-value secrets that must never sit in an unguarded shared module (RULE 1).
 const HIGH_SECRET_RE = /^DATABASE_URL|^POSTGRES_|^PG(PASSWORD|USER|HOST)|SERVICE_ROLE|_SECRET\b|_TOKEN\b|_API_KEY\b|PASSWORD/
 // Packages that must never be bundled for the browser (RULE 3).
-const SERVER_PKG_RE = /^(pg|@vercel\/blob|sharp|resend|jose|node:.+|fs|crypto|child_process)$/
+const SERVER_PKG_RE = /^(pg|@vercel\/blob|sharp|nodemailer|jose|node:.+|fs|crypto|child_process)$/
 
 // ---------------------------------------------------------------------------
 // File collection

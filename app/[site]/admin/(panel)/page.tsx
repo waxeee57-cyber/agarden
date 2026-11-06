@@ -39,7 +39,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   if (missing) todos.push({ text: `${missing} üzemeltetői adat hiányzik a generált jogi oldalakból.`, href: '/admin/adatok', action: 'Kitöltöm' })
   const noAlt = photos.filter((p) => !p.alt.trim()).length
   if (noAlt) todos.push({ text: `${noAlt} fotónak nincs leírása.`, href: '/admin/fotok', action: 'Pótolom' })
-  const mailOff = !emailEnabled()
+  const mailOff = !emailEnabled(session.site)
 
   return (
     <div className="space-y-10">

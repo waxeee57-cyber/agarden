@@ -5,7 +5,7 @@ import { DocBody } from '@/components/property/DocPage'
 import { lines, operatorLine } from '@/lib/legal'
 import { loadSite } from '@/lib/page'
 
-export const revalidate = 300
+export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)

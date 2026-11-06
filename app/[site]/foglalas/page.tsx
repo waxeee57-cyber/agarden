@@ -7,7 +7,7 @@ import { BookingWidget } from '@/components/property/BookingWidget'
 import { getPhotos } from '@/lib/listing'
 import { coverOf } from '@/components/houses/Home'
 
-export const revalidate = 300
+export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)

@@ -6,7 +6,7 @@ rendszerrel és tulajdonosi adminnal. Részletek: `README.md`, `PRODUCT.md`.
 
 ## STACK (mérve: package.json, 2026-10-14)
 - next@16.4.3 (App Router, Turbopack, `proxy.ts`), react@19.3.1, tailwindcss@^4.3
-- pg@^8.21 (Neon Postgres, fra1), @vercel/blob@^2.8, sharp@^0.35, jose@^6.2, resend@^6.32, zod@^4.4
+- pg@^8.21 (Neon Postgres, fra1), @vercel/blob@^2.8, sharp@^0.35, jose@^6.2, nodemailer@^7 (SMTP), zod@^4.4
 - react-leaflet@^5 (csak Napsugár térkép), playwright (dev)
 - pnpm; Vercel projekt `agarden` (prj_g6OafEGKz6bea67AEg2UMxHcx3g5), régió fra1 (`vercel.json`)
 - **Supabase nincs** (2026-10-14-én eltávolítva).
@@ -29,4 +29,6 @@ rendszerrel és tulajdonosi adminnal. Részletek: `README.md`, `PRODUCT.md`.
 - Tesztek az `agarden_test` DB-n futnak (minden futáskor eldobva + migrálva), nem a prod `neondb`-n.
 - `.admin-credentials` (gitignore) — tulaj jelszó. Soha ne commitold, ne írd ki.
 - `.env.local` — `vercel env pull`-ból + helyi `ADMIN_SESSION_SECRET`. Soha ne commitold.
-- E-mail: Resend, feladó `foglalas@domrol.com` (házanként saját feladónév), kulcs: `agarden-foglalas-v2` (csak küldés, domrol.com-ra korlátozva), Vercelen sensitive. `EMAIL_ENABLED=false`, amíg a domrol.com DNS-e (dns24.hu) nincs hitelesítve; utána true + redeploy. A válaszcím a ház/tulaj postafiókja, a feladócímen nincs postafiók.
+- E-mail (0 Ft): Nodemailer + SMTP, alapból Gmail app-jelszóval (`EMAIL_ENABLED=true`, `SMTP_USER`, `SMTP_PASSWORD`; házanként felülírható `SMTP_USER_NAPSUGAR`/`SMTP_PASSWORD_NAPSUGAR`). A feladó MINDIG a hitelesített postafiók (Gmail átírja), a név a ház. Resend nincs.
+- Árazás: `listing_seasons` (éjszakánkénti szezonár, érkezési szezon min. éjszakája) + létszámfelár (`extra_guest_from/huf`), mind `quote_booking`-ban.
+- iCal: export `/api/ical/<token>.ics` (csak saját foglalás + kézi blokk), import `ical_feeds` → occupancy kind 'external', cron `/api/cron/ical` 3 óránként (`CRON_SECRET` kell). Foglaltság cache: `availability` tag, minden változás `invalidateAvailability()`.

@@ -8,6 +8,7 @@ import 'server-only'
 // Every function takes the listingId resolved from the request HOST
 // (lib/site.ts) — a client can never choose which house it books.
 
+import { unstable_cache, revalidateTag } from 'next/cache'
 import { query, queryOne } from '../db'
 import { normalizeReason, normalizeThrown, type BookingErrorCode } from './errors'
 import {
@@ -26,6 +27,8 @@ export type QuoteBreakdown = {
   reason: string | null
   nights: number
   subtotal: number | null
+  /** per-season groups of nights (empty when the stay is "egyedi ajánlat") */
+  breakdown: { label: string; nights: number; rate: number }[]
   surcharges: Surcharge[]
   total: number | null
   currency: string
@@ -43,14 +46,23 @@ function parseRange(r: string): { from: string; to: string } | null {
   return m ? { from: m[1], to: m[2] } : null
 }
 
+// Availability is read on every calendar view but changes only on a booking,
+// an admin edit or an iCal sync — each of those calls invalidateAvailability().
+// Cached reads keep page views from waking the (scale-to-zero) database.
+const readAvailability = (listingId: string, from: string, to: string) =>
+  query<{ during: string; kind: string }>('select during::text as during, kind from get_listing_availability($1, $2, $3)', [listingId, from, to])
+const cachedAvailability = unstable_cache(readAvailability, ['availability-v1'], { tags: ['availability'], revalidate: 3600 })
+
+/** Drop cached availability now (route handlers / admin actions). No-op outside Next (tests). */
+export function invalidateAvailability(): void {
+  try { revalidateTag('availability', { expire: 0 }) } catch { /* not in a Next request (tests, scripts) */ }
+}
+
 export async function getAvailability(listingId: string, input: AvailabilityInput): Promise<AvailabilityResult> {
   const parsed = availabilitySchema.safeParse(input)
   if (!parsed.success || parsed.data.to <= parsed.data.from) return { ok: false, reason: 'validation_error' }
   try {
-    const rows = await query<{ during: string; kind: string }>(
-      'select during::text as during, kind from get_listing_availability($1, $2, $3)',
-      [listingId, parsed.data.from, parsed.data.to]
-    )
+    const rows = await (process.env.NEXT_RUNTIME ? cachedAvailability : readAvailability)(listingId, parsed.data.from, parsed.data.to)
     const ranges = rows.flatMap((r) => {
       const p = parseRange(r.during)
       return p ? [{ ...p, kind: r.kind }] : []
@@ -71,7 +83,7 @@ export async function isFree(listingId: string, checkIn: string, checkOut: strin
 }
 
 function emptyBreakdown(reason: string): QuoteBreakdown {
-  return { valid: false, reason, nights: 0, subtotal: null, surcharges: [], total: null, currency: 'HUF', pricingMode: null }
+  return { valid: false, reason, nights: 0, subtotal: null, breakdown: [], surcharges: [], total: null, currency: 'HUF', pricingMode: null }
 }
 
 export async function getQuote(listingId: string, input: QuoteInput): Promise<QuoteBreakdown> {
@@ -81,7 +93,7 @@ export async function getQuote(listingId: string, input: QuoteInput): Promise<Qu
   try {
     const cap = await capacityCheck(listingId, guests)
     if (cap) return emptyBreakdown(cap)
-    const row = await queryOne<{ r: Json }>('select quote_booking($1, $2, $3, $4, $5) as r', [listingId, checkIn, checkOut, pet, isEvent])
+    const row = await queryOne<{ r: Json }>('select quote_booking($1, $2, $3, $4, $5, $6) as r', [listingId, checkIn, checkOut, pet, isEvent, guests ?? null])
     const data = row?.r
     if (!data) return emptyBreakdown('unknown')
     const applied = (data.applied_surcharges as { code: string; label: string; amount_huf: number }[] | undefined) ?? []
@@ -90,6 +102,7 @@ export async function getQuote(listingId: string, input: QuoteInput): Promise<Qu
       reason: data.valid ? null : normalizeReason(data.reason),
       nights: (data.nights as number) ?? 0,
       subtotal: (data.subtotal_huf as number | null) ?? null,
+      breakdown: ((data.nightly_breakdown as { label: string; nights: number; rate_huf: number }[] | undefined) ?? []).map((b) => ({ label: b.label, nights: b.nights, rate: b.rate_huf })),
       surcharges: applied.map((s) => ({ code: s.code, label: s.label, amount: s.amount_huf })),
       total: (data.total_huf as number | null) ?? null,
       currency: 'HUF',
@@ -132,6 +145,7 @@ export async function createBooking(
     if (!data) return { ok: false, reason: 'unknown' }
     if (!data.ok) return { ok: false, reason: normalizeReason(data.reason) }
     if (d.children > 0) await setChildren(data.booking_id as string, Math.min(d.children, d.guests))
+    invalidateAvailability()
     return { ok: true, bookingId: data.booking_id as string, total: (data.total_huf as number | null) ?? null }
   } catch (e) {
     return { ok: false, reason: normalizeThrown(e, 'createBooking') }

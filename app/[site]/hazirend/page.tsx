@@ -1,6 +1,6 @@
 import { DocPage, docMeta } from '@/components/property/DocPage'
 
-export const revalidate = 300
+export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
 export function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   return docMeta(params, 'hazirend', '/hazirend', 'Házirend', 'A vendégház házirendje: érkezés, távozás, csendes pihenő, fizetés és a wellness használata.')

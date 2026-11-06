@@ -6,7 +6,7 @@ import { JsonLd, lodgingJsonLd, websiteJsonLd } from '@/components/property/Json
 import { Home, coverOf } from '@/components/houses/Home'
 
 // ISR: rebuilt at most every 5 minutes; admin edits call revalidatePath.
-export const revalidate = 300
+export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
 export default async function HousePage({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)

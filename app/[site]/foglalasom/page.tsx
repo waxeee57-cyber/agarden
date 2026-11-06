@@ -4,7 +4,7 @@ import { BRANDS } from '@/lib/brand'
 import { SitePage, PageHead, pageMeta } from '@/components/property/SiteChrome'
 import { BookingLookup } from '@/components/property/BookingLookup'
 
-export const revalidate = 300
+export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)

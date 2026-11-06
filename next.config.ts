@@ -22,7 +22,13 @@ const csp = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
-    formats: ['image/avif', 'image/webp'],
+    // Cost: every (url, width, quality, format) is one billed transformation.
+    // Sources are already WebP ≤1200 px with immutable (uuid) URLs, so: WebP
+    // only, no widths above the source, and a month-long optimizer cache.
+    formats: ['image/webp'],
+    deviceSizes: [640, 828, 1080, 1200],
+    imageSizes: [256, 384],
+    minimumCacheTTL: 2678400,
     remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
     qualities: [70, 75],
   },

@@ -5,7 +5,7 @@ import { ContactForm } from '@/components/property/ContactForm'
 import { LocationMap } from '@/components/property/LocationMap'
 import { Icon } from '@/components/property/ui'
 
-export const revalidate = 300
+export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)

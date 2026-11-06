@@ -8,7 +8,7 @@ import { Icon, type IconName } from '@/components/property/ui'
 import { formatHuf } from '@/lib/format'
 import { SpaceSlider } from '@/components/property/SpaceSlider'
 
-export const revalidate = 300
+export const revalidate = 86400 // content changes revalidate on save (admin); this is only a safety net
 
 // "A ház" — the reference site's "Szobák" page: every space, the wellness,
 // the equipment. Only stored facts (listing.content), one photo per space.
@@ -31,7 +31,9 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   const of = (cats: PhotoCategory[]) => photos.filter((p) => cats.includes(p.category)).map(lb)
   const wellnessPhotos = of(['wellness'])
   // The reference shows a price line under every unit; ours is the whole house.
-  const price = listing.pricingMode === 'fixed' && listing.nightlyRate ? `${formatHuf(listing.nightlyRate)} / éj, az egész ház` : 'Ár: egyedi ajánlat alapján'
+  const price = listing.pricingMode === 'fixed' && listing.priceFrom
+    ? `${formatHuf(listing.priceFrom)}${listing.priceVaries ? '-tól' : ''} / éj, az egész ház`
+    : 'Ár: egyedi ajánlat alapján'
   return (
     <SitePage ctx={ctx} crumb={{ name: 'A ház', path: '/a-haz' }}>
       <PageHead title="A ház" lead={c.lead} />
