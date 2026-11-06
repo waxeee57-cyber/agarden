@@ -160,48 +160,6 @@ async function main() {
     assert.deepEqual(res, [true, true, true, true, true, false])
   })
 
-  await t("status e-mail: off when disabled; never for the other house's booking", async () => {
-    const { sendStatusEmail } = await import('../lib/email/send')
-    const b = await booking.createBooking(napsugar, { ...guest, checkIn: '2028-11-10', checkOut: '2028-11-13' })
-    delete process.env.EMAIL_ENABLED
-    assert.deepEqual(await sendStatusEmail('napsugar', napsugar, b.bookingId!, 'confirmed'), { sent: false, reason: 'disabled' })
-    process.env.EMAIL_ENABLED = 'true'; process.env.SMTP_USER = 'haz@example.invalid'; process.env.SMTP_PASSWORD = 'abcd efgh ijkl mnop'; process.env.EMAIL_TRANSPORT = 'json'
-    // Garden session (listing = garden) asking about a Napsugár booking: rejected before any network call
-    assert.deepEqual(await sendStatusEmail('velence', garden, b.bookingId!, 'cancelled'), { sent: false, reason: 'not_found' })
-    // status must match what the DB holds (pending != confirmed) -> no mail
-    assert.deepEqual(await sendStatusEmail('napsugar', napsugar, b.bookingId!, 'confirmed'), { sent: false, reason: 'not_found' })
-    delete process.env.EMAIL_ENABLED; delete process.env.SMTP_USER; delete process.env.SMTP_PASSWORD; delete process.env.EMAIL_TRANSPORT
-  })
-
-  await t('SMTP e-mail (0 Ft): From = authenticated mailbox with the house name, guest + owner mails, reply routing, per-house override', async () => {
-    const { sendBookingEmails, sendStatusEmail, outbox } = await import('../lib/email/send')
-    const { setBookingStatus } = await import('../lib/admin/actions')
-    process.env.EMAIL_ENABLED = 'true'; process.env.EMAIL_TRANSPORT = 'json'
-    process.env.SMTP_USER = 'gardenhaz@example.invalid'; process.env.SMTP_PASSWORD = 'abcd efgh ijkl mnop'
-    process.env.SMTP_USER_NAPSUGAR = 'napsugar@example.invalid'; process.env.SMTP_PASSWORD_NAPSUGAR = 'qrst uvwx yzab cdef'
-    outbox.length = 0
-    const b = await booking.createBooking(garden, { guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guests: 3, children: 1, checkIn: '2027-06-02', checkOut: '2027-06-05' })
-    const r = await sendBookingEmails('velence', garden, { kind: 'booking', id: b.bookingId!, guestName: 'Mail Teszt', guestEmail: 'vendeg@example.com', guestPhone: null, checkIn: '2027-06-02', checkOut: '2027-06-05', nights: 3, guests: 3, children: 1, pet: false, isEvent: false, total: null })
-    assert.deepEqual(r, { sent: true })
-    assert.equal(outbox.length, 2)
-    const [g, o] = outbox
-    assert.equal(g.from, 'Garden Vendégház Velence <gardenhaz@example.invalid>')
-    assert.equal(g.to, 'vendeg@example.com')
-    assert.match(g.subject, /Foglalási kérelem rögzítve/)
-    assert.match(g.text, /Kedves Mail!/)
-    assert.match(g.text, /ebből 1 gyerek/)
-    assert.equal(o.replyTo, 'vendeg@example.com', 'owner replies straight to the guest')
-    assert.ok(!/szia|válaszolj\b/i.test(g.text), 'formal register')
-    // per-house mailbox for Napsugár
-    outbox.length = 0
-    const n = await booking.createBooking(napsugar, { guestName: 'Nap Teszt', guestEmail: 'nap@example.com', guests: 2, checkIn: '2027-06-02', checkOut: '2027-06-05' })
-    await setBookingStatus({ site: 'napsugar', listingId: napsugar } as never, n.bookingId!, 'confirmed')
-    assert.deepEqual(await sendStatusEmail('napsugar', napsugar, n.bookingId!, 'confirmed'), { sent: true })
-    assert.equal(outbox[0].from, 'Napsugár Vendégház Velence <napsugar@example.invalid>')
-    assert.match(outbox[0].subject, /visszaigazolva/)
-    for (const k of ['EMAIL_ENABLED', 'EMAIL_TRANSPORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_USER_NAPSUGAR', 'SMTP_PASSWORD_NAPSUGAR']) delete process.env[k]
-  })
-
   await t('legal data: napsugar payment terms seeded; save is scoped, validated, partial-friendly', async () => {
     const { saveLegal } = await import('../lib/admin/actions')
     const { legalFromDb, missingLegal, operatorLine, lines } = await import('../lib/legal')
@@ -399,7 +357,7 @@ async function main() {
     assert.equal(await ical.exportFor("x' or 1=1"), null)
   })
 
-  await t('edge guards: past arrival (Budapest day), > 2 years ahead, > 90 nights; SMTP outage is logged for the admin, booking kept', async () => {
+  await t('edge guards: past arrival (Budapest day), > 2 years ahead, > 90 nights; booking API refuses them too', async () => {
     const day = (n: number) => { const d = new Date(Date.now() + n * 86_400_000); return d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Budapest' }) }
     assert.equal((await booking.getQuote(garden, { checkIn: day(-1), checkOut: day(2), guests: 2 })).reason, 'past_dates')
     assert.equal((await booking.getQuote(garden, { checkIn: day(0), checkOut: day(2), guests: 2 })).valid, true, 'arriving today (Budapest) is fine')
@@ -407,15 +365,6 @@ async function main() {
     assert.equal((await booking.getQuote(garden, { checkIn: day(10), checkOut: day(101), guests: 2 })).reason, 'too_long')
     const past = await booking.createBooking(garden, { guestName: 'Múlt Teszt', guestEmail: 'm@example.com', guests: 2, checkIn: day(-3), checkOut: day(-1) })
     assert.deepEqual(past, { ok: false, reason: 'past_dates' })
-    // Gmail unreachable: the send fails fast, is logged, and surfaces in the admin alerts
-    const { sendContactEmail } = await import('../lib/email/send')
-    const { getOpsAlerts } = await import('../lib/admin/data')
-    Object.assign(process.env, { EMAIL_ENABLED: 'true', SMTP_USER: 'haz@example.invalid', SMTP_PASSWORD: 'x', SMTP_HOST: '127.0.0.1', SMTP_PORT: '9' })
-    const r = await sendContactEmail('velence', garden, { name: 'Teszt', email: 'v@example.com', message: 'Szia' })
-    assert.deepEqual(r, { sent: false, reason: 'rejected' })
-    const ops = await getOpsAlerts(garden)
-    assert.ok(ops.mailFailed >= 1 && ops.mailLastError, JSON.stringify(ops))
-    for (const k of ['EMAIL_ENABLED', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_HOST', 'SMTP_PORT']) delete process.env[k]
   })
 
   await t('cron: with CRON_SECRET only the bearer passes; without it, at most one run per 10 minutes', async () => {
@@ -430,21 +379,24 @@ async function main() {
     assert.equal(first.done, true); assert.equal(second.skipped, 'throttled')
   })
 
-  await t('managed relay (no owner mailbox): Resend API, house display name, reply to the house; failure logged, never thrown', async () => {
-    const { sendBookingEmails } = await import('../lib/email/send')
-    const sent: { url: string; body: Record<string, unknown> }[] = []
-    const real = globalThis.fetch
-    Object.assign(process.env, { EMAIL_ENABLED: 'true', RESEND_API_KEY: 're_test', EMAIL_FROM: 'foglalas@relay.example' })
-    globalThis.fetch = (async (url: string, init: RequestInit) => { sent.push({ url, body: JSON.parse(String(init.body)) }); return new Response('{"id":"x"}', { status: 200 }) }) as typeof fetch
-    const mail = { kind: 'booking' as const, id: '00000000-0000-4000-8000-000000000001', guestName: 'Relay Teszt', guestEmail: 'r@example.com', guestPhone: null, checkIn: '2027-09-01', checkOut: '2027-09-03', nights: 2, guests: 2, children: 0, pet: false, isEvent: false, total: null }
-    assert.deepEqual(await sendBookingEmails('napsugar', napsugar, mail), { sent: true })
-    assert.equal(sent[0].url, 'https://api.resend.com/emails')
-    assert.equal(sent[0].body.from, 'Napsugár Vendégház Velence <foglalas@relay.example>')
-    assert.deepEqual(sent[0].body.to, ['r@example.com'])
-    globalThis.fetch = (async () => new Response('{"message":"domain not verified"}', { status: 403 })) as typeof fetch
-    assert.deepEqual(await sendBookingEmails('napsugar', napsugar, mail), { sent: false, reason: 'rejected' })
-    globalThis.fetch = real
-    for (const k of ['EMAIL_ENABLED', 'RESEND_API_KEY', 'EMAIL_FROM']) delete process.env[k]
+  await t('self-contained mail: no sender module; admin gets a ready mailto per booking state, bank account only in the confirmation', async () => {
+    const fs = await import('node:fs')
+    assert.ok(!fs.existsSync(new URL('../lib/email/send.ts', import.meta.url)), 'no outbound sender')
+    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    assert.ok(!pkg.dependencies?.nodemailer && !pkg.dependencies?.resend, 'no mail dependency')
+    const { mailContext, guestMailFor } = await import('../lib/email/compose')
+    await query("update listings set bank_account = '11773000-11111111-22222222', terms = jsonb_set(coalesce(terms,'{}'::jsonb), '{depositPct}', '20') where id = $1", [garden])
+    const ctx = (await mailContext('velence', garden))!
+    const base = { id: '00000000-0000-4000-8000-0000000000ab', source: 'web' as const, guestName: 'Kiss Anna', guestEmail: 'anna@example.com', guestPhone: null, checkIn: '2027-07-01', checkOut: '2027-07-04', nights: 3, guests: 4, children: 1, pet: false, isEvent: false, total: null, notes: null, createdAt: '' }
+    const conf = guestMailFor(ctx, { ...base, status: 'confirmed' })
+    assert.equal(conf.label, 'Visszaigazoló e-mail')
+    assert.match(conf.href, /^mailto:anna%40example\.com\?subject=/)
+    const body = decodeURIComponent(conf.href.split('&body=')[1])
+    assert.match(body, /Kedves Kiss Anna/)
+    assert.match(body, /11773000-11111111-22222222/, 'confirmation carries the account')
+    const pend = decodeURIComponent(guestMailFor(ctx, { ...base, status: 'pending' }).href.split('&body=')[1])
+    assert.ok(!pend.includes('11773000'), 'no account before confirmation')
+    assert.equal(guestMailFor(ctx, { ...base, status: 'cancelled' }).label, 'Lemondó e-mail')
   })
 
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {

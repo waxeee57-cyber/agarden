@@ -5,7 +5,7 @@ import { getListing, getPhotos } from '@/lib/listing'
 import { BookingsBoard } from '@/components/admin/BookingsBoard'
 import { ManualBookingForm } from '@/components/admin/ManualBookingForm'
 import { MessagesBoard } from '@/components/admin/MessagesBoard'
-import { emailEnabled } from '@/lib/email/send'
+import { mailContext, guestMailFor } from '@/lib/email/compose'
 import { missingLegal } from '@/lib/legal'
 
 type Todo = { text: string; href: string; action: string; urgent?: boolean }
@@ -40,9 +40,9 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   if (missing) todos.push({ text: `${missing} üzemeltetői adat hiányzik a generált jogi oldalakból.`, href: '/admin/adatok', action: 'Kitöltöm' })
   const noAlt = photos.filter((p) => !p.alt.trim()).length
   if (noAlt) todos.push({ text: `${noAlt} fotónak nincs leírása.`, href: '/admin/fotok', action: 'Pótolom' })
-  if (ops.mailFailed) todos.push({ text: `${ops.mailFailed} e-mail nem ment ki az elmúlt 14 napban${ops.mailLastTo ? ` (utolsó címzett: ${ops.mailLastTo})` : ''}. Értesítsd a vendéget telefonon, és ellenőrizd a Gmail alkalmazásjelszót.${ops.mailLastError ? ` Hiba: ${ops.mailLastError}` : ''}`, href: '/admin', action: 'Rendben', urgent: true })
   for (const f of ops.feedErrors) todos.push({ text: `A(z) ${f.label} naptár legutóbbi frissítése nem sikerült (${f.error}). A korábban beolvasott napok érvényben maradnak.`, href: '/admin/naptar', action: 'Megnézem', urgent: true })
-  const mailOff = !emailEnabled(session.site)
+  const mctx = await mailContext(session.site, session.listingId)
+  const withMail = bookings.map((b) => ({ ...b, mail: mctx ? guestMailFor(mctx, b) : null }))
 
   return (
     <div className="space-y-10">
@@ -60,7 +60,6 @@ export default async function AdminBookings({ params, searchParams }: { params: 
             ))}
           </ul>
         )}
-        {mailOff && <p className="mt-3 text-sm text-muted">Az automatikus e-mailek ki vannak kapcsolva: a vendéget telefonon vagy saját e-mailből értesítsd a visszaigazolásról.</p>}
       </section>
 
       <section id="foglalasok" className="scroll-mt-4 space-y-6">
@@ -71,7 +70,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
           </div>
           <ManualBookingForm maxGuests={(listing?.capacityMax ?? 1) + (listing?.capacityExtra ?? 0)} />
         </div>
-        <BookingsBoard bookings={bookings} filters={filters} current={filter} emailOn={!mailOff} />
+        <BookingsBoard bookings={withMail} filters={filters} current={filter} />
       </section>
 
       <section id="uzenetek" aria-labelledby="uz-title" className="scroll-mt-4">

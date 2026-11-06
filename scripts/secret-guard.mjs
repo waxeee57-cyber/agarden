@@ -8,7 +8,7 @@
 //   RULE 1 — Guarded secret modules
 //     Any SHARED module (under lib/ or components/, i.e. importable from
 //     anywhere) that references a high-value secret env var (DATABASE_URL*,
-//     BLOB_READ_WRITE_TOKEN, ADMIN_SESSION_SECRET, SMTP_PASSWORD, generic
+//     BLOB_READ_WRITE_TOKEN, ADMIN_SESSION_SECRET, CRON_SECRET, generic
 //     *_SECRET / *_TOKEN / *_API_KEY / password) MUST
 //     start with `import 'server-only'`. Route handlers (app/api/**) and pages
 //     are never client-bundled by Next unless marked 'use client', so they are

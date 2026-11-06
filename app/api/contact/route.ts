@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse, after } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { siteFromRequest } from '@/lib/site'
 import { getListingId } from '@/lib/listing'
 import { queryOne } from '@/lib/db'
 import { guard } from '@/lib/booking/http'
-import { sendContactEmail } from '@/lib/email/send'
 
 // Kapcsolat form. Same-origin + DB rate limit (5 / 15 min / IP). The message is
 // STORED FIRST (admin "Üzenetek"), the e-mail is a best-effort notification —
@@ -30,6 +29,5 @@ export async function POST(req: NextRequest) {
   if (!listingId) return NextResponse.json({ ok: false, reason: 'listing_not_found' }, { status: 503 })
   const d = p.data
   await queryOne('select add_contact_message($1, $2, $3, $4, $5) as id', [listingId, d.name, d.email, d.phone, d.message])
-  after(() => sendContactEmail(site, listingId, { name: d.name, email: d.email, phone: d.phone || undefined, message: d.message }))
   return NextResponse.json({ ok: true })
 }

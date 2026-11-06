@@ -24,7 +24,9 @@ const d = (iso: string | null) => {
   return `${y}. ${MONTHS[m - 1]} ${day}.`
 }
 
-export function BookingsBoard({ bookings, filters, current, emailOn }: { bookings: AdminBooking[]; filters: { key: string; label: string; count: number | null }[]; current: string; emailOn: boolean }) {
+type Row = AdminBooking & { mail: { href: string; label: string } | null }
+
+export function BookingsBoard({ bookings, filters, current }: { bookings: Row[]; filters: { key: string; label: string; count: number | null }[]; current: string }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
     <div>
@@ -61,7 +63,7 @@ export function BookingsBoard({ bookings, filters, current, emailOn }: { booking
                   {b.total != null ? ` · ${formatHuf(b.total)}` : ''}
                 </p>
               </button>
-              {open === b.id && <BookingDetail b={b} emailOn={emailOn} />}
+              {open === b.id && <BookingDetail b={b} />}
             </li>
           ))}
         </ul>
@@ -70,7 +72,7 @@ export function BookingsBoard({ bookings, filters, current, emailOn }: { booking
   )
 }
 
-function BookingDetail({ b, emailOn }: { b: AdminBooking; emailOn: boolean }) {
+function BookingDetail({ b }: { b: Row }) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -106,11 +108,14 @@ function BookingDetail({ b, emailOn }: { b: AdminBooking; emailOn: boolean }) {
         )}
         <button type="button" className="btn btn-ghost btn-sm !text-danger" disabled={!!busy} onClick={() => act('delete')}>{busy === 'delete' ? '…' : 'Törlés'}</button>
       </div>
+      {b.mail && (
+        <a href={b.mail.href} className="btn btn-dark btn-sm mt-3 inline-flex">
+          {b.mail.label} megírása <span aria-hidden="true">↗</span>
+        </a>
+      )}
       {msg && <p className="err mt-3" role="alert">{msg}</p>}
       <p className="mt-3 text-xs text-muted">
-        {emailOn
-          ? 'Visszaigazoláskor és lemondáskor a vendég automatikusan e-mailt kap. Törléskor nem.'
-          : 'Az automatikus e-mail még nincs bekapcsolva: a döntésről most a fenti elérhetőségen értesítsd a vendéget.'}
+        A gomb a saját leveleződben nyit egy kész, a foglalás állapotához illő levelet (visszaigazoláskor az előleg és a számlaszám is benne van). Elküldés előtt átírhatod.
       </p>
     </div>
   )

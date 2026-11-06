@@ -90,7 +90,7 @@ function details(b: MailBooking): string {
 }
 
 export function guestEmail(house: MailHouse, b: MailBooking): { subject: string; html: string } {
-  const first = esc(b.guestName.trim().split(/\s+/)[0] || b.guestName)
+  const first = esc(b.guestName.trim()) // full name: Hungarian order is family name first
   const name = BRANDS[house.site].name
   const t = house.terms
   const intro =
@@ -147,7 +147,7 @@ ${t.extraCosts.length ? `<p style="margin:10px 0 0;font-size:13px;line-height:1.
 
 /** Sent automatically when the owner confirms or cancels in /admin. */
 export function guestStatusEmail(house: MailHouse, b: MailBooking, status: 'confirmed' | 'cancelled', x: StatusExtras): { subject: string; html: string } {
-  const first = esc(b.guestName.trim().split(/\s+/)[0] || b.guestName)
+  const first = esc(b.guestName.trim()) // full name: Hungarian order is family name first
   const name = BRANDS[house.site].name
   const accent = BRANDS[house.site].deep
   const call = house.phone ? `, vagy hívjon: ${esc(house.phone)}` : ''
