@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import { requireAdminPage } from '@/lib/admin/guard'
-import { listBookings, bookingCounts, listMessages, getAdminSettings, getOpsAlerts, FILTERS, type FilterKey } from '@/lib/admin/data'
+import { listBookings, bookingCounts, listMessages, getAdminSettings, getOpsAlerts, listEvents, FILTERS, type FilterKey } from '@/lib/admin/data'
+import { ActivityFeed } from '@/components/admin/ActivityFeed'
 import { getListing, getPhotos } from '@/lib/listing'
 import { BookingsBoard } from '@/components/admin/BookingsBoard'
 import { ManualBookingForm } from '@/components/admin/ManualBookingForm'
 import { MessagesBoard } from '@/components/admin/MessagesBoard'
-import { mailContext, guestMailFor } from '@/lib/email/compose'
 import { missingLegal } from '@/lib/legal'
 
 type Todo = { text: string; href: string; action: string; urgent?: boolean }
@@ -14,13 +14,14 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   const session = await requireAdminPage(params)
   const { szuro } = await searchParams
   const filter: FilterKey = szuro && szuro in FILTERS ? (szuro as FilterKey) : 'uj'
-  const [bookings, counts, listing, messages, settings, ops] = await Promise.all([
+  const [bookings, counts, listing, messages, settings, ops, events] = await Promise.all([
     listBookings(session.listingId, filter),
     bookingCounts(session.listingId),
     getListing(session.site),
     listMessages(session.listingId),
     getAdminSettings(session.listingId),
     getOpsAlerts(session.listingId),
+    listEvents(session.listingId),
   ])
   const photos = listing ? await getPhotos(listing.id) : []
   const filters = (Object.keys(FILTERS) as FilterKey[]).map((key) => ({
@@ -41,8 +42,6 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   const noAlt = photos.filter((p) => !p.alt.trim()).length
   if (noAlt) todos.push({ text: `${noAlt} fotónak nincs leírása.`, href: '/admin/fotok', action: 'Pótolom' })
   for (const f of ops.feedErrors) todos.push({ text: `A(z) ${f.label} naptár legutóbbi frissítése nem sikerült (${f.error}). A korábban beolvasott napok érvényben maradnak.`, href: '/admin/naptar', action: 'Megnézem', urgent: true })
-  const mctx = await mailContext(session.site, session.listingId)
-  const withMail = bookings.map((b) => ({ ...b, mail: mctx ? guestMailFor(mctx, b) : null }))
 
   return (
     <div className="space-y-10">
@@ -62,6 +61,12 @@ export default async function AdminBookings({ params, searchParams }: { params: 
         )}
       </section>
 
+      <section aria-labelledby="feed-title" className="card p-5 md:p-6">
+        <h2 id="feed-title" className="text-2xl">Események</h2>
+        <p className="mt-1 text-sm text-muted">A rendszer minden foglalást automatikusan visszaigazol; itt látod, mi történt. A vendég a foglalási kódjával online látja a saját állapotát és az előleg adatait.</p>
+        <ActivityFeed events={events} />
+      </section>
+
       <section id="foglalasok" className="scroll-mt-4 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -70,7 +75,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
           </div>
           <ManualBookingForm maxGuests={(listing?.capacityMax ?? 1) + (listing?.capacityExtra ?? 0)} />
         </div>
-        <BookingsBoard bookings={withMail} filters={filters} current={filter} />
+        <BookingsBoard bookings={bookings} filters={filters} current={filter} />
       </section>
 
       <section id="uzenetek" aria-labelledby="uz-title" className="scroll-mt-4">

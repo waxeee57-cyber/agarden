@@ -42,8 +42,9 @@ export default async function Page({ params }: { params: Promise<{ site: string 
 
       <h2>2. A foglalás menete</h2>
       <p>
-        Az oldalon leadott foglalás <strong>foglalási kérelem</strong>: a kiválasztott dátumokat a visszaigazolásig fenntartjuk.
-        A szerződés akkor jön létre, amikor a szálláshely a foglalást e-mailben visszaigazolja. Az ajánlatkérés nem foglal le dátumot.
+        Az oldalon leadott foglalást a rendszer <strong>azonnal visszaigazolja</strong>: a szerződés a foglalás elküldésekor, a
+        visszaigazoló képernyő megjelenésével jön létre, amelyen a foglalási kód és az előleg adatai is szerepelnek (később a
+        Foglalásom oldalon, a kóddal és az e-mail-címmel bármikor lekérdezhetők). Az ajánlatkérés nem foglal le dátumot.
         Az oldalon nincs online fizetés, bankkártyaadatot nem kérünk.
       </p>
 

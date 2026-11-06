@@ -379,24 +379,48 @@ async function main() {
     assert.equal(first.done, true); assert.equal(second.skipped, 'throttled')
   })
 
-  await t('self-contained mail: no sender module; admin gets a ready mailto per booking state, bank account only in the confirmation', async () => {
-    const fs = await import('node:fs')
-    assert.ok(!fs.existsSync(new URL('../lib/email/send.ts', import.meta.url)), 'no outbound sender')
-    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
-    assert.ok(!pkg.dependencies?.nodemailer && !pkg.dependencies?.resend, 'no mail dependency')
-    const { mailContext, guestMailFor } = await import('../lib/email/compose')
-    await query("update listings set bank_account = '11773000-11111111-22222222', terms = jsonb_set(coalesce(terms,'{}'::jsonb), '{depositPct}', '20') where id = $1", [garden])
-    const ctx = (await mailContext('velence', garden))!
-    const base = { id: '00000000-0000-4000-8000-0000000000ab', source: 'web' as const, guestName: 'Kiss Anna', guestEmail: 'anna@example.com', guestPhone: null, checkIn: '2027-07-01', checkOut: '2027-07-04', nights: 3, guests: 4, children: 1, pet: false, isEvent: false, total: null, notes: null, createdAt: '' }
-    const conf = guestMailFor(ctx, { ...base, status: 'confirmed' })
-    assert.equal(conf.label, 'Visszaigazoló e-mail')
-    assert.match(conf.href, /^mailto:anna%40example\.com\?subject=/)
-    const body = decodeURIComponent(conf.href.split('&body=')[1])
-    assert.match(body, /Kedves Kiss Anna/)
-    assert.match(body, /11773000-11111111-22222222/, 'confirmation carries the account')
-    const pend = decodeURIComponent(guestMailFor(ctx, { ...base, status: 'pending' }).href.split('&body=')[1])
-    assert.ok(!pend.includes('11773000'), 'no account before confirmation')
-    assert.equal(guestMailFor(ctx, { ...base, status: 'cancelled' }).label, 'Lemondó e-mail')
+  await t('instant booking: confirmed on the spot via the public API, payment details only for the booker, audit trail by trigger', async () => {
+    const { POST } = await import('../app/api/booking/route')
+    await query("update listings set bank_account = '11773000-11111111-22222222', nightly_rate_huf = 50000, pricing_mode = 'fixed', terms = coalesce(terms,'{}'::jsonb) || '{\"deposit_pct\": 20, \"cancel_days\": 30}'::jsonb where id = $1", [garden])
+    const res = await POST(new NextRequest('https://garden.test/api/booking', { method: 'POST', headers: { host: 'garden.test', origin: 'https://garden.test', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.9' },
+      body: JSON.stringify({ checkIn: '2027-10-04', checkOut: '2027-10-07', guests: 4, guestName: 'Azonnali Anna', guestEmail: 'aa@example.com' }) }))
+    const data = await res.json()
+    assert.equal(res.status, 200, JSON.stringify(data))
+    assert.equal(data.status, 'confirmed')
+    assert.equal(res.headers.get('cache-control'), 'no-store')
+    assert.deepEqual(data.payment, { depositPct: 20, depositAmount: 30000, bankAccount: '11773000-11111111-22222222', beneficiary: data.payment.beneficiary, reference: data.bookingId.slice(0, 8).toUpperCase(), cancelDays: 30 })
+    const row = (await query<{ status: string }>('select status from bookings where id = $1', [data.bookingId]))[0]
+    assert.equal(row.status, 'confirmed', 'no owner action needed')
+    // lookup: payment only with the right code + e-mail
+    const hit = await booking.lookupBooking(garden, { code: data.bookingId.slice(0, 8), email: 'AA@example.com' })
+    assert.ok(hit.ok && hit.booking.payment?.bankAccount === '11773000-11111111-22222222')
+    assert.deepEqual(await booking.lookupBooking(garden, { code: data.bookingId.slice(0, 8), email: 'x@example.com' }), { ok: false, reason: 'not_found' })
+    // public listing data never carries the account
+    assert.ok(!JSON.stringify(await getListing('velence')).includes('11773000'))
+    // audit trail: written by the DB, whatever the code path
+    const actions = await import('../lib/admin/actions')
+    const s = { site: 'velence', listingId: garden } as never
+    await actions.setBookingStatus(s, data.bookingId, 'cancelled')
+    await actions.deleteBooking(s, data.bookingId)
+    const ev = await query<{ event: string }>(`select event from booking_events where listing_id = $1 and detail->>'code' = $2 order by id`, [garden, data.bookingId.slice(0, 8).toUpperCase()])
+    assert.deepEqual(ev.map((e) => e.event), ['auto_confirmed', 'cancelled', 'deleted'])
+    await query("update listings set nightly_rate_huf = null, pricing_mode = 'quote' where id = $1", [garden])
+  })
+
+  await t('concurrency: five simultaneous bookings of the same nights -> exactly one wins, the rest get "overlap", no double occupancy', async () => {
+    const tries = await Promise.all(Array.from({ length: 5 }, (_, k) => booking.createBooking(napsugar, { guestName: `Verseny ${k}`, guestEmail: `v${k}@example.com`, guests: 2, checkIn: '2027-11-08', checkOut: '2027-11-11' }, { status: 'confirmed' })))
+    assert.equal(tries.filter((r) => r.ok).length, 1)
+    assert.ok(tries.filter((r) => !r.ok).every((r) => r.reason === 'overlap'))
+    const occ = await query<{ n: number }>(`select count(*)::int as n from occupancy where listing_id = $1 and during && daterange('2027-11-08','2027-11-11')`, [napsugar])
+    assert.equal(occ[0].n, 1)
+  })
+
+  await t('quote-mode house: still confirmed instantly; deposit shown as a percentage, never an invented amount', async () => {
+    const b = await booking.createBooking(napsugar, { guestName: 'Ár Nélkül', guestEmail: 'an@example.com', guests: 2, checkIn: '2027-12-06', checkOut: '2027-12-09' }, { status: 'confirmed' })
+    assert.ok(b.ok)
+    const p = (await booking.paymentInfo(napsugar, b.bookingId!, b.total ?? null))!
+    assert.equal(p.depositAmount, null)
+    assert.equal(p.reference, b.bookingId!.slice(0, 8).toUpperCase())
   })
 
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {

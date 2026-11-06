@@ -28,7 +28,7 @@ kérelem (nincs online fizetés), ajánlatkérés, tulajdonosi admin.
   session süti (jose, 7 nap), hostonként külön. A session a host házára szól; a másik
   ház admin-API-ja 401-et ad. Login rate-limit DB-ből (IP + fiók).
 - **Fotók** — Vercel Blob; feltöltéskor `sharp` (≤1200 px, WebP, EXIF törölve) → `listing_photos`.
-- **E-mail** — a honlap nem küld levelet (nincs külső szolgáltató); a vendéglevelet az admin a tulaj saját levelezőjében nyitja meg kész szöveggel.
+- **Foglalás** — azonnali, automatikus visszaigazolás; a vendég a kódjával online látja az állapotot és az előleg adatait. A honlap nem küld e-mailt, külső szolgáltató nincs a foglalás útjában. Garanciák: `DEPLOY_CHECKLIST.md`.
 - **SEO** — hostonkénti `robots.txt`, `sitemap.xml`, canonical/`metadataBase`, OG-kép
   (`/brand/og`), favicon (`/brand/icon`), manifest, JSON-LD (LodgingBusiness, WebSite,
   BreadcrumbList, FAQPage) — csak tárolt tényekből.

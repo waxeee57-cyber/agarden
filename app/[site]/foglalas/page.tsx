@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     <SitePage ctx={ctx} crumb={{ name: 'Foglalás', path: '/foglalas' }} sticky={false}>
       <PageHead
         title="Foglalás"
-        lead={`Két rövid lépés. Most nem vonunk le pénzt: ${t.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'} e-mailben visszaigazoljuk kérését.`}
+        lead="Két rövid lépés, azonnali visszaigazolás. Online nem vonunk le pénzt."
       />
       <div className="mx-auto max-w-6xl px-4 pb-20 md:px-8">
         <Suspense fallback={<div className="min-h-[720px] rounded-[var(--radius-xl)] bg-surface-2" aria-hidden="true" />}>

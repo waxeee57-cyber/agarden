@@ -174,3 +174,15 @@ export async function getOpsAlerts(listingId: string): Promise<OpsAlerts> {
   const feeds = await query<{ label: string; last_error: string }>('select label, last_error from ical_feeds where listing_id = $1 and last_error is not null', [listingId]).catch(() => [])
   return { feedErrors: feeds.map((f) => ({ label: f.label, error: f.last_error })) }
 }
+
+// ---------- activity feed (booking_events, written by DB triggers) ----------
+export type BookingEvent = { id: string; event: 'auto_confirmed' | 'created' | 'quote_request' | 'manual_booking' | 'confirmed' | 'cancelled' | 'deleted'; guest: string | null; checkIn: string | null; checkOut: string | null; code: string | null; seen: boolean; at: string }
+
+export async function listEvents(listingId: string, limit = 20): Promise<BookingEvent[]> {
+  const rows = await query<{ id: string; event: BookingEvent['event']; detail: Record<string, string | null>; seen: boolean; at: string }>(
+    `select id::text, event, detail, seen, to_char(created_at at time zone 'Europe/Budapest', 'YYYY-MM-DD HH24:MI') as at
+       from booking_events where listing_id = $1 order by created_at desc limit $2`,
+    [listingId, limit]
+  ).catch(() => [])
+  return rows.map((r) => ({ id: r.id, event: r.event, guest: r.detail?.guest ?? null, checkIn: r.detail?.check_in ?? null, checkOut: r.detail?.check_out ?? null, code: r.detail?.code ?? null, seen: r.seen, at: r.at }))
+}

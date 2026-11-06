@@ -24,9 +24,7 @@ const d = (iso: string | null) => {
   return `${y}. ${MONTHS[m - 1]} ${day}.`
 }
 
-type Row = AdminBooking & { mail: { href: string; label: string } | null }
-
-export function BookingsBoard({ bookings, filters, current }: { bookings: Row[]; filters: { key: string; label: string; count: number | null }[]; current: string }) {
+export function BookingsBoard({ bookings, filters, current }: { bookings: AdminBooking[]; filters: { key: string; label: string; count: number | null }[]; current: string }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
     <div>
@@ -72,7 +70,7 @@ export function BookingsBoard({ bookings, filters, current }: { bookings: Row[];
   )
 }
 
-function BookingDetail({ b }: { b: Row }) {
+function BookingDetail({ b }: { b: AdminBooking }) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -108,14 +106,10 @@ function BookingDetail({ b }: { b: Row }) {
         )}
         <button type="button" className="btn btn-ghost btn-sm !text-danger" disabled={!!busy} onClick={() => act('delete')}>{busy === 'delete' ? '…' : 'Törlés'}</button>
       </div>
-      {b.mail && (
-        <a href={b.mail.href} className="btn btn-dark btn-sm mt-3 inline-flex">
-          {b.mail.label} megírása <span aria-hidden="true">↗</span>
-        </a>
-      )}
+
       {msg && <p className="err mt-3" role="alert">{msg}</p>}
       <p className="mt-3 text-xs text-muted">
-        A gomb a saját leveleződben nyit egy kész, a foglalás állapotához illő levelet (visszaigazoláskor az előleg és a számlaszám is benne van). Elküldés előtt átírhatod.
+        A webes foglalások automatikusan visszaigazolódnak; a vendég a kódjával online látja az állapotot és az előleg adatait. Lemondáskor a napok felszabadulnak, és a vendég a Foglalásom oldalon „Lemondva” állapotot lát.
       </p>
     </div>
   )

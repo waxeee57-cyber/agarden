@@ -8,6 +8,8 @@ import { createPortal } from 'react-dom'
 import { Calendar, addDays, parseISO, toISO, fmtDay, fmtShort } from './Calendar'
 import { formatHuf } from '@/lib/format'
 import { telHref } from '@/lib/brand'
+import type { PaymentInfo } from '@/lib/booking'
+import { PaymentBlock } from './PaymentBlock'
 
 // Booking for the CURRENT host's house. Two steps, modern booking-engine
 // layout: (1) dates + guests + extras, (2) contact + send. A sticky
@@ -83,7 +85,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [sisterOffer, setSisterOffer] = useState<null | { href: string; from: string; to: string }>(null)
-  const [success, setSuccess] = useState<null | { kind: 'book' | 'inquiry'; id?: string; total?: number | null }>(null)
+  const [success, setSuccess] = useState<null | { kind: 'book' | 'inquiry'; id?: string; total?: number | null; payment?: PaymentInfo | null }>(null)
   const top = useRef<HTMLDivElement>(null)
 
   // room for the fixed bottom bar on phones, so it never covers the footer;
@@ -176,7 +178,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
       })
       const data = await res.json()
       if (data.ok) {
-        setSuccess({ kind: mode, id: data.bookingId, total: data.total })
+        setSuccess({ kind: mode, id: data.bookingId, total: data.total, payment: data.payment ?? null })
         requestAnimationFrame(() => top.current?.scrollIntoView({ block: 'start' }))
       } else {
         setSubmitError(humanError(data.reason, listing.minNights))
@@ -195,7 +197,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   const datesInvalid = !!(quote && hasDates && !quote.valid)
   const primary = step === 0
     ? { label: mode === 'inquiry' ? 'Tovább az adatokhoz' : 'Tovább', onClick: next, disabled: false }
-    : { label: submitting ? 'Küldés…' : mode === 'book' ? 'Foglalási kérelem elküldése' : 'Ajánlatkérés elküldése', onClick: submit, disabled: submitting }
+    : { label: submitting ? 'Küldés…' : mode === 'book' ? 'Foglalás véglegesítése' : 'Ajánlatkérés elküldése', onClick: submit, disabled: submitting }
 
   if (success) {
     const code = success.id ? success.id.slice(0, 8).toUpperCase() : null
@@ -204,10 +206,11 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sel text-sel-fg" aria-hidden="true">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12.5 9.5 18 20 6" /></svg>
         </span>
-        <h2 className="mt-6 text-[clamp(1.9rem,4vw,2.6rem)]">{success.kind === 'book' ? 'Megkaptuk foglalási kérelmét' : 'Megkaptuk ajánlatkérését'}</h2>
+        <h2 className="mt-6 text-[clamp(1.9rem,4vw,2.6rem)]">{success.kind === 'book' ? 'Foglalása visszaigazolva' : 'Megkaptuk ajánlatkérését'}</h2>
         <p className="mx-auto mt-3 max-w-[46ch] text-soft">
-          {success.kind === 'book' ? 'A dátumokat fenntartjuk Önnek, pénzt nem vontunk le.' : 'Az ajánlatkérés még nem foglal le dátumot.'}{' '}
-          {listing.confirmHours ? `${listing.confirmHours} órán belül` : 'Hamarosan'} {success.kind === 'book' ? 'e-mailben visszaigazoljuk' : 'e-mailben vagy telefonon küldjük az ajánlatot'}: <strong className="text-fg">{email.trim()}</strong>
+          {success.kind === 'book'
+            ? <>A ház a megadott napokra az Öné. Online nem vontunk le pénzt. Állapotát a foglalási kóddal és e-mail-címével (<strong className="text-fg">{email.trim()}</strong>) bármikor megnézheti a Foglalásom oldalon.</>
+            : <>Az ajánlatkérés még nem foglal le dátumot. Az ajánlatot {listing.confirmHours ? `${listing.confirmHours} órán belül` : 'hamarosan'} küldjük ide: <strong className="text-fg">{email.trim()}</strong></>}
         </p>
         {code && <CodeBox code={code} />}
         <dl className="mx-auto mt-6 max-w-sm divide-y divide-rule rounded-[var(--radius-lg)] border border-rule text-left text-sm">
@@ -215,7 +218,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
           <Line dt="Vendégek" dd={children ? `${adults} felnőtt + ${children} gyerek` : `${guests} fő`} />
           {success.kind === 'book' && success.total != null && <Line dt="Tájékoztató végösszeg" dd={<span className="tnum">{formatHuf(success.total)}</span>} />}
         </dl>
-        {success.kind === 'book' && listing.depositLine && <p className="mx-auto mt-5 max-w-[46ch] text-sm text-soft">{listing.depositLine} A számlaszámot a visszaigazoló levélben küldjük.</p>}
+        {success.kind === 'book' && success.payment && <PaymentBlock p={success.payment} phone={listing.phone} />}
         <div className="mx-auto mt-8 grid max-w-sm gap-3 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
           {success.kind === 'book' && checkIn && checkOut && (
             <a href={`/api/ics?checkIn=${checkIn}&checkOut=${checkOut}${code ? `&kod=${code}` : ''}`} className="btn btn-act">Naptárba mentés</a>
@@ -382,7 +385,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
         </aside>
       </div>
 
-      <TrustRow confirmHours={listing.confirmHours} />
+      <TrustRow />
 
       {/* ---------- bottom bar (phone / tablet) ---------- */}
       {portal && createPortal(<div data-skin={portal.skin ?? undefined} className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
@@ -557,11 +560,11 @@ function CodeBox({ code }: { code: string }) {
 }
 
 /** Booking-engine trust row. Every line is a fact of THIS system — nothing invented. */
-function TrustRow({ confirmHours }: { confirmHours: number | null }) {
+function TrustRow() {
   const items: { t: string; d: string; icon: React.ReactNode }[] = [
     { t: 'Közvetlenül a háztól', d: 'Közvetítő és foglalási díj nélkül', icon: <path d="M3 10.5 12 3l9 7.5M5 9v11h14V9M10 20v-6h4v6" /> },
     { t: 'Most nem fizet', d: 'Online nem vonunk le pénzt', icon: <><rect x="2.5" y="5.5" width="19" height="13" rx="2" /><path d="M2.5 10h19M6.5 15h4" /></> },
-    { t: confirmHours ? `${confirmHours} órán belül` : 'Gyors visszaigazolás', d: 'E-mailben visszaigazoljuk', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
+    { t: 'Azonnali visszaigazolás', d: 'A foglalás azonnal érvényes', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
     { t: 'Biztonságos kapcsolat', d: 'Titkosított adatküldés (HTTPS)', icon: <><rect x="4.5" y="10.5" width="15" height="10" rx="2" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></> },
   ]
   return (

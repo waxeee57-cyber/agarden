@@ -16,7 +16,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   const ctx = await loadSite((await params).site)
   return (
     <SitePage ctx={ctx} crumb={{ name: 'Foglalásom', path: '/foglalasom' }}>
-      <PageHead title="Foglalásom" lead="A foglalási kódot a visszaigazoló e-mailben és a foglalás végén találja (8 karakter)." />
+      <PageHead title="Foglalásom" lead="A 8 karakteres foglalási kódot a foglalás végén kapta meg. A kóddal és az e-mail-címével itt bármikor megnézheti a foglalást és az előleg adatait." />
       <div className="mx-auto max-w-6xl px-5 pb-20 md:px-8">
         <Suspense fallback={<div className="min-h-[320px]" aria-hidden="true" />}>
           <BookingLookup phone={ctx.phone} />
