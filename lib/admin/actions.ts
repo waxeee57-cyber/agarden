@@ -222,18 +222,16 @@ export async function restoreDocument(s: AdminSession, versionId: unknown): Prom
   return r
 }
 
-// ---------- site settings: social links, menu toggles, booking terms, bank account ----------
+// ---------- site settings: social links, menu toggles, booking terms (cash on site) ----------
 const optInt = (min: number, max: number) => z.union([z.number().int().min(min).max(max), z.null()])
 const settingsSchema = z.object({
   social: z.record(z.string(), z.string().max(300)).default({}),
   menuGyik: z.boolean(),
   menuKornyek: z.boolean(),
-  depositPct: optInt(1, 100),
   cancelDays: optInt(0, 365),
   confirmHours: optInt(1, 168),
   quoteValidDays: optInt(1, 60),
   extraCosts: z.array(z.string().trim().min(3).max(300)).max(8).default([]),
-  bankAccount: z.string().trim().max(80).default(''),
 })
 
 /** Validates every social link against its network's domain; bad ones are reported by field. */
@@ -251,15 +249,13 @@ export async function saveSettings(listingId: string, body: unknown): Promise<Re
     else bad.push(`social.${n}`)
   }
   if (bad.length) return { ok: false, reason: 'invalid_social', fields: bad }
-  if (d.bankAccount && !/^[0-9A-Z][0-9A-Z -]{7,40}$/i.test(d.bankAccount)) return { ok: false, reason: 'validation_error', fields: ['bankAccount'] }
   await query(
-    `update listings set social = $2::jsonb, settings = settings || $3::jsonb, terms = $4::jsonb, bank_account = $5 where id = $1`,
+    `update listings set social = $2::jsonb, settings = settings || $3::jsonb, terms = $4::jsonb where id = $1`,
     [
       listingId,
       JSON.stringify(social),
       JSON.stringify({ menu_gyik: d.menuGyik, menu_kornyek: d.menuKornyek }),
-      JSON.stringify(termsToDb({ depositPct: d.depositPct, cancelDays: d.cancelDays, confirmHours: d.confirmHours, quoteValidDays: d.quoteValidDays, extraCosts: d.extraCosts })),
-      d.bankAccount || null,
+      JSON.stringify(termsToDb({ cancelDays: d.cancelDays, confirmHours: d.confirmHours, quoteValidDays: d.quoteValidDays, extraCosts: d.extraCosts })),
     ]
   )
   return { ok: true }

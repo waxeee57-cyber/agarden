@@ -9,8 +9,8 @@ register: brand (public house sites) · product (admin)
 ## Mi ez
 Két önálló weboldal két, egyben bérelhető vendégházhoz a Velencei-tó déli partján,
 közös foglalási rendszerrel és tulajdonosi adminnal. Nincs online fizetés: a foglalás
-foglalási kérelem, amit a tulaj visszaigazol. Garden: 20% előleg átutalással a visszaigazolás
-után (30 napon túli lemondásnál visszajár), a többi érkezéskor. Napsugár: fizetés a helyszínen.
+foglalási kérelem, amit a tulaj az adminban átnéz és visszaigazol vagy elutasít. Mindkét ház:
+előleg nincs, a teljes összeg érkezéskor, a helyszínen, készpénzben fizetendő.
 
 ## Felhasználók
 - **Vendég (elsődleges):** magyar baráti társaság, nagycsalád, legény-/lánybúcsút szervező

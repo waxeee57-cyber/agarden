@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { loadSite } from '@/lib/page'
 import { BRANDS } from '@/lib/brand'
-import { depositLine } from '@/lib/terms'
+import { paymentLine } from '@/lib/terms'
 import { SitePage, PageHead, pageMeta } from '@/components/property/SiteChrome'
 import { BookingWidget } from '@/components/property/BookingWidget'
 import { getPhotos } from '@/lib/listing'
@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     <SitePage ctx={ctx} crumb={{ name: 'Foglalás', path: '/foglalas' }} sticky={false}>
       <PageHead
         title="Foglalás"
-        lead="Két rövid lépés, azonnali visszaigazolás. Online nem vonunk le pénzt."
+        lead={`Két rövid lépés. Most nem vonunk le pénzt: ${t.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'} e-mailben visszaigazoljuk kérését.`}
       />
       <div className="mx-auto max-w-6xl px-4 pb-20 md:px-8">
         <Suspense fallback={<div className="min-h-[720px] rounded-[var(--radius-xl)] bg-surface-2" aria-hidden="true" />}>
@@ -40,7 +40,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
               email: l.contactEmail,
               singleNightAllowed: l.surcharges.some((s) => s.code === 'single_night' && s.active),
               confirmHours: t.confirmHours,
-              depositLine: depositLine(t),
+              paymentLine: paymentLine(t),
               extraCosts: t.extraCosts,
               cover: cover ? { url: cover.url, alt: cover.alt } : null,
               address: l.address,

@@ -7,8 +7,9 @@ import { query, queryOne, tx } from './db'
 //    never see their own events echoed back.
 //  - import: an external feed's busy days become occupancy rows (kind
 //    'external', feed_id set). Each sync replaces that feed's rows; a range
-//    that collides with a booking of ours is skipped (ON CONFLICT DO NOTHING
-//    honours the exclusion constraint), never overwritten.
+//    that collides with a booking of ours is never overwritten (ON CONFLICT
+//    DO NOTHING honours the exclusion constraint) — it is RECORDED in
+//    ical_feeds.conflicts so the admin flags it before the owner confirms.
 
 export type Range = { from: string; to: string } // [from, to) ISO dates
 
@@ -90,12 +91,16 @@ async function fetchFeed(url: string): Promise<string> {
   return text
 }
 
-export async function syncFeed(feed: { id: string; listing_id: string; url: string }): Promise<{ ok: boolean; count?: number; error?: string }> {
+/** An external busy range we could not import because one of our own rows holds those days. */
+export type IcalConflict = { from: string; to: string; code: string | null; status: string | null; kind: string }
+
+export async function syncFeed(feed: { id: string; listing_id: string; url: string }): Promise<{ ok: boolean; count?: number; conflicts?: IcalConflict[]; error?: string }> {
   try {
     const today = new Date().toISOString().slice(0, 10)
     const horizon = new Date(Date.now() + 2 * 365 * 86_400_000).toISOString().slice(0, 10)
     const ranges = parseIcs(await fetchFeed(feed.url)).filter((r) => r.to > today && r.from < horizon)
     let count = 0
+    const conflicts: IcalConflict[] = []
     await tx(async (c) => {
       await c.query('delete from occupancy where feed_id = $1', [feed.id])
       for (const r of ranges) {
@@ -105,10 +110,22 @@ export async function syncFeed(feed: { id: string; listing_id: string; url: stri
           [feed.listing_id, r.from, r.to, feed.id]
         )
         count += ins.rowCount ?? 0
+        if (!ins.rowCount) {
+          // which of OUR rows blocked it? (other feeds' rows are not a clash worth flagging)
+          const hit = await c.query<{ code: string | null; status: string | null; kind: string }>(
+            `select upper(left(b.id::text, 8)) as code, b.status, o.kind
+               from occupancy o left join bookings b on b.id = o.booking_id
+              where o.listing_id = $1 and o.during && daterange($2::date, $3::date, '[)') and o.kind <> 'external'
+              order by lower(o.during) limit 1`,
+            [feed.listing_id, r.from, r.to]
+          )
+          const h = hit.rows[0]
+          if (h) conflicts.push({ from: r.from, to: r.to, code: h.code, status: h.status, kind: h.kind })
+        }
       }
-      await c.query('update ical_feeds set last_sync = now(), last_error = null, last_count = $2 where id = $1', [feed.id, count])
+      await c.query('update ical_feeds set last_sync = now(), last_error = null, last_count = $2, conflicts = $3::jsonb where id = $1', [feed.id, count, JSON.stringify(conflicts.slice(0, 50))])
     })
-    return { ok: true, count }
+    return { ok: true, count, conflicts }
   } catch (e) {
     const msg = e instanceof Error ? e.message.slice(0, 200) : 'unknown'
     await query('update ical_feeds set last_sync = now(), last_error = $2 where id = $1', [feed.id, msg]).catch(() => {})

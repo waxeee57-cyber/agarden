@@ -23,9 +23,9 @@ export function SettingsForm({ initial }: { initial: AdminSettings }) {
   const [social, setSocial] = useState<Record<SocialNetwork, string>>({ facebook: initial.social.facebook ?? '', instagram: initial.social.instagram ?? '', tiktok: initial.social.tiktok ?? '' })
   const [menu, setMenu] = useState(initial.settings)
   const [f, setF] = useState({
-    depositPct: t.depositPct?.toString() ?? '', cancelDays: t.cancelDays?.toString() ?? '',
+    cancelDays: t.cancelDays?.toString() ?? '',
     confirmHours: t.confirmHours?.toString() ?? '', quoteValidDays: t.quoteValidDays?.toString() ?? '',
-    extraCosts: t.extraCosts.join('\n'), bankAccount: initial.bankAccount,
+    extraCosts: t.extraCosts.join('\n'),
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -38,11 +38,9 @@ export function SettingsForm({ initial }: { initial: AdminSettings }) {
       const v = f[k].trim()
       if (v && !(Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max)) e[k] = `${label}: ${min} és ${max} közötti egész szám.`
     }
-    range('depositPct', 1, 100, 'Előleg')
     range('cancelDays', 0, 365, 'Lemondási határidő')
     range('confirmHours', 1, 168, 'Visszaigazolás')
     range('quoteValidDays', 1, 60, 'Ajánlat érvényessége')
-    if (f.bankAccount.trim() && !/^[0-9A-Z][0-9A-Z -]{7,40}$/i.test(f.bankAccount.trim())) e.bankAccount = 'Csak számjegy, betű (IBAN), szóköz és kötőjel.'
     setErrors(e)
     return !Object.keys(e).length
   }
@@ -56,9 +54,8 @@ export function SettingsForm({ initial }: { initial: AdminSettings }) {
       method: 'PUT',
       body: {
         social, menuGyik: menu.menuGyik, menuKornyek: menu.menuKornyek,
-        depositPct: num(f.depositPct), cancelDays: num(f.cancelDays), confirmHours: num(f.confirmHours), quoteValidDays: num(f.quoteValidDays),
+        cancelDays: num(f.cancelDays), confirmHours: num(f.confirmHours), quoteValidDays: num(f.quoteValidDays),
         extraCosts: f.extraCosts.split('\n').map((x) => x.trim()).filter((x) => x.length >= 3),
-        bankAccount: f.bankAccount.trim(),
       },
     })
     setBusy(false)
@@ -103,17 +100,14 @@ export function SettingsForm({ initial }: { initial: AdminSettings }) {
 
       <fieldset className="card grid gap-4 p-5 sm:grid-cols-2">
         <legend className="px-1 text-lg font-semibold text-deep">Foglalási feltételek</legend>
-        {input('depositPct', 'Előleg (%)', 'Üresen: nincs előleg, fizetés a helyszínen.', 'number')}
-        {input('cancelDays', 'Az előleg visszajár, ha ennyi napnál korábban mondják le', 'Pl. 30', 'number')}
+        <p className="rounded-lg bg-black/[0.035] p-3 text-sm sm:col-span-2"><strong>Fizetés: érkezéskor, a helyszínen, készpénzben.</strong> Előleget, átutalást, kártyát a rendszer nem kér; minden foglalás kérelemként érkezik, te döntesz róla.</p>
+        {input('cancelDays', 'Díjmentes lemondás érkezés előtt ennyi napig', 'Pl. 30. Üresen: nem jelenik meg.', 'number')}
         {input('confirmHours', 'Visszaigazolás ennyi órán belül', 'Pl. 24', 'number')}
         {input('quoteValidDays', 'Az ajánlat ennyi napig érvényes', 'Pl. 4', 'number')}
         <div className="field sm:col-span-2">
           <label htmlFor="s-extra">Lehetséges plusz költségek (soronként egy)</label>
           <textarea id="s-extra" className="input" rows={3} value={f.extraCosts} onChange={(e) => setF({ ...f, extraCosts: e.target.value })} />
           <p className="text-xs text-muted">A foglalás összegzésénél és a visszaigazoló levélben jelenik meg.</p>
-        </div>
-        <div className="sm:col-span-2">
-          {input('bankAccount', 'Bankszámlaszám az előleghez', 'Csak a visszaigazoló e-mailben jelenik meg, a weboldalon soha.')}
         </div>
       </fieldset>
 

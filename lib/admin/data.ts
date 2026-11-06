@@ -2,6 +2,7 @@ import 'server-only'
 import { query, queryOne } from '../db'
 import { legalFromDb, type LegalData } from '../legal'
 import { socialFromDb, type SocialLinks } from '../social'
+import type { IcalConflict } from '../ical'
 import { termsFromDb, settingsFromDb, type Terms, type SiteSettings, type DocKind } from '../terms'
 
 // Admin reads. EVERY query is scoped by the listing id from the verified
@@ -143,15 +144,15 @@ export async function listVersions(listingId: string, kind: DocKind): Promise<Do
 }
 
 // ---------- settings (social, menu, terms, bank account) ----------
-export type AdminSettings = { social: SocialLinks; settings: SiteSettings; terms: Terms; bankAccount: string }
+export type AdminSettings = { social: SocialLinks; settings: SiteSettings; terms: Terms }
 
 export async function getAdminSettings(listingId: string): Promise<AdminSettings | null> {
-  const r = await queryOne<{ social: unknown; settings: unknown; terms: unknown; bank_account: string | null }>(
-    'select social, settings, terms, bank_account from listings where id = $1',
+  const r = await queryOne<{ social: unknown; settings: unknown; terms: unknown }>(
+    'select social, settings, terms from listings where id = $1',
     [listingId]
   )
   if (!r) return null
-  return { social: socialFromDb(r.social), settings: settingsFromDb(r.settings), terms: termsFromDb(r.terms), bankAccount: r.bank_account ?? '' }
+  return { social: socialFromDb(r.social), settings: settingsFromDb(r.settings), terms: termsFromDb(r.terms) }
 }
 
 // ---------- contact messages ----------
@@ -167,12 +168,34 @@ export async function listMessages(listingId: string): Promise<AdminMessage[]> {
 }
 
 // ---------- operations alerts (admin home "Mi a teendőd?") ----------
-export type OpsAlerts = { feedErrors: { label: string; error: string }[] }
+export type OpsAlerts = {
+  feedErrors: { label: string; error: string }[]
+  icalConflicts: ({ label: string } & IcalConflict)[]
+  depositDocs: DocKind[]
+}
 
 /** iCal feeds whose last sync failed (the website sends no e-mail, so nothing else can fail silently). */
 export async function getOpsAlerts(listingId: string): Promise<OpsAlerts> {
-  const feeds = await query<{ label: string; last_error: string }>('select label, last_error from ical_feeds where listing_id = $1 and last_error is not null', [listingId]).catch(() => [])
-  return { feedErrors: feeds.map((f) => ({ label: f.label, error: f.last_error })) }
+  const [feeds, clash, docs] = await Promise.all([
+    query<{ label: string; last_error: string }>('select label, last_error from ical_feeds where listing_id = $1 and last_error is not null', [listingId]).catch(() => []),
+    // only clashes that still matter: the range has not ended yet
+    query<{ label: string; c: IcalConflict }>(
+      `select f.label, c from ical_feeds f, jsonb_array_elements(f.conflicts) c
+        where f.listing_id = $1 and (c->>'to')::date > (now() at time zone 'Europe/Budapest')::date
+        order by c->>'from'`,
+      [listingId]
+    ).catch(() => []),
+    // owner texts still describing a deposit, while the booking flow says cash on site
+    query<{ kind: string }>(
+      `select kind from listing_documents where listing_id = $1 and kind in ('hazirend', 'aszf', 'gyik') and body ~* '(előleg|elöleg|20 ?%)'`,
+      [listingId]
+    ).catch(() => []),
+  ])
+  return {
+    feedErrors: feeds.map((f) => ({ label: f.label, error: f.last_error })),
+    icalConflicts: clash.map((r) => ({ label: r.label, ...r.c })),
+    depositDocs: docs.map((d) => d.kind as DocKind),
+  }
 }
 
 // ---------- activity feed (booking_events, written by DB triggers) ----------

@@ -5,8 +5,8 @@ import type { BookingEvent } from '@/lib/admin/data'
 import { adminFetch } from './client'
 
 const LABEL: Record<BookingEvent['event'], string> = {
-  auto_confirmed: 'Új foglalás – automatikusan visszaigazolva',
-  created: 'Új foglalási kérelem',
+  auto_confirmed: 'Új foglalás (visszaigazolva)',
+  created: 'Új foglalási kérés – felülvizsgálatra vár',
   quote_request: 'Új ajánlatkérés',
   manual_booking: 'Kézi foglalás rögzítve',
   confirmed: 'Visszaigazolva',

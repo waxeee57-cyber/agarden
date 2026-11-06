@@ -24,7 +24,9 @@ const d = (iso: string | null) => {
   return `${y}. ${MONTHS[m - 1]} ${day}.`
 }
 
-export function BookingsBoard({ bookings, filters, current }: { bookings: AdminBooking[]; filters: { key: string; label: string; count: number | null }[]; current: string }) {
+type Row = AdminBooking & { mail: { href: string; label: string } | null }
+
+export function BookingsBoard({ bookings, filters, current }: { bookings: Row[]; filters: { key: string; label: string; count: number | null }[]; current: string }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
     <div>
@@ -70,14 +72,14 @@ export function BookingsBoard({ bookings, filters, current }: { bookings: AdminB
   )
 }
 
-function BookingDetail({ b }: { b: AdminBooking }) {
+function BookingDetail({ b }: { b: Row }) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
 
   async function act(kind: 'confirmed' | 'cancelled' | 'delete') {
     if (kind === 'delete' && !window.confirm('Végleg törlöd ezt a tételt? A lefoglalt napok felszabadulnak.')) return
-    if (kind === 'cancelled' && !window.confirm('Lemondod a foglalást? A napok felszabadulnak.')) return
+    if (kind === 'cancelled' && !window.confirm(b.status === 'confirmed' ? 'Lemondod a visszaigazolt foglalást? A napok felszabadulnak.' : 'Elutasítod a kérelmet? A napok felszabadulnak.')) return
     setBusy(kind)
     setMsg(null)
     const r = kind === 'delete'
@@ -97,19 +99,26 @@ function BookingDetail({ b }: { b: AdminBooking }) {
         <div><dt className="text-muted">Beérkezett</dt><dd className="tnum">{b.createdAt.slice(0, 16).replace('T', ' ')}</dd></div>
         {b.notes && <div className="sm:col-span-2"><dt className="text-muted">Üzenet</dt><dd className="whitespace-pre-wrap">{b.notes}</dd></div>}
       </dl>
+      {b.status === 'pending' && (
+        <p className="mt-4 text-sm text-ink/80">Kérelem: a napok le vannak foglalva, de még nincs megállapodás. Ha a vendég vagy az időpont nem megfelelő, utasítsd el; különben igazold vissza, és küldd el a levelet.</p>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         {b.status !== 'confirmed' && b.status !== 'cancelled' && (
           <button type="button" className="btn btn-dark btn-sm" disabled={!!busy} onClick={() => act('confirmed')}>{busy === 'confirmed' ? '…' : 'Visszaigazolás'}</button>
         )}
         {b.status !== 'cancelled' && (
-          <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => act('cancelled')}>{busy === 'cancelled' ? '…' : 'Lemondás'}</button>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => act('cancelled')}>{busy === 'cancelled' ? '…' : b.status === 'confirmed' ? 'Lemondás' : 'Elutasítás'}</button>
         )}
         <button type="button" className="btn btn-ghost btn-sm !text-danger" disabled={!!busy} onClick={() => act('delete')}>{busy === 'delete' ? '…' : 'Törlés'}</button>
       </div>
-
+      {b.mail && (
+        <a href={b.mail.href} className="btn btn-dark btn-sm mt-3 inline-flex">
+          {b.mail.label} megírása <span aria-hidden="true">↗</span>
+        </a>
+      )}
       {msg && <p className="err mt-3" role="alert">{msg}</p>}
       <p className="mt-3 text-xs text-muted">
-        A webes foglalások automatikusan visszaigazolódnak; a vendég a kódjával online látja az állapotot és az előleg adatait. Lemondáskor a napok felszabadulnak, és a vendég a Foglalásom oldalon „Lemondva” állapotot lát.
+        A gomb a saját leveleződben nyit egy kész, a foglalás állapotához illő levelet (visszaigazoláskor a végösszeg és a helyszíni, készpénzes fizetés is benne van). Elküldés előtt átírhatod.
       </p>
     </div>
   )

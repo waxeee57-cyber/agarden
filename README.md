@@ -2,7 +2,7 @@
 
 Két önálló weboldal két, egyben bérelhető velencei vendégházhoz — **egy kódbázis,
 egy Vercel projekt, egy Neon Postgres, egy design-rendszer**. Online foglalási
-kérelem (nincs online fizetés), ajánlatkérés, tulajdonosi admin.
+kérelem (a tulaj hagyja jóvá; fizetés érkezéskor, a helyszínen, készpénzben), ajánlatkérés, tulajdonosi admin.
 
 | ház | domain | listing slug |
 |---|---|---|
@@ -28,7 +28,10 @@ kérelem (nincs online fizetés), ajánlatkérés, tulajdonosi admin.
   session süti (jose, 7 nap), hostonként külön. A session a host házára szól; a másik
   ház admin-API-ja 401-et ad. Login rate-limit DB-ből (IP + fiók).
 - **Fotók** — Vercel Blob; feltöltéskor `sharp` (≤1200 px, WebP, EXIF törölve) → `listing_photos`.
-- **Foglalás** — azonnali, automatikus visszaigazolás; a vendég a kódjával online látja az állapotot és az előleg adatait. A honlap nem küld e-mailt, külső szolgáltató nincs a foglalás útjában. Garanciák: `DEPLOY_CHECKLIST.md`.
+- **Foglalási modell** — kérelem-alapú: minden webes foglalás `pending` (a kliens nem kérhet `confirmed`-et), a napokat azonnal fenntartja (exclusion constraint), a tulaj az adminban **Visszaigazolás** / **Elutasítás**. Automatikus visszaigazolás nincs. Minden kérelem és döntés a `booking_events` naplóba kerül (DB-trigger, 19).
+- **Fizetés** — érkezéskor, a helyszínen, készpénzben. Előleg, átutalás, kártya, fizetési szolgáltató nincs; `listings.bank_account` a kódban sehol nem olvasott (20).
+- **E-mail** — a honlap nem küld levelet (nincs külső szolgáltató); a vendéglevelet (`lib/email/compose.ts` + `templates.ts`) az admin `mailto:` gombja a tulaj saját levelezőjében nyitja meg, az állapothoz illő kész szöveggel.
+- **iCal** — export `/api/ical/<token>`, import 3 óránként (`/api/cron/ical`). Ha egy külső naptár napja a mi kérelmünkkel/foglalásunkkal ütközik, nem írja felül, hanem `ical_feeds.conflicts`-ba rögzíti, és az admin sürgős teendőként mutatja (20).
 - **SEO** — hostonkénti `robots.txt`, `sitemap.xml`, canonical/`metadataBase`, OG-kép
   (`/brand/og`), favicon (`/brand/icon`), manifest, JSON-LD (LodgingBusiness, WebSite,
   BreadcrumbList, FAQPage) — csak tárolt tényekből.

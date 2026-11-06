@@ -1,11 +1,13 @@
+import { DOC_LABEL } from '@/lib/terms'
 import Link from 'next/link'
 import { requireAdminPage } from '@/lib/admin/guard'
-import { listBookings, bookingCounts, listMessages, getAdminSettings, getOpsAlerts, listEvents, FILTERS, type FilterKey } from '@/lib/admin/data'
+import { listBookings, bookingCounts, listMessages, getOpsAlerts, listEvents, FILTERS, type FilterKey } from '@/lib/admin/data'
 import { ActivityFeed } from '@/components/admin/ActivityFeed'
 import { getListing, getPhotos } from '@/lib/listing'
 import { BookingsBoard } from '@/components/admin/BookingsBoard'
 import { ManualBookingForm } from '@/components/admin/ManualBookingForm'
 import { MessagesBoard } from '@/components/admin/MessagesBoard'
+import { mailContext, guestMailFor } from '@/lib/email/compose'
 import { missingLegal } from '@/lib/legal'
 
 type Todo = { text: string; href: string; action: string; urgent?: boolean }
@@ -14,12 +16,11 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   const session = await requireAdminPage(params)
   const { szuro } = await searchParams
   const filter: FilterKey = szuro && szuro in FILTERS ? (szuro as FilterKey) : 'uj'
-  const [bookings, counts, listing, messages, settings, ops, events] = await Promise.all([
+  const [bookings, counts, listing, messages, ops, events] = await Promise.all([
     listBookings(session.listingId, filter),
     bookingCounts(session.listingId),
     getListing(session.site),
     listMessages(session.listingId),
-    getAdminSettings(session.listingId),
     getOpsAlerts(session.listingId),
     listEvents(session.listingId),
   ])
@@ -36,12 +37,15 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   if (fresh) todos.push({ text: `${fresh} új foglalási kérelem vagy ajánlatkérés vár válaszra.`, href: '/admin?szuro=uj#foglalasok', action: 'Megnézem', urgent: true })
   const unread = messages.filter((m) => !m.handled).length
   if (unread) todos.push({ text: `${unread} megválaszolatlan üzenet a Kapcsolat oldalról.`, href: '#uzenetek', action: 'Elolvasom', urgent: true })
-  if (settings?.terms.depositPct && !settings.bankAccount) todos.push({ text: 'Nincs megadva bankszámlaszám az előleghez: a visszaigazoló levélben most „egyeztetjük” áll.', href: '/admin/adatok', action: 'Megadom' })
+  for (const c of ops.icalConflicts) todos.push({ text: `Ütközés: a(z) ${c.label} naptár ${c.from} – ${c.to} között foglalt, de ugyanerre ${c.code ? `a(z) ${c.code} kódú ${c.status === 'confirmed' ? 'visszaigazolt foglalás' : 'foglalási kérelem'}` : 'egy kézi blokk'} is szól. ${c.status === 'pending' ? 'Ne igazold vissza, amíg nem tisztáztad.' : 'Egyeztess a vendéggel / a portállal.'}`, href: c.code ? '/admin?szuro=mind#foglalasok' : '/admin/naptar', action: 'Megnézem', urgent: true })
+  if (ops.depositDocs.length) todos.push({ text: `A(z) ${ops.depositDocs.map((k) => DOC_LABEL[k]).join(', ')} szövege még előleget említ, a foglalás viszont helyszíni, készpénzes fizetéssel megy. Igazítsd a saját feltételeidhez.`, href: `/admin/szovegek?doc=${ops.depositDocs[0]}`, action: 'Átírom' })
   const missing = listing ? missingLegal(listing.legal, listing).length : 0
   if (missing) todos.push({ text: `${missing} üzemeltetői adat hiányzik a generált jogi oldalakból.`, href: '/admin/adatok', action: 'Kitöltöm' })
   const noAlt = photos.filter((p) => !p.alt.trim()).length
   if (noAlt) todos.push({ text: `${noAlt} fotónak nincs leírása.`, href: '/admin/fotok', action: 'Pótolom' })
   for (const f of ops.feedErrors) todos.push({ text: `A(z) ${f.label} naptár legutóbbi frissítése nem sikerült (${f.error}). A korábban beolvasott napok érvényben maradnak.`, href: '/admin/naptar', action: 'Megnézem', urgent: true })
+  const mctx = await mailContext(session.site, session.listingId)
+  const withMail = bookings.map((b) => ({ ...b, mail: mctx ? guestMailFor(mctx, b) : null }))
 
   return (
     <div className="space-y-10">
@@ -63,7 +67,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
 
       <section aria-labelledby="feed-title" className="card p-5 md:p-6">
         <h2 id="feed-title" className="text-2xl">Események</h2>
-        <p className="mt-1 text-sm text-muted">A rendszer minden foglalást automatikusan visszaigazol; itt látod, mi történt. A vendég a foglalási kódjával online látja a saját állapotát és az előleg adatait.</p>
+        <p className="mt-1 text-sm text-muted">Minden foglalási kérés, döntés és törlés automatikusan naplózódik.</p>
         <ActivityFeed events={events} />
       </section>
 
@@ -75,7 +79,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
           </div>
           <ManualBookingForm maxGuests={(listing?.capacityMax ?? 1) + (listing?.capacityExtra ?? 0)} />
         </div>
-        <BookingsBoard bookings={bookings} filters={filters} current={filter} />
+        <BookingsBoard bookings={withMail} filters={filters} current={filter} />
       </section>
 
       <section id="uzenetek" aria-labelledby="uz-title" className="scroll-mt-4">

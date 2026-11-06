@@ -5,15 +5,13 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { fmtDay, parseISO } from './Calendar'
 import { formatHuf } from '@/lib/format'
-import type { PaymentInfo } from '@/lib/booking'
-import { PaymentBlock } from './PaymentBlock'
 import { telHref } from '@/lib/brand'
 
-type Found = { code: string; status: string; checkIn: string | null; checkOut: string | null; nights: number | null; guests: number | null; children: number; pet: boolean; isEvent: boolean; total: number | null; createdAt: string; payment: PaymentInfo | null }
+type Found = { code: string; status: string; checkIn: string | null; checkOut: string | null; nights: number | null; guests: number | null; children: number; pet: boolean; isEvent: boolean; total: number | null; createdAt: string }
 
 const STATUS: Record<string, { label: string; tone: string; text: string }> = {
-  pending: { label: 'Visszaigazolásra vár', tone: 'bg-[#FFF4E0] text-[#8A5A00]', text: 'A dátumokat fenntartjuk Önnek.' },
-  confirmed: { label: 'Visszaigazolva', tone: 'bg-[#E6F4EA] text-[#1E6B34]', text: 'A foglalás érvényes, a ház a megadott napokra az Öné. Szeretettel várjuk!' },
+  pending: { label: 'Visszaigazolásra vár', tone: 'bg-[#FFF4E0] text-[#8A5A00]', text: 'Megkaptuk a kérését, a dátumokat fenntartjuk. Hamarosan e-mailben visszaigazoljuk.' },
+  confirmed: { label: 'Visszaigazolva', tone: 'bg-[#E6F4EA] text-[#1E6B34]', text: 'A foglalás érvényes. Szeretettel várjuk!' },
   cancelled: { label: 'Lemondva', tone: 'bg-[#FDECEA] text-[#A3271E]', text: 'Ez a foglalás le van mondva. Kérdés esetén hívjon minket.' },
   quote_request: { label: 'Ajánlatkérés', tone: 'bg-[#E8EEF1] text-[#3A525D]', text: 'Ajánlatkérését rögzítettük; a részletekkel e-mailben vagy telefonon jelentkezünk.' },
 }
@@ -77,7 +75,6 @@ export function BookingLookup({ phone }: { phone: string }) {
               {found.guests != null && <Row dt="Vendégek" dd={`${found.guests} fő${found.children ? ` (ebből ${found.children} gyerek)` : ''}${found.pet ? ', kisállattal' : ''}${found.isEvent ? ', rendezvény' : ''}`} />}
               {found.total != null && <Row dt="Tájékoztató végösszeg" dd={formatHuf(found.total)} />}
             </dl>
-            {found.status === 'confirmed' && found.payment && <PaymentBlock p={found.payment} phone={phone} />}
             <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
               <a href={telHref(phone)} className="btn btn-line">Kérdésem van</a>
               <Link href="/foglalas" className="btn btn-act">Új foglalás</Link>

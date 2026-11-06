@@ -183,35 +183,8 @@ async function setChildren(bookingId: string, children: number): Promise<void> {
   }
 }
 
-/** What the guest needs to pay the deposit. Shown ONLY to the guest who made
- *  the booking: in the booking response and behind code + e-mail. Never on a
- *  public page, never cached. Unknown parts are null, never invented. */
-export type PaymentInfo = { depositPct: number | null; depositAmount: number | null; bankAccount: string | null; beneficiary: string | null; reference: string; cancelDays: number | null }
-
-export async function paymentInfo(listingId: string, bookingId: string, total: number | null): Promise<PaymentInfo | null> {
-  try {
-    const l = await queryOne<{ terms: Record<string, unknown> | null; bank_account: string | null; legal: Record<string, unknown> | null }>(
-      'select terms, bank_account, legal from listings where id = $1', [listingId])
-    if (!l) return null
-    const pct = Number(l.terms?.deposit_pct) || null
-    const cancel = l.terms?.cancel_days == null ? null : Number(l.terms.cancel_days)
-    return {
-      depositPct: pct,
-      depositAmount: pct && total ? Math.round((total * pct) / 100 / 100) * 100 : null,
-      bankAccount: l.bank_account?.trim() || null,
-      beneficiary: typeof l.legal?.operatorName === 'string' && l.legal.operatorName.trim() ? l.legal.operatorName.trim() : null,
-      reference: bookingId.slice(0, 8).toUpperCase(),
-      cancelDays: Number.isFinite(cancel) ? cancel : null,
-    }
-  } catch (e) {
-    // never fail the booking over the payment block; the guest can look it up later
-    console.error('[booking] paymentInfo failed', (e as Error).message)
-    return null
-  }
-}
-
 export type LookupResult =
-  | { ok: true; booking: { code: string; status: string; checkIn: string | null; checkOut: string | null; nights: number | null; guests: number | null; children: number; pet: boolean; isEvent: boolean; total: number | null; createdAt: string; payment: PaymentInfo | null } }
+  | { ok: true; booking: { code: string; status: string; checkIn: string | null; checkOut: string | null; nights: number | null; guests: number | null; children: number; pet: boolean; isEvent: boolean; total: number | null; createdAt: string } }
   | { ok: false; reason: 'validation_error' | 'not_found' | 'unknown' }
 
 /** "Foglalásom": a guest's own booking by code + e-mail. Same answer for a
@@ -229,8 +202,7 @@ export async function lookupBooking(listingId: string, input: LookupInput): Prom
       [listingId, code, email]
     )
     if (!row) return { ok: false, reason: 'not_found' }
-    const payment = row.status === 'confirmed' ? await paymentInfo(listingId, row.id, row.total_huf) : null
-    return { ok: true, booking: { code: row.id.slice(0, 8).toUpperCase(), status: row.status, checkIn: row.check_in, checkOut: row.check_out, nights: row.nights, guests: row.guests_count, children: row.children_count ?? 0, pet: row.pet, isEvent: row.is_event, total: row.total_huf, createdAt: row.created_at, payment } }
+    return { ok: true, booking: { code: row.id.slice(0, 8).toUpperCase(), status: row.status, checkIn: row.check_in, checkOut: row.check_out, nights: row.nights, guests: row.guests_count, children: row.children_count ?? 0, pet: row.pet, isEvent: row.is_event, total: row.total_huf, createdAt: row.created_at } }
   } catch (e) {
     console.error('[booking] lookup failed', (e as Error).message)
     return { ok: false, reason: 'unknown' }

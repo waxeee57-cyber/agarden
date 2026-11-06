@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const desc = [
     code ? `Foglalási kód: ${code}` : null,
-    'Visszaigazolt foglalás. Állapot és előleg: Foglalásom oldal, a foglalási kóddal.',
+    'Foglalási kérelem – a visszaigazolást e-mailben küldjük.',
     listing?.checkinWindow ? `Érkezés: ${listing.checkinWindow}` : null,
     listing?.checkoutTime ? `Távozás: ${listing.checkoutTime}` : null,
     `Telefon: ${phone}`,

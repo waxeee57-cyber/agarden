@@ -189,20 +189,20 @@ async function run() {
     assert.equal(left.n, 0)
   })
 
-  await t('garden facts (09): address, rooms, social, 20% deposit; bank account empty', async () => {
+  await t('garden facts (09): address, rooms, social, cash on site (20: no deposit); bank account empty', async () => {
     const g = await one('select address, bedrooms, bathrooms, open_all_year, social, terms, bank_account, checkin_window from listings where slug = $1', ['velence'])
     assert.equal(g.address, '2481 Velence, Szabolcsi út 83/B.')
     assert.deepEqual([g.bedrooms, g.bathrooms, g.open_all_year], [4, 2, true])
     assert.equal(g.social.instagram, 'https://www.instagram.com/garden_vendeghaz_velence/')
     assert.equal(g.social.tiktok, undefined, 'no TikTok URL is known')
-    assert.deepEqual([g.terms.deposit_pct, g.terms.cancel_days, g.terms.confirm_hours, g.terms.quote_valid_days], [20, 30, 24, 4])
+    assert.deepEqual([g.terms.deposit_pct, g.terms.cancel_days, g.terms.confirm_hours, g.terms.quote_valid_days], [undefined, 30, 24, 4])
     assert.equal(g.bank_account, null)
     const docs = await q("select kind from listing_documents d join listings l on l.id = d.listing_id where l.slug = 'velence' order by kind")
     assert.deepEqual(docs.map((d) => d.kind), ['adatvedelem', 'aszf', 'gyik', 'hazirend', 'kornyek'])
     const hr = await one("select body from listing_documents where listing_id = $1 and kind = 'hazirend'", [VELENCE])
     assert.ok(hr.body.includes('A szállást az érkezés napján 14:00-tól lehet elfoglalni.'), 'verbatim webnode text')
     const faq = await one("select body from listing_documents where listing_id = $1 and kind = 'gyik'", [VELENCE])
-    assert.ok(!/fizetés a helyszínen történik/.test(faq.body) && faq.body.includes('20%'), 'no "pay on site only" wording for Garden')
+    assert.ok(!faq.body.includes('20%') && faq.body.includes('Előleget nem kérünk'), 'seeded FAQ answer moved to cash on site')
   })
 
   await t('document versions: newest 20 kept, restore = new version', async () => {

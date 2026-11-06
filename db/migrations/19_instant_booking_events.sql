@@ -1,7 +1,7 @@
--- 19_instant_booking_events — instant confirmation + a tamper-proof audit trail.
---
--- Web bookings are confirmed on the spot (the app passes status 'confirmed';
--- book_listing already validates dates, min nights and overlap atomically).
+-- 19_instant_booking_events — a tamper-proof booking audit trail.
+-- (Already applied in production under this name; the instant-confirmation
+-- idea was dropped afterwards — web bookings stay 'pending' for the owner's
+-- review. Only the audit trail remains.)
 -- booking_events is written by TRIGGERS, so every path — web, admin, manual,
 -- quote request, delete — is recorded without any code having to remember it.
 

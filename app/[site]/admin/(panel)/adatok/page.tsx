@@ -12,7 +12,7 @@ export default async function AdminLegal({ params }: { params: Promise<{ site: s
     <div className="space-y-12">
       <section>
         <h1 className="text-3xl">Adatok és beállítások</h1>
-        <p className="mb-6 mt-2 max-w-3xl text-muted">Közösségi linkek, menüpontok, előleg és lemondás. Mentés után azonnal élesben.</p>
+        <p className="mb-6 mt-2 max-w-3xl text-muted">Közösségi linkek, menüpontok, lemondás és visszaigazolási határidő. Mentés után azonnal élesben.</p>
         <SettingsForm initial={settings} />
       </section>
       <section>

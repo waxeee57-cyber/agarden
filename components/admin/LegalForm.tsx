@@ -84,7 +84,7 @@ export function LegalForm({ listing }: { listing: AdminListing }) {
         <legend className="px-1 text-lg font-semibold">3. Fizetés és lemondás</legend>
         <div className="field">
           <label htmlFor="l-pay">Fizetés, kaució, idegenforgalmi adó (soronként egy pont)</label>
-          <textarea id="l-pay" className="input" rows={5} value={f.paymentTerms} onChange={set('paymentTerms')} maxLength={2000} placeholder={'Példa:\nA teljes összeg érkezéskor fizetendő, készpénzben vagy átutalással.\nKaució: … Ft, távozáskor visszajár.\nIdegenforgalmi adó: … Ft / fő / éj (18 év felett).'} />
+          <textarea id="l-pay" className="input" rows={5} value={f.paymentTerms} onChange={set('paymentTerms')} maxLength={2000} placeholder={'Példa:\nA teljes összeg érkezéskor, a helyszínen, készpénzben fizetendő.\nKaució: … Ft, távozáskor visszajár.\nIdegenforgalmi adó: … Ft / fő / éj (18 év felett).'} />
         </div>
         <div className="field">
           <label htmlFor="l-cancel">Lemondási feltételek (soronként egy pont)</label>

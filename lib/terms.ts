@@ -3,7 +3,7 @@
 
 export type Terms = {
   confirmHours: number | null
-  depositPct: number | null
+  /** free cancellation until this many days before arrival (nothing is prepaid) */
   cancelDays: number | null
   quoteValidDays: number | null
   extraCosts: string[]
@@ -17,7 +17,6 @@ export function termsFromDb(raw: unknown): Terms {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   return {
     confirmHours: int(r.confirm_hours, 1, 168),
-    depositPct: int(r.deposit_pct, 1, 100),
     cancelDays: int(r.cancel_days, 0, 365),
     quoteValidDays: int(r.quote_valid_days, 1, 60),
     extraCosts: Array.isArray(r.extra_costs) ? r.extra_costs.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [],
@@ -27,7 +26,6 @@ export function termsFromDb(raw: unknown): Terms {
 export function termsToDb(t: Terms) {
   return {
     ...(t.confirmHours != null ? { confirm_hours: t.confirmHours } : {}),
-    ...(t.depositPct != null ? { deposit_pct: t.depositPct } : {}),
     ...(t.cancelDays != null ? { cancel_days: t.cancelDays } : {}),
     ...(t.quoteValidDays != null ? { quote_valid_days: t.quoteValidDays } : {}),
     extra_costs: t.extraCosts,
@@ -40,11 +38,11 @@ export function settingsFromDb(raw: unknown): SiteSettings {
   return { menuGyik: r.menu_gyik !== false, menuKornyek: r.menu_kornyek !== false }
 }
 
-/** One sentence for the booking flow / FAQ; null when no deposit is set. */
-export function depositLine(t: Terms): string | null {
-  if (t.depositPct == null) return null
-  const cancel = t.cancelDays != null ? `, ${t.cancelDays} napon túli lemondásnál visszajár` : ''
-  return `A foglalás a szállásdíj ${t.depositPct}%-ának átutalásával válik véglegessé${cancel}.`
+/** Payment model (fixed): request → owner confirms by e-mail → cash on site.
+ *  No deposit, no transfer, no card. One sentence for the booking flow. */
+export function paymentLine(t: Terms): string {
+  const cancel = t.cancelDays != null ? ` Lemondani érkezés előtt ${t.cancelDays} napig díjmentesen lehet.` : ''
+  return `Előleget nem kérünk: a szállásdíjat érkezéskor, a helyszínen, készpénzben kell kiegyenlíteni.${cancel}`
 }
 
 export const DOC_KINDS = ['hazirend', 'aszf', 'gyik', 'kornyek', 'adatvedelem'] as const

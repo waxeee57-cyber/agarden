@@ -228,20 +228,21 @@ async function main() {
     assert.equal(normalizeSocial('facebook', 'https://www.instagram.com/x'), null)
     assert.equal(normalizeSocial('tiktok', 'https://tiktok.com'), null, 'bare domain is not a profile')
     assert.equal(normalizeSocial('facebook', 'https://facebook.com.evil.example/x'), null)
-    const base = { menuGyik: true, menuKornyek: true, depositPct: 20, cancelDays: 30, confirmHours: 24, quoteValidDays: 4, extraCosts: [], bankAccount: '' }
+    const base = { menuGyik: true, menuKornyek: true, cancelDays: 30, confirmHours: 24, quoteValidDays: 4, extraCosts: [] }
     assert.deepEqual(await actions.saveSettings(garden, { ...base, social: { facebook: 'https://www.instagram.com/x' } }), { ok: false, reason: 'invalid_social', fields: ['social.facebook'] })
     assert.deepEqual(await actions.saveSettings(garden, { ...base, social: { facebook: 'facebook.com/gardenvendeghazvelence/', tiktok: '' } }), { ok: true })
     const l = (await getListing('velence'))!
     assert.deepEqual(l.social, { facebook: 'https://facebook.com/gardenvendeghazvelence/' })
   })
 
-  await t('bank account: saved for the e-mail, never part of the public listing data', async () => {
-    const base = { social: {}, menuGyik: true, menuKornyek: true, depositPct: 20, cancelDays: 30, confirmHours: 24, quoteValidDays: 4, extraCosts: [] }
-    assert.equal((await actions.saveSettings(garden, { ...base, bankAccount: '<script>' })).ok, false)
-    assert.deepEqual(await actions.saveSettings(garden, { ...base, bankAccount: '11773000-00000000-00000000' }), { ok: true })
-    const { getListing: fresh } = await import('../lib/listing')
-    const pub = JSON.stringify(await fresh('velence'))
-    assert.ok(!pub.includes('11773000'), 'bank account must not reach any public page')
+  await t('cash on site: no deposit/bank setting is stored, old clients cannot sneak one in', async () => {
+    const base = { social: {}, menuGyik: true, menuKornyek: true, cancelDays: 30, confirmHours: 24, quoteValidDays: 4, extraCosts: [] }
+    assert.deepEqual(await actions.saveSettings(garden, { ...base, depositPct: 20, bankAccount: '11773000-00000000-00000000' }), { ok: true })
+    const [row] = await query<{ terms: Record<string, unknown>; bank_account: string | null }>('select terms, bank_account from listings where id = $1', [garden])
+    assert.ok(!('deposit_pct' in row!.terms), 'no deposit stored')
+    assert.notEqual(row!.bank_account, '11773000-00000000-00000000', 'no bank account stored')
+    const { paymentLine, termsFromDb } = await import('../lib/terms')
+    assert.match(paymentLine(termsFromDb(row!.terms)), /helyszínen, készpénzben.*30 napig díjmentesen/)
   })
 
   await t('menu toggle: GYIK hidden when switched off or empty; Környék needs text', async () => {
@@ -250,7 +251,7 @@ async function main() {
     assert.deepEqual(labels({ menuGyik: true, menuKornyek: true }, docs), ['A ház', 'Foglalás', 'Képek', 'Házirend', 'ÁSZF', 'Kapcsolat', 'Foglalásom', 'GYIK', 'Testvérházunk'])
     assert.ok(!labels({ menuGyik: false, menuKornyek: true }, docs).includes('GYIK'))
     assert.ok(labels({ menuGyik: true, menuKornyek: true }, { ...docs, kornyek: {} }).includes('Környék & programok'))
-    const base = { social: {}, menuKornyek: true, depositPct: null, cancelDays: null, confirmHours: null, quoteValidDays: null, extraCosts: [], bankAccount: '' }
+    const base = { social: {}, menuKornyek: true, cancelDays: null, confirmHours: null, quoteValidDays: null, extraCosts: [] }
     assert.deepEqual(await actions.saveSettings(napsugar, { ...base, menuGyik: false }), { ok: true })
     assert.equal((await getListing('napsugar'))!.settings.menuGyik, false)
   })
@@ -338,9 +339,17 @@ async function main() {
     const url = `http://127.0.0.1:${(srv.address() as { port: number }).port}/cal.ics`
     const feed = (await query<{ id: string; listing_id: string; url: string }>(`insert into ical_feeds (listing_id, label, url) values ($1, 'Airbnb', 'https://x.invalid/a.ics') returning id, listing_id, $2::text as url`, [napsugar, url]))[0]
     const r1 = await ical.syncFeed(feed)
-    assert.deepEqual(r1, { ok: true, count: 2 })
+    assert.equal(r1.ok, true); assert.equal(r1.count, 2)
+    // the skipped range is recorded as a clash with OUR pending request, not dropped silently
+    assert.equal(r1.conflicts?.length, 1)
+    assert.deepEqual({ ...r1.conflicts![0], code: undefined }, { from: '2028-03-01', to: '2028-03-04', code: undefined, status: 'pending', kind: 'booking' })
+    assert.match(r1.conflicts![0].code!, /^[0-9A-F]{8}$/)
     const r2 = await ical.syncFeed(feed) // idempotent: replaces its own rows
-    assert.deepEqual(r2, { ok: true, count: 2 })
+    assert.equal(r2.count, 2); assert.equal(r2.conflicts?.length, 1)
+    const { getOpsAlerts } = await import('../lib/admin/data')
+    const ops = await getOpsAlerts(napsugar)
+    assert.equal(ops.icalConflicts.length, 1, 'admin sees the clash')
+    assert.equal(ops.icalConflicts[0].label, 'Airbnb')
     srv.close()
     const ext = await query<{ during: string }>(`select during::text from occupancy where feed_id = $1 order by during`, [feed.id])
     assert.deepEqual(ext.map((x) => x.during), ['[2028-03-10,2028-03-12)', '[2028-04-01,2028-04-02)'])
@@ -379,48 +388,43 @@ async function main() {
     assert.equal(first.done, true); assert.equal(second.skipped, 'throttled')
   })
 
-  await t('instant booking: confirmed on the spot via the public API, payment details only for the booker, audit trail by trigger', async () => {
+  await t('request-based: a web booking is always a pending request (never auto-confirmed), logged for the owner', async () => {
     const { POST } = await import('../app/api/booking/route')
-    await query("update listings set bank_account = '11773000-11111111-22222222', nightly_rate_huf = 50000, pricing_mode = 'fixed', terms = coalesce(terms,'{}'::jsonb) || '{\"deposit_pct\": 20, \"cancel_days\": 30}'::jsonb where id = $1", [garden])
-    const res = await POST(new NextRequest('https://garden.test/api/booking', { method: 'POST', headers: { host: 'garden.test', origin: 'https://garden.test', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.9' },
-      body: JSON.stringify({ checkIn: '2027-10-04', checkOut: '2027-10-07', guests: 4, guestName: 'Azonnali Anna', guestEmail: 'aa@example.com' }) }))
-    const data = await res.json()
-    assert.equal(res.status, 200, JSON.stringify(data))
-    assert.equal(data.status, 'confirmed')
-    assert.equal(res.headers.get('cache-control'), 'no-store')
-    assert.deepEqual(data.payment, { depositPct: 20, depositAmount: 30000, bankAccount: '11773000-11111111-22222222', beneficiary: data.payment.beneficiary, reference: data.bookingId.slice(0, 8).toUpperCase(), cancelDays: 30 })
-    const row = (await query<{ status: string }>('select status from bookings where id = $1', [data.bookingId]))[0]
-    assert.equal(row.status, 'confirmed', 'no owner action needed')
-    // lookup: payment only with the right code + e-mail
-    const hit = await booking.lookupBooking(garden, { code: data.bookingId.slice(0, 8), email: 'AA@example.com' })
-    assert.ok(hit.ok && hit.booking.payment?.bankAccount === '11773000-11111111-22222222')
-    assert.deepEqual(await booking.lookupBooking(garden, { code: data.bookingId.slice(0, 8), email: 'x@example.com' }), { ok: false, reason: 'not_found' })
-    // public listing data never carries the account
-    assert.ok(!JSON.stringify(await getListing('velence')).includes('11773000'))
-    // audit trail: written by the DB, whatever the code path
-    const actions = await import('../lib/admin/actions')
-    const s = { site: 'velence', listingId: garden } as never
-    await actions.setBookingStatus(s, data.bookingId, 'cancelled')
-    await actions.deleteBooking(s, data.bookingId)
-    const ev = await query<{ event: string }>(`select event from booking_events where listing_id = $1 and detail->>'code' = $2 order by id`, [garden, data.bookingId.slice(0, 8).toUpperCase()])
-    assert.deepEqual(ev.map((e) => e.event), ['auto_confirmed', 'cancelled', 'deleted'])
-    await query("update listings set nightly_rate_huf = null, pricing_mode = 'quote' where id = $1", [garden])
+    const body = { guestName: 'Kérelem Teszt', guestEmail: 'kerelem@example.com', guests: 2, checkIn: '2027-11-10', checkOut: '2027-11-13', status: 'confirmed' }
+    const res = await POST(new NextRequest('https://napsugar.test/api/booking', { method: 'POST', body: JSON.stringify(body), headers: { host: 'napsugar.test', origin: 'https://napsugar.test', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.9' } }))
+    const j = await res.json()
+    assert.equal(res.status, 200, JSON.stringify(j)); assert.equal(j.ok, true)
+    const [b] = await query<{ status: string }>('select status from bookings where id = $1', [j.bookingId])
+    assert.equal(b.status, 'pending', 'client cannot ask for confirmed')
+    const ev = await query<{ event: string }>('select event from booking_events where booking_id = $1', [j.bookingId])
+    assert.deepEqual(ev.map((e) => e.event), ['created'])
+    // the days are held: a second request for the same nights is refused
+    const again = await booking.createBooking(napsugar, { ...body, guestEmail: 'masik@example.com' })
+    assert.equal(again.ok, false)
   })
 
-  await t('concurrency: five simultaneous bookings of the same nights -> exactly one wins, the rest get "overlap", no double occupancy', async () => {
-    const tries = await Promise.all(Array.from({ length: 5 }, (_, k) => booking.createBooking(napsugar, { guestName: `Verseny ${k}`, guestEmail: `v${k}@example.com`, guests: 2, checkIn: '2027-11-08', checkOut: '2027-11-11' }, { status: 'confirmed' })))
-    assert.equal(tries.filter((r) => r.ok).length, 1)
-    assert.ok(tries.filter((r) => !r.ok).every((r) => r.reason === 'overlap'))
-    const occ = await query<{ n: number }>(`select count(*)::int as n from occupancy where listing_id = $1 and during && daterange('2027-11-08','2027-11-11')`, [napsugar])
-    assert.equal(occ[0].n, 1)
-  })
-
-  await t('quote-mode house: still confirmed instantly; deposit shown as a percentage, never an invented amount', async () => {
-    const b = await booking.createBooking(napsugar, { guestName: 'Ár Nélkül', guestEmail: 'an@example.com', guests: 2, checkIn: '2027-12-06', checkOut: '2027-12-09' }, { status: 'confirmed' })
-    assert.ok(b.ok)
-    const p = (await booking.paymentInfo(napsugar, b.bookingId!, b.total ?? null))!
-    assert.equal(p.depositAmount, null)
-    assert.equal(p.reference, b.bookingId!.slice(0, 8).toUpperCase())
+  await t('self-contained mail: no sender module; admin gets a ready mailto per booking state; cash on site, never a bank account', async () => {
+    const fs = await import('node:fs')
+    assert.ok(!fs.existsSync(new URL('../lib/email/send.ts', import.meta.url)), 'no outbound sender')
+    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    assert.ok(!pkg.dependencies?.nodemailer && !pkg.dependencies?.resend, 'no mail dependency')
+    const { mailContext, guestMailFor } = await import('../lib/email/compose')
+    // even a legacy account number / deposit key left in the DB must not leak into any letter
+    await query("update listings set bank_account = '11773000-11111111-22222222', terms = jsonb_set(coalesce(terms,'{}'::jsonb), '{deposit_pct}', '20') where id = $1", [garden])
+    const ctx = (await mailContext('velence', garden))!
+    const base = { id: '00000000-0000-4000-8000-0000000000ab', source: 'web' as const, guestName: 'Kiss Anna', guestEmail: 'anna@example.com', guestPhone: null, checkIn: '2027-07-01', checkOut: '2027-07-04', nights: 3, guests: 4, children: 1, pet: false, isEvent: false, total: null, notes: null, createdAt: '' }
+    const conf = guestMailFor(ctx, { ...base, status: 'confirmed' })
+    assert.equal(conf.label, 'Visszaigazoló e-mail')
+    assert.match(conf.href, /^mailto:anna%40example\.com\?subject=/)
+    const body = decodeURIComponent(conf.href.split('&body=')[1])
+    assert.match(body, /Kedves Kiss Anna/)
+    assert.match(body, /Fizetés érkezéskor, a helyszínen, készpénzben/)
+    assert.ok(!/11773000|Számlaszám|átutal/i.test(body), 'no bank details, no transfer request')
+    const pend = decodeURIComponent(guestMailFor(ctx, { ...base, status: 'pending' }).href.split('&body=')[1])
+    assert.match(pend, /Előleget nem kérünk/)
+    assert.ok(!/11773000|Számlaszám/.test(pend))
+    await query("update listings set bank_account = null, terms = terms - 'deposit_pct' where id = $1", [garden])
+    assert.equal(guestMailFor(ctx, { ...base, status: 'cancelled' }).label, 'Lemondó e-mail')
   })
 
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {
