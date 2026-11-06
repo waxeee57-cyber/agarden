@@ -4,6 +4,22 @@ A rendszer havi működési költsége 0 Ft (a már meglévő Vercel Pro előfiz
 Vercel (tárhely), Neon Postgres ingyenes csomag (adatbázis), Gmail SMTP (e-mail), OpenStreetMap (térkép), iCal (naptár-szinkron).
 Az alábbi lépéseket csak a tulajdonos (vagy Roli) tudja elvégezni, mert fiókhoz/jelszóhoz kötöttek.
 
+## Állapot (2026-11-06)
+
+| Elem | Állapot |
+|---|---|
+| Tárhely, adatbázis, migrációk (1–17), deploy | ✅ automatikusan kész, élesben |
+| `CRON_SECRET` + 3 óránkénti naptár-szinkron | ✅ beállítva a Vercelben (Production); titok nélkül is biztonságosan fut (10 perces globális korlát) |
+| Adatvédelmi oldal: Google (Gmail) adatfeldolgozó, Resend nincs | ✅ élesben ellenőrizve mindkét házon |
+| E-mail küldés | ⏳ **egy hitelesítő adat kell** (1–2. lépés) – ingyenes, hitelesítés nélküli levélküldés nincs: a nyílt relay-eket minden levelezőrendszer spamként dobja |
+| Árak, szezonok | ⏳ **a tulaj számai kellenek** (3. lépés) – sehol nincs nyilvános listaár; kitalált ár nem kerül ki (a vendég felé ajánlatnak minősülne). Addig a foglaló „egyedi ajánlatot” mutat, foglalni így is lehet |
+| Adatfeldolgozói jóváhagyás | ⏳ **a tulaj nyilatkozata** (4. lépés) – adatkezelői jognyilatkozat, más nem teheti meg helyette; addig az oldalon „pótlásra vár” |
+
+E-mail két ingyenes út közül választható (bármelyik elég, a kód mindkettőt kezeli):
+- **Gmail** – a ház fiókjában 2FA + alkalmazásjelszó (1. lépés), vagy
+- **Brevo** (napi 300 levél, 2FA nélkül) – Brevo-fiók, a feladó e-mail megerősítése egy kattintással, majd
+  `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_USER`/`SMTP_PASSWORD` = Brevo SMTP adatok, `EMAIL_ENABLED=true`.
+
 ## 1. Gmail: kétlépcsős azonosítás + alkalmazásjelszó (≈5 perc)
 
 A levelek a ház saját Gmail-fiókjából mennek ki (gardenvendeghazvelence@gmail.com).
@@ -27,7 +43,7 @@ Vercel → `agarden` projekt → **Settings → Environment Variables** → kör
 | `SMTP_USER` | `gardenvendeghazvelence@gmail.com` | Plain |
 | `SMTP_PASSWORD` | az 1. lépés alkalmazásjelszava | **Sensitive** |
 | `SMTP_USER_NAPSUGAR` / `SMTP_PASSWORD_NAPSUGAR` | csak ha a Napsugárnak külön fiókja van | Plain / **Sensitive** |
-| `CRON_SECRET` | legalább 32 véletlen karakter (pl. `openssl rand -hex 32`) | **Sensitive** |
+| `CRON_SECRET` | ✅ már beállítva | **Sensitive** |
 
 A régi `RESEND_API_KEY` és `EMAIL_FROM` törölhető (a rendszer már nem használja).
 Mentés után: **Deployments → legutóbbi Production → Redeploy** (a változók csak új deployban élnek).

@@ -418,6 +418,18 @@ async function main() {
     for (const k of ['EMAIL_ENABLED', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_HOST', 'SMTP_PORT']) delete process.env[k]
   })
 
+  await t('cron: with CRON_SECRET only the bearer passes; without it, at most one run per 10 minutes', async () => {
+    const { GET } = await import('../app/api/cron/ical/route')
+    const call = (auth?: string) => GET(new NextRequest('https://garden.test/api/cron/ical', { headers: { host: 'garden.test', ...(auth ? { authorization: auth } : {}) } }))
+    process.env.CRON_SECRET = 'x'.repeat(40)
+    assert.equal((await call()).status, 401)
+    assert.equal((await call('Bearer nope')).status, 401)
+    assert.equal((await call(`Bearer ${'x'.repeat(40)}`)).status, 200)
+    delete process.env.CRON_SECRET
+    const first = await (await call()).json(); const second = await (await call()).json()
+    assert.equal(first.done, true); assert.equal(second.skipped, 'throttled')
+  })
+
   await t('new admin endpoints: no session -> 401; Garden session on Napsugár host -> 401', async () => {
     for (const path of ['/api/admin/documents', '/api/admin/documents/restore', '/api/admin/settings', '/api/admin/messages/x']) {
       const r = await auth.requireAdminApi(req('garden.test', path, { method: 'PUT', origin: 'https://garden.test' }))
