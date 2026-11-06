@@ -26,6 +26,8 @@ export type AdminBooking = {
   total: number | null
   notes: string | null
   createdAt: string
+  /** when the owner marked the guest letter as sent; null = not marked */
+  notifiedAt: string | null
 }
 
 export const FILTERS = {
@@ -40,11 +42,12 @@ export async function listBookings(listingId: string, filter: FilterKey): Promis
   const rows = await query<{
     id: string; status: BookingStatus; source: 'web' | 'manual'; guest_name: string; guest_email: string; guest_phone: string | null
     check_in: string | null; check_out: string | null; nights: number | null; guests_count: number | null; children_count: number
-    pet: boolean; is_event: boolean; total_huf: number | null; notes: string | null; created_at: string
+    pet: boolean; is_event: boolean; total_huf: number | null; notes: string | null; created_at: string; notified_at: string | null
   }>(
     `select id, status, source, guest_name, guest_email, guest_phone,
             to_char(check_in, 'YYYY-MM-DD') as check_in, to_char(check_out, 'YYYY-MM-DD') as check_out,
-            nights, guests_count, children_count, pet, is_event, total_huf, notes, created_at::text as created_at
+            nights, guests_count, children_count, pet, is_event, total_huf, notes, created_at::text as created_at,
+            to_char(guest_notified_at at time zone 'Europe/Budapest', 'YYYY-MM-DD HH24:MI') as notified_at
        from bookings
       where listing_id = $1 and status = any($2::text[])
       order by case when status in ('pending', 'quote_request') then 0 else 1 end, coalesce(check_in, created_at::date) asc, created_at desc
@@ -54,7 +57,7 @@ export async function listBookings(listingId: string, filter: FilterKey): Promis
   return rows.map((r) => ({
     id: r.id, status: r.status, source: r.source, guestName: r.guest_name, guestEmail: r.guest_email, guestPhone: r.guest_phone,
     checkIn: r.check_in, checkOut: r.check_out, nights: r.nights, guests: r.guests_count, children: r.children_count ?? 0, pet: r.pet, isEvent: r.is_event,
-    total: r.total_huf, notes: r.notes, createdAt: r.created_at,
+    total: r.total_huf, notes: r.notes, createdAt: r.created_at, notifiedAt: r.notified_at,
   }))
 }
 
@@ -172,11 +175,15 @@ export type OpsAlerts = {
   feedErrors: { label: string; error: string }[]
   icalConflicts: ({ label: string } & IcalConflict)[]
   depositDocs: DocKind[]
+  /** decided web bookings whose letter the owner has not marked as sent (stay not over yet) */
+  unnotified: { code: string; guest: string; status: 'confirmed' | 'cancelled' }[]
+  /** external calendars: how fresh the imported busy days are */
+  ical: { feeds: number; oldestSyncMinutes: number | null; lastSync: string | null }
 }
 
 /** iCal feeds whose last sync failed (the website sends no e-mail, so nothing else can fail silently). */
 export async function getOpsAlerts(listingId: string): Promise<OpsAlerts> {
-  const [feeds, clash, docs] = await Promise.all([
+  const [feeds, clash, docs, unnotified, fresh] = await Promise.all([
     query<{ label: string; last_error: string }>('select label, last_error from ical_feeds where listing_id = $1 and last_error is not null', [listingId]).catch(() => []),
     // only clashes that still matter: the range has not ended yet
     query<{ label: string; c: IcalConflict }>(
@@ -186,12 +193,30 @@ export async function getOpsAlerts(listingId: string): Promise<OpsAlerts> {
       [listingId]
     ).catch(() => []),
     // owner texts still describing a deposit, while the booking flow says cash on site
+    // ("Előleget nem kérünk" is our own cash-on-site sentence, not a deposit term)
     query<{ kind: string }>(
-      `select kind from listing_documents where listing_id = $1 and kind in ('hazirend', 'aszf', 'gyik') and body ~* '(előleg|elöleg|20 ?%)'`,
+      `select kind from listing_documents where listing_id = $1 and kind in ('hazirend', 'aszf', 'gyik')
+          and regexp_replace(body, 'előleget nem kérünk', '', 'gi') ~* '(előleg|elöleg|20 ?%)'
+        order by kind`,
       [listingId]
     ).catch(() => []),
+    query<{ code: string; guest: string; status: 'confirmed' | 'cancelled' }>(
+      `select upper(left(id::text, 8)) as code, guest_name as guest, status from bookings
+        where listing_id = $1 and source = 'web' and status in ('confirmed', 'cancelled') and guest_notified_at is null
+          and coalesce(check_out, created_at::date) >= (now() at time zone 'Europe/Budapest')::date
+        order by created_at desc limit 20`,
+      [listingId]
+    ).catch(() => []),
+    queryOne<{ n: number; mins: number | null; last: string | null }>(
+      `select count(*)::int as n, (extract(epoch from now() - min(last_sync)) / 60)::int as mins,
+              to_char(min(last_sync) at time zone 'Europe/Budapest', 'YYYY-MM-DD HH24:MI') as last
+         from ical_feeds where listing_id = $1`,
+      [listingId]
+    ).catch(() => null),
   ])
   return {
+    unnotified,
+    ical: { feeds: fresh?.n ?? 0, oldestSyncMinutes: fresh?.mins ?? null, lastSync: fresh?.last ?? null },
     feedErrors: feeds.map((f) => ({ label: f.label, error: f.last_error })),
     icalConflicts: clash.map((r) => ({ label: r.label, ...r.c })),
     depositDocs: docs.map((d) => d.kind as DocKind),

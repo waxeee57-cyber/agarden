@@ -19,7 +19,7 @@ a foglaltság tárolt példányból jön, és csak foglaláskor / admin-változ�
 
 | Elem | Állapot |
 |---|---|
-| Deploy, migrációk (1–21) | ✅ automatikus (a Production build futtatja) |
+| Deploy, migrációk (1–22) | ✅ automatikus (a Production build futtatja) |
 | `CRON_SECRET` | ✅ beállítva a Vercelben; nélküle is biztonságosan fut (10 perces globális korlát) |
 | Foglalás → admin | ✅ minden webes foglalás **kérelem** (`pending`), automatikus visszaigazolás nincs; a napokat azonnal fenntartja, a döntés a tulajé |
 | iCal-ütközés | ✅ ha egy külső naptár (Airbnb/Booking) olyan napot jelez, amire nálunk kérelem/foglalás van, az admin „Mi a teendőd?” sürgős tételként mutatja |
@@ -34,8 +34,12 @@ a foglaltság tárolt példányból jön, és csak foglaláskor / admin-változ�
    Megfelelő → **Visszaigazolás**; nem megfelelő → **Elutasítás** (a napok felszabadulnak).
 2. Ugyanott **„Visszaigazoló / Lemondó e-mail megírása”**: a saját levelezőjében megnyílik a kész levél
    (időpont, létszám, végösszeg, „fizetés érkezéskor, a helyszínen, készpénzben”, érkezési infó) → Küldés.
-   Telefonon is értesítheti. Az „Események” napló minden kérelmet és döntést automatikusan rögzít.
-3. A vendég a foglalási kóddal a **Foglalásom** oldalon bármikor látja az állapotot.
+   Telefonon is értesítheti. Elküldés után: **„Elküldtem a levelet”**. Amíg ez nincs megnyomva, a döntés
+   sürgős tétel marad a „Mi a teendőd?” listában (a honlap nem látja, hogy a levelezőből elment-e a levél).
+   Az „Események” napló minden kérelmet és döntést automatikusan rögzít.
+3. Kérelem visszaigazolása előtt, ha van külső naptár: a kérelemnél látszik, mikor frissült utoljára
+   (pl. „2 órája”) → **„Frissítés most”**, hogy az Airbnb/Booking friss foglalásai is látsszanak.
+4. A vendég a foglalási kóddal a **Foglalásom** oldalon bármikor látja az állapotot.
 
 ## Opcionális
 

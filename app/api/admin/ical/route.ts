@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { query, queryOne } from '@/lib/db'
 import { syncFeed } from '@/lib/ical'
+import { rateLimit } from '@/lib/rate-limit'
 
 // Admin: add / remove / sync-now external calendars of the session's house.
 const addSchema = z.object({ label: z.string().trim().min(2).max(40), url: z.url().max(1000).refine((u) => u.startsWith('https://')) })
@@ -28,6 +29,8 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const a = await requireAdminApi(req)
   if (!a.ok) return a.res
+  // manual "Frissítés most": bounded so a stuck button cannot hammer Airbnb/Booking
+  if (!(await rateLimit(`ical-sync:${a.session.listingId}`, 12, 600))) return NextResponse.json({ ok: false, reason: 'rate_limited' }, { status: 429 })
   const feeds = await query<{ id: string; listing_id: string; url: string }>('select id, listing_id, url from ical_feeds where listing_id = $1', [a.session.listingId])
   const res = await Promise.all(feeds.map((f) => syncFeed(f)))
   invalidateAvailability()

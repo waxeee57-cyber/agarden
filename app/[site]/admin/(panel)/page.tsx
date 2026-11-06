@@ -38,6 +38,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   const unread = messages.filter((m) => !m.handled).length
   if (unread) todos.push({ text: `${unread} megválaszolatlan üzenet a Kapcsolat oldalról.`, href: '#uzenetek', action: 'Elolvasom', urgent: true })
   for (const c of ops.icalConflicts) todos.push({ text: `Ütközés: a(z) ${c.label} naptár ${c.from} – ${c.to} között foglalt, de ugyanerre ${c.code ? `a(z) ${c.code} kódú ${c.status === 'confirmed' ? 'visszaigazolt foglalás' : 'foglalási kérelem'}` : 'egy kézi blokk'} is szól. ${c.status === 'pending' ? 'Ne igazold vissza, amíg nem tisztáztad.' : 'Egyeztess a vendéggel / a portállal.'}`, href: c.code ? '/admin?szuro=mind#foglalasok' : '/admin/naptar', action: 'Megnézem', urgent: true })
+  if (ops.unnotified.length) todos.push({ text: `${ops.unnotified.length === 1 ? 'Egy döntésről' : `${ops.unnotified.length} döntésről`} még nincs jelölve, hogy a vendég megkapta a levelet: ${ops.unnotified.slice(0, 3).map((u) => `${u.guest} (${u.code}, ${u.status === 'confirmed' ? 'visszaigazolva' : 'lemondva/elutasítva'})`).join(', ')}${ops.unnotified.length > 3 ? '…' : ''}. Küldd el, majd nyomd meg az „Elküldtem a levelet” gombot.`, href: '/admin?szuro=mind#foglalasok', action: 'Megnézem', urgent: true })
   if (ops.depositDocs.length) todos.push({ text: `A(z) ${ops.depositDocs.map((k) => DOC_LABEL[k]).join(', ')} szövege még előleget említ, a foglalás viszont helyszíni, készpénzes fizetéssel megy. Igazítsd a saját feltételeidhez.`, href: `/admin/szovegek?doc=${ops.depositDocs[0]}`, action: 'Átírom' })
   const missing = listing ? missingLegal(listing.legal, listing).length : 0
   if (missing) todos.push({ text: `${missing} üzemeltetői adat hiányzik a generált jogi oldalakból.`, href: '/admin/adatok', action: 'Kitöltöm' })
@@ -79,7 +80,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
           </div>
           <ManualBookingForm maxGuests={(listing?.capacityMax ?? 1) + (listing?.capacityExtra ?? 0)} />
         </div>
-        <BookingsBoard bookings={withMail} filters={filters} current={filter} />
+        <BookingsBoard bookings={withMail} filters={filters} current={filter} ical={ops.ical} />
       </section>
 
       <section id="uzenetek" aria-labelledby="uz-title" className="scroll-mt-4">

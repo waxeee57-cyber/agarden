@@ -26,7 +26,9 @@ const d = (iso: string | null) => {
 
 type Row = AdminBooking & { mail: { href: string; label: string } | null }
 
-export function BookingsBoard({ bookings, filters, current }: { bookings: Row[]; filters: { key: string; label: string; count: number | null }[]; current: string }) {
+type Ical = { feeds: number; oldestSyncMinutes: number | null; lastSync: string | null }
+
+export function BookingsBoard({ bookings, filters, current, ical }: { bookings: Row[]; filters: { key: string; label: string; count: number | null }[]; current: string; ical: Ical }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
     <div>
@@ -54,6 +56,7 @@ export function BookingsBoard({ bookings, filters, current }: { bookings: Row[];
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS[b.status].cls}`}>{STATUS[b.status].label}</span>
                   {b.source === 'manual' && <span className="rounded-full bg-paper-2 px-2.5 py-1 text-xs font-semibold text-muted">kézi</span>}
+                  {needsLetter(b) && <span className="rounded-full bg-clay/20 px-2.5 py-1 text-xs font-semibold text-action-hover">levél nincs jelölve</span>}
                   <span className="ml-auto text-xs text-muted tnum">{b.id.slice(0, 8).toUpperCase()}</span>
                 </div>
                 <p className="mt-2 font-display text-lg text-deep">{b.guestName}</p>
@@ -63,7 +66,7 @@ export function BookingsBoard({ bookings, filters, current }: { bookings: Row[];
                   {b.total != null ? ` · ${formatHuf(b.total)}` : ''}
                 </p>
               </button>
-              {open === b.id && <BookingDetail b={b} />}
+              {open === b.id && <BookingDetail b={b} ical={ical} />}
             </li>
           ))}
         </ul>
@@ -72,10 +75,32 @@ export function BookingsBoard({ bookings, filters, current }: { bookings: Row[];
   )
 }
 
-function BookingDetail({ b }: { b: Row }) {
+const needsLetter = (b: Row) => b.source === 'web' && (b.status === 'confirmed' || b.status === 'cancelled') && !b.notifiedAt
+
+const ago = (m: number) => (m < 2 ? 'az imént' : m < 60 ? `${m} perce` : m < 48 * 60 ? `${Math.round(m / 60)} órája` : `${Math.round(m / 1440)} napja`)
+
+function BookingDetail({ b, ical }: { b: Row; ical: Ical }) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+
+  async function syncCalendars() {
+    setBusy('sync')
+    setMsg(null)
+    const r = await adminFetch<{ ok: boolean; synced?: number; total?: number; reason?: string }>('/api/admin/ical', { method: 'PUT' })
+    setBusy(null)
+    if (!r.ok) setMsg(r.reason === 'rate_limited' ? 'Túl sok frissítés rövid időn belül, próbáld pár perc múlva.' : `Nem minden naptár frissült (${r.synced ?? 0}/${r.total ?? 0}). Részletek: Naptár.`)
+    router.refresh()
+  }
+
+  async function markLetter(notified: boolean) {
+    setBusy('letter')
+    setMsg(null)
+    const r = await adminFetch(`/api/admin/bookings/${b.id}`, { method: 'PATCH', body: { notified } })
+    setBusy(null)
+    if (r.ok) router.refresh()
+    else setMsg(reasonText(r.reason))
+  }
 
   async function act(kind: 'confirmed' | 'cancelled' | 'delete') {
     if (kind === 'delete' && !window.confirm('Végleg törlöd ezt a tételt? A lefoglalt napok felszabadulnak.')) return
@@ -102,6 +127,12 @@ function BookingDetail({ b }: { b: Row }) {
       {b.status === 'pending' && (
         <p className="mt-4 text-sm text-ink/80">Kérelem: a napok le vannak foglalva, de még nincs megállapodás. Ha a vendég vagy az időpont nem megfelelő, utasítsd el; különben igazold vissza, és küldd el a levelet.</p>
       )}
+      {b.status === 'pending' && ical.feeds > 0 && (
+        <div className={`mt-3 flex flex-wrap items-center gap-3 rounded-lg p-3 text-sm ${ical.oldestSyncMinutes == null || ical.oldestSyncMinutes > 60 ? 'bg-clay/15' : 'bg-black/[0.035]'}`}>
+          <span>Külső naptárak (Airbnb, Booking…) frissítve: <strong>{ical.oldestSyncMinutes == null ? 'még soha' : ago(ical.oldestSyncMinutes)}</strong>{ical.lastSync ? ` (${ical.lastSync})` : ''}. Visszaigazolás előtt frissítsd, hogy az ottani friss foglalások is látsszanak.</span>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={syncCalendars}>{busy === 'sync' ? 'Frissítés…' : 'Frissítés most'}</button>
+        </div>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         {b.status !== 'confirmed' && b.status !== 'cancelled' && (
           <button type="button" className="btn btn-dark btn-sm" disabled={!!busy} onClick={() => act('confirmed')}>{busy === 'confirmed' ? '…' : 'Visszaigazolás'}</button>
@@ -115,6 +146,16 @@ function BookingDetail({ b }: { b: Row }) {
         <a href={b.mail.href} className="btn btn-dark btn-sm mt-3 inline-flex">
           {b.mail.label} megírása <span aria-hidden="true">↗</span>
         </a>
+      )}
+      {b.source === 'web' && (b.status === 'confirmed' || b.status === 'cancelled') && (
+        b.notifiedAt ? (
+          <p className="mt-3 text-sm text-success">
+            Levél elküldve: {b.notifiedAt}.{' '}
+            <button type="button" className="underline underline-offset-2 text-muted" disabled={!!busy} onClick={() => markLetter(false)}>Mégsem ment el</button>
+          </p>
+        ) : (
+          <button type="button" className="btn btn-ghost btn-sm mt-3 ml-0 sm:ml-2" disabled={!!busy} onClick={() => markLetter(true)}>{busy === 'letter' ? '…' : 'Elküldtem a levelet'}</button>
+        )
       )}
       {msg && <p className="err mt-3" role="alert">{msg}</p>}
       <p className="mt-3 text-xs text-muted">

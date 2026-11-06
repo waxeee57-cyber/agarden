@@ -28,6 +28,18 @@ export async function setBookingStatus(s: AdminSession, bookingId: string, statu
   return row?.r ?? { ok: false, reason: 'unknown' }
 }
 
+/** Owner's own record that the guest letter went out (the site cannot see a mailto send). */
+export async function setGuestNotified(s: AdminSession, bookingId: string, notified: unknown): Promise<Result> {
+  const p = z.object({ id: z.guid(), notified: z.boolean() }).safeParse({ id: bookingId, notified })
+  if (!p.success) return { ok: false, reason: 'validation_error' }
+  const rows = await query(
+    `update bookings set guest_notified_at = case when $3 then now() else null end
+      where id = $1 and listing_id = $2 and status in ('confirmed', 'cancelled') returning id`,
+    [p.data.id, s.listingId, p.data.notified]
+  )
+  return rows.length ? { ok: true } : { ok: false, reason: 'not_found' }
+}
+
 export async function deleteBooking(s: AdminSession, bookingId: string): Promise<Result> {
   if (!z.guid().safeParse(bookingId).success) return { ok: false, reason: 'validation_error' }
   // occupancy rows cascade (occupancy.booking_id on delete cascade)

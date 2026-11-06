@@ -403,6 +403,30 @@ async function main() {
     assert.equal(again.ok, false)
   })
 
+  await t('letter mark: a decided web booking stays on the to-do list until the owner marks the letter sent; a new decision clears it', async () => {
+    const { setBookingStatus, setGuestNotified } = await import('../lib/admin/actions')
+    const { getOpsAlerts } = await import('../lib/admin/data')
+    const s = { adminId: 'x', email: 'x', tenantId: 'x', site: 'velence' as const, listingId: garden, listingName: 'G' }
+    const b = await booking.createBooking(garden, { guestName: 'Levél Teszt', guestEmail: 'level@example.com', guests: 2, checkIn: '2027-12-01', checkOut: '2027-12-04' })
+    assert.ok(b.ok && b.bookingId)
+    const code = b.bookingId!.slice(0, 8).toUpperCase()
+    const has = async () => (await getOpsAlerts(garden)).unnotified.some((u) => u.code === code)
+    assert.equal(await has(), false, 'pending: no letter due yet')
+    assert.deepEqual(await setGuestNotified(s, b.bookingId!, true), { ok: false, reason: 'not_found' }, 'cannot mark a pending request')
+    assert.equal((await setBookingStatus(s, b.bookingId!, 'confirmed')).ok, true)
+    assert.equal(await has(), true, 'confirmed but letter not marked -> to-do')
+    assert.deepEqual(await setGuestNotified(s, b.bookingId!, true), { ok: true })
+    assert.equal(await has(), false)
+    assert.equal((await setBookingStatus(s, b.bookingId!, 'cancelled')).ok, true)
+    assert.equal(await has(), true, 'cancelling needs a new letter: mark cleared by the DB trigger')
+    assert.deepEqual(await setGuestNotified({ ...s, listingId: napsugar }, b.bookingId!, true), { ok: false, reason: 'not_found' }, 'house-scoped')
+    assert.equal((await setGuestNotified(s, 'nope', true)).ok, false)
+    const ops = await getOpsAlerts(garden)
+    assert.equal(typeof ops.ical.feeds, 'number')
+    // the owner's verbatim Házirend/ÁSZF still describe a deposit; our cash-on-site GYIK must not be flagged
+    assert.deepEqual(ops.depositDocs, ['aszf', 'hazirend'])
+  })
+
   await t('self-contained mail: no sender module; admin gets a ready mailto per booking state; cash on site, never a bank account', async () => {
     const fs = await import('node:fs')
     assert.ok(!fs.existsSync(new URL('../lib/email/send.ts', import.meta.url)), 'no outbound sender')
@@ -412,7 +436,7 @@ async function main() {
     // even a legacy deposit key left in the DB must not leak into any letter
     await query("update listings set terms = jsonb_set(coalesce(terms,'{}'::jsonb), '{deposit_pct}', '20') where id = $1", [garden])
     const ctx = (await mailContext('velence', garden))!
-    const base = { id: '00000000-0000-4000-8000-0000000000ab', source: 'web' as const, guestName: 'Kiss Anna', guestEmail: 'anna@example.com', guestPhone: null, checkIn: '2027-07-01', checkOut: '2027-07-04', nights: 3, guests: 4, children: 1, pet: false, isEvent: false, total: null, notes: null, createdAt: '' }
+    const base = { id: '00000000-0000-4000-8000-0000000000ab', source: 'web' as const, guestName: 'Kiss Anna', guestEmail: 'anna@example.com', guestPhone: null, checkIn: '2027-07-01', checkOut: '2027-07-04', nights: 3, guests: 4, children: 1, pet: false, isEvent: false, total: null, notes: null, createdAt: '', notifiedAt: null }
     const conf = guestMailFor(ctx, { ...base, status: 'confirmed' })
     assert.equal(conf.label, 'Visszaigazoló e-mail')
     assert.match(conf.href, /^mailto:anna%40example\.com\?subject=/)
