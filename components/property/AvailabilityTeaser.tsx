@@ -1,11 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { fmtDay, fmtRange, parseISO } from './Calendar'
-import { RANGE_EVENT, type RangeDetail } from './HeroBookingBar'
 
 // Homepage "Foglaltság", laid out like the big booking sites: the live
 // calendar on the right, and on the left one selection card that always says
@@ -26,19 +24,6 @@ export function AvailabilityTeaser({ phone, email, minNights, intro, facts }: {
   const ref = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
   const [range, setRange] = useState<{ ci: string | null; co: string | null }>({ ci: null, co: null })
-  // phone bar: shown once both dates are picked and the card is off screen;
-  // portalled to <body> (sections use content-visibility, which traps fixed)
-  const card = useRef<HTMLDivElement>(null)
-  const [cardSeen, setCardSeen] = useState(true)
-  const [skin, setSkin] = useState<string | null>(null)
-  useEffect(() => {
-    const el = card.current
-    if (!el) return
-    setSkin(el.closest('[data-skin]')?.getAttribute('data-skin') ?? null)
-    const io = new IntersectionObserver(([e]) => setCardSeen(e.isIntersecting))
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
 
   useEffect(() => {
     const el = ref.current
@@ -47,11 +32,6 @@ export function AvailabilityTeaser({ phone, email, minNights, intro, facts }: {
     io.observe(el)
     return () => io.disconnect()
   }, [])
-
-  // keep the hero booking bar in sync with what is picked here
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent<RangeDetail>(RANGE_EVENT, { detail: range }))
-  }, [range])
 
   const ci = range.ci ? parseISO(range.ci) : null
   const co = range.co ? parseISO(range.co) : null
@@ -76,7 +56,7 @@ export function AvailabilityTeaser({ phone, email, minNights, intro, facts }: {
         )}
       </div>
       <div className="lg:col-start-1 lg:row-start-2">
-        <div ref={card} className="rounded-[var(--radius-lg)] border border-rule bg-surface p-5 shadow-[0_18px_40px_-28px_rgb(0_0_0/0.35)]">
+        <div className="rounded-[var(--radius-lg)] border border-rule bg-surface p-5 shadow-[0_18px_40px_-28px_rgb(0_0_0/0.35)]">
           <div className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-md)] border border-rule">
             <Slot label="Érkezés" value={ci ? fmtDay(ci) : null} active={!ci} />
             <Slot label="Távozás" value={co ? fmtDay(co) : null} active={!!ci && !co} border />
@@ -90,18 +70,6 @@ export function AvailabilityTeaser({ phone, email, minNights, intro, facts }: {
         </div>
       </div>
       <div className="lg:col-start-1 lg:row-start-3">{facts}</div>
-      {ci && co && !cardSeen && typeof document !== 'undefined' && createPortal(
-        <div data-skin={skin ?? undefined} className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-surface/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-            <p className="min-w-0 text-sm leading-tight">
-              <span className="block truncate font-semibold text-fg">{fmtRange(ci, co)}</span>
-              <span className="text-soft">{nights} éjszaka</span>
-            </p>
-            <Link href={href} className="btn btn-act shrink-0 !min-h-12 !px-5">Tovább</Link>
-          </div>
-        </div>,
-        document.body,
-      )}
     </div>
   )
 }
