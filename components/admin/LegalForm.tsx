@@ -102,7 +102,7 @@ export function LegalForm({ listing }: { listing: AdminListing }) {
           <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={f.processorsConfirmed} onChange={(e) => setF({ ...f, processorsConfirmed: e.target.checked })} />
           <span>
             Átnéztem és elfogadom, hogy az oldal a következő szolgáltatókat használja a foglalási adatokhoz:
-            Vercel (tárhely, Frankfurt), Neon (adatbázis, Frankfurt), Resend (e-mail küldés). Az adatok az EU-ban vannak,
+            Vercel (tárhely, Frankfurt), Neon (adatbázis, Frankfurt), Google Gmail (e-mail küldés a ház fiókjából). Az adatok az EU-ban vannak,
             a szolgáltatók amerikai anyavállalata miatt az uniós szerződéses garanciák alkalmazandók.
           </span>
         </label>

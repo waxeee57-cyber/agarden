@@ -76,7 +76,7 @@ function TechnicalNotice({ listing, operator, heading: H }: { listing: Awaited<R
       <ul>
         <li>Vercel Inc. – weboldal tárhely és futtatás; a szerveroldali feldolgozás a frankfurti régióban fut.</li>
         <li>Neon (Databricks) – adatbázis, frankfurti (eu-central-1) régió.</li>
-        <li>Resend – visszaigazoló e-mailek küldése, ha be van kapcsolva.</li>
+        <li>Google Ireland Ltd. (Gmail) – a visszaigazoló és értesítő e-maileket a szálláshely saját Gmail-fiókja küldi, ha be van kapcsolva.</li>
       </ul>
       <p>
         Az adatokat az Európai Unióban tároljuk. Mivel a szolgáltatók anyavállalata az Egyesült Államokban működik,
