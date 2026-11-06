@@ -16,7 +16,7 @@ export function SpaceSlider({ items, label }: { items: LightboxItem[]; label: st
   return (
     <div className="group/slider relative" role="group" aria-roledescription="képlapozó" aria-label={label}>
       <div
-        className="relative aspect-[4/3] overflow-hidden rounded-[10px] bg-surface-2"
+        className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface-2"
         onTouchStart={(e) => { touch.current = e.touches[0].clientX }}
         onTouchEnd={(e) => {
           const s = touch.current; touch.current = null
@@ -36,7 +36,7 @@ export function SpaceSlider({ items, label }: { items: LightboxItem[]; label: st
             className={`zoom-tile absolute inset-0 cursor-zoom-in transition-opacity duration-500 ${k === i ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
           >
             {Math.abs(k - i) <= 1 || (i === 0 && k === n - 1) || (i === n - 1 && k === 0)
-              ? <Image src={p.url} alt={p.alt} fill sizes="(min-width: 768px) 560px, 100vw" className="object-cover" />
+              ? <Image src={p.url} alt={p.alt} fill sizes="(min-width: 768px) 560px, 100vw" className="object-cover" quality={85} />
               : null}
           </button>
         ))}

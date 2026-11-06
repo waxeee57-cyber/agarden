@@ -23,14 +23,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     // Cost: every (url, width, quality, format) is one billed transformation.
-    // Sources are already WebP ≤1200 px with immutable (uuid) URLs, so: WebP
-    // only, no widths above the source, and a month-long optimizer cache.
+    // Sources are WebP ≤2400 px with immutable (uuid) URLs: WebP only, a
+    // bounded width ladder (the optimizer never upscales past the source) and
+    // a month-long cache. Sharpness: 85 for large views, 75 for thumbnails.
     formats: ['image/webp'],
-    deviceSizes: [640, 828, 1080, 1200],
+    deviceSizes: [640, 828, 1080, 1440, 1920, 2400],
     imageSizes: [256, 384],
     minimumCacheTTL: 2678400,
     remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
-    qualities: [70, 75],
+    qualities: [75, 85],
   },
   // The OG route reads the vendored TTFs at runtime.
   outputFileTracingIncludes: { '/brand/og': ['./assets/fonts/**'] },

@@ -43,7 +43,7 @@ export function BookingLookup({ phone }: { phone: string }) {
   const s = found ? STATUS[found.status] ?? STATUS.pending : null
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
-      <form onSubmit={submit} noValidate className="rounded-[10px] border border-rule bg-surface p-5 md:p-7">
+      <form onSubmit={submit} noValidate className="rounded-2xl border border-rule bg-surface p-5 md:p-7">
         <div className="grid gap-4">
           <div className="field">
             <label htmlFor="lk-code">Foglalási kód</label>
@@ -64,7 +64,7 @@ export function BookingLookup({ phone }: { phone: string }) {
 
       <div aria-live="polite">
         {found && s ? (
-          <div className="bk-step rounded-[10px] border border-rule bg-surface p-5 md:p-7">
+          <div className="bk-step rounded-2xl border border-rule bg-surface p-5 md:p-7">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-ui text-[12px] font-bold uppercase tracking-[0.2em] text-soft">Kód: <span className="tnum text-fg">{found.code}</span></p>
               <span className={`rounded-full px-3 py-1 text-sm font-semibold ${s.tone}`}>{s.label}</span>
@@ -81,7 +81,7 @@ export function BookingLookup({ phone }: { phone: string }) {
             </div>
           </div>
         ) : (
-          <div className="rounded-[10px] bg-surface-2 p-5 text-[15px] md:p-7">
+          <div className="rounded-2xl bg-surface-2 p-5 text-[15px] md:p-7">
             <p className="font-display text-[1.35rem] text-fg">Mit lát itt?</p>
             <ul className="mt-3 grid gap-1.5">
               <li>– a foglalás állapotát (visszaigazolásra vár, visszaigazolva, lemondva),</li>

@@ -3,7 +3,7 @@
 //   pnpm photos:import --site napsugar --dir <folder> --manifest db/photo-manifests/napsugar.json [--replace]
 //
 // Same pipeline as the admin upload (lib/photos.ts): sharp auto-rotate, max
-// 1200 px, WebP q80, metadata stripped -> Vercel Blob (public) -> listing_photos.
+// 2400 px, WebP q86, metadata stripped -> Vercel Blob (public) -> listing_photos.
 // Manifest: [{ "file": "...", "alt": "...", "category": "kert"?, "featured": 1-3?, "cover": true? }, ...]
 // in display order. --replace uploads the new set first and only then removes
 // the old rows + blobs, so a failed run never leaves the gallery empty.
@@ -49,8 +49,8 @@ try {
     const src = join(dir, item.file)
     const { data, info } = await sharp(readFileSync(src))
       .rotate()
-      .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 80 })
+      .resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 86, smartSubsample: true })
       .toBuffer({ resolveWithObject: true })
     const meta = await sharp(data).metadata()
     if (meta.exif) throw new Error(`EXIF survived for ${item.file}`)

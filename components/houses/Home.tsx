@@ -56,10 +56,10 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
     <>
       {/* ---------- 1. HERO ---------- */}
       <section aria-labelledby="hero-title" className="mx-auto max-w-[1400px] px-3 pt-3 md:px-10 md:pt-8">
-        <div className="relative isolate flex min-h-[390px] items-center overflow-hidden rounded-[10px] bg-band text-white md:min-h-[540px]">
+        <div className="relative isolate flex min-h-[390px] items-center overflow-hidden rounded-2xl bg-band text-white md:min-h-[540px]">
           {cover && (
             <Parallax speed={0.14}>
-              <Image src={cover.url} alt={cover.alt} fill preload fetchPriority="high" sizes="(min-width: 1400px) 1320px, 100vw" quality={72} className="hero-photo object-cover" />
+              <Image src={cover.url} alt={cover.alt} fill preload fetchPriority="high" sizes="(min-width: 1400px) 1320px, 100vw" quality={85} className="hero-photo object-cover" />
             </Parallax>
           )}
           <div aria-hidden="true" className="hero-tint absolute inset-0 -z-10" />
@@ -126,10 +126,10 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 5. KEY FACTS on a photo ---------- */}
       {chips.length > 0 && (
         <section aria-label="A ház röviden" className="mx-auto max-w-[1400px] px-3 md:px-10">
-          <div className="relative isolate overflow-hidden rounded-[10px] bg-deep px-4 py-14 md:px-10 md:py-24">
-            {bandPhoto && <Parallax speed={0.2}><Image src={bandPhoto.url} alt="" fill sizes="100vw" className="object-cover" /></Parallax>}
+          <div className="relative isolate overflow-hidden rounded-2xl bg-deep px-4 py-14 md:px-10 md:py-24">
+            {bandPhoto && <Parallax speed={0.2}><Image src={bandPhoto.url} alt="" fill sizes="100vw" quality={85} className="object-cover" /></Parallax>}
             {bandPhoto && <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgb(18_22_20/0.18)]" />}
-            <ul data-reveal className="mx-auto grid max-w-4xl grid-cols-2 rounded-[10px] bg-surface shadow-[0_24px_60px_-28px_rgb(18_22_20/0.45)] md:grid-cols-4">
+            <ul data-reveal className="mx-auto grid max-w-4xl grid-cols-2 rounded-2xl bg-surface shadow-[0_24px_60px_-28px_rgb(18_22_20/0.45)] md:grid-cols-4">
               {chips.map((x, i) => (
                 <li key={x} className={`flex flex-col items-center gap-3 px-4 py-8 text-center ${i % 2 ? 'border-l border-rule' : ''} ${i > 1 ? 'border-t border-rule md:border-t-0' : ''} ${i === 2 ? 'md:border-l' : ''}`}>
                   <Icon name={chipIcon(x)} size={30} stroke={1.25} className="text-fg/80" />
@@ -161,14 +161,14 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {why.length > 0 && (
         <section aria-labelledby="miert-title" className={SECTION}>
           <div className="grid gap-4 md:grid-cols-[1fr_1.2fr] md:gap-6">
-            <div data-reveal className="flex flex-col justify-center rounded-[10px] bg-deep p-8 text-deep-fg md:p-12">
+            <div data-reveal className="flex flex-col justify-center rounded-2xl bg-deep p-8 text-deep-fg md:p-12">
               <h2 id="miert-title" className={`${H2} !text-white`}>{why[0].t}</h2>
               <p className="mt-5 max-w-[42ch] text-deep-fg/85">{why[0].d}</p>
               <Link href="/foglalas" className="btn btn-light mt-9 self-start">Foglalás</Link>
             </div>
             {splitPhoto && (
-              <div data-reveal style={{ '--i': 1 } as React.CSSProperties} className="relative min-h-[280px] overflow-hidden rounded-[10px] bg-surface-2">
-                <Image src={splitPhoto.url} alt={splitPhoto.alt} fill sizes="(min-width: 768px) 55vw, 100vw" className="object-cover" />
+              <div data-reveal style={{ '--i': 1 } as React.CSSProperties} className="relative min-h-[280px] overflow-hidden rounded-2xl bg-surface-2">
+                <Image src={splitPhoto.url} alt={splitPhoto.alt} fill sizes="(min-width: 768px) 55vw, 100vw" quality={85} className="object-cover" />
               </div>
             )}
           </div>
@@ -190,10 +190,10 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       {/* ---------- 9. SISTER HOUSE ---------- */}
       {sister && (
         <section aria-labelledby="testver-title" className={`${SECTION} pb-20 md:pb-28`}>
-          <a data-reveal href={ctx.sisterOrigin} className="group grid overflow-hidden rounded-[10px] border border-rule bg-surface transition-shadow duration-300 hover:shadow-[0_24px_60px_-34px_rgb(18_22_20/0.5)] md:grid-cols-[1fr_1.1fr]">
+          <a data-reveal href={ctx.sisterOrigin} className="group grid overflow-hidden rounded-2xl border border-rule bg-surface transition-shadow duration-300 hover:shadow-[0_24px_60px_-34px_rgb(18_22_20/0.5)] md:grid-cols-[1fr_1.1fr]">
             <span className="relative block aspect-[16/10] bg-surface-2 md:aspect-auto md:min-h-[300px]">
               {sisterCover ? (
-                <Image src={sisterCover.url} alt="" fill sizes="(min-width: 768px) 45vw, 100vw" className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]" />
+                <Image src={sisterCover.url} alt="" fill sizes="(min-width: 768px) 45vw, 100vw" quality={85} className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]" />
               ) : (
                 <span className="flex h-full items-center justify-center"><Mark site={sisterBrand.site} size={96} /></span>
               )}

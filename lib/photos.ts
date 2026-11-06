@@ -4,7 +4,7 @@ import sharp from 'sharp'
 import { put, del } from '@vercel/blob'
 import { query, queryOne, tx } from './db'
 
-// Photo pipeline: upload -> sharp (auto-rotate, max 1200 px, WebP, metadata
+// Photo pipeline: upload -> sharp (auto-rotate, max 2400 px, WebP, metadata
 // stripped — sharp drops EXIF/GPS unless .withMetadata() is called) ->
 // Vercel Blob (public) -> listing_photos row. Same steps as
 // scripts/import-photos.mjs, which seeds the initial galleries.
@@ -14,8 +14,8 @@ export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 export async function storePhoto(listingId: string, slug: string, input: Buffer, alt: string, category = 'egyeb') {
   const { data, info } = await sharp(input, { failOn: 'error' })
     .rotate()
-    .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 80 })
+    .resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 86, smartSubsample: true })
     .toBuffer({ resolveWithObject: true })
 
   const blob = await put(`listings/${slug}/${randomUUID()}.webp`, data, {

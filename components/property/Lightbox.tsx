@@ -78,7 +78,7 @@ export function Lightbox({ items, index, onIndex, onClose }: {
           style={{ aspectRatio: String(ratio), maxWidth: `min(100%, calc((100svh - 150px) * ${ratio}))` }}
           onClick={(e) => e.stopPropagation()}
         >
-          <Image src={item.url} alt={item.alt} fill sizes="100vw" quality={80} priority onLoad={() => setLoaded(item.id)} className="rounded-[6px] object-contain" />
+          <Image src={item.url} alt={item.alt} fill sizes="100vw" quality={85} priority onLoad={() => setLoaded(item.id)} className="rounded-[6px] object-contain" />
         </div>
         {len > 1 && (
           <>
@@ -100,7 +100,7 @@ export function Lightbox({ items, index, onIndex, onClose }: {
       {/* preload neighbours so paging is instant */}
       <div className="hidden" aria-hidden="true">
         {[items[(index + 1) % len], items[(index - 1 + len) % len]].map((p) => p && p.id !== item.id && (
-          <Image key={p.id} src={p.url} alt="" width={p.width} height={p.height} sizes="100vw" quality={80} loading="eager" />
+          <Image key={p.id} src={p.url} alt="" width={p.width} height={p.height} sizes="100vw" quality={85} loading="eager" />
         ))}
       </div>
     </div>,

@@ -27,7 +27,7 @@ export function StickyHeader({ children }: { children: React.ReactNode }) {
   }, [])
   return (
     <header className="site-header pointer-events-none sticky top-0 z-40 h-[76px] md:h-[84px]" data-scrolled={scrolled || undefined}>
-      <div className="site-bar pointer-events-auto relative border-b border-black/[0.08] bg-white">{children}</div>
+      <div className="site-bar pointer-events-auto relative border-b border-black/[0.08]">{children}</div>
     </header>
   )
 }

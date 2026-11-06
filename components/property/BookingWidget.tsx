@@ -191,7 +191,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
   if (success) {
     const code = success.id ? success.id.slice(0, 8).toUpperCase() : null
     return (
-      <div ref={top} className="bk-step mx-auto max-w-2xl scroll-mt-24 rounded-[var(--radius-xl)] border border-rule bg-surface p-7 text-center shadow-[0_30px_80px_-50px_rgb(20_24_22/0.5)] md:p-12" role="status">
+      <div ref={top} className="bk-step mx-auto max-w-2xl scroll-mt-24 lux-card rounded-[var(--radius-xl)] border border-rule bg-surface p-7 text-center shadow-[0_30px_80px_-50px_rgb(20_24_22/0.5)] md:p-12" role="status">
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sel text-sel-fg" aria-hidden="true">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12.5 9.5 18 20 6" /></svg>
         </span>
@@ -350,7 +350,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
 
         {/* ---------- reservation card (desktop) ---------- */}
         <aside className="sticky top-24 hidden lg:block" aria-label="Foglalás összegzése">
-          <div className="overflow-hidden rounded-[var(--radius-xl)] border border-rule bg-surface shadow-[0_30px_80px_-50px_rgb(20_24_22/0.55)]">
+          <div className="overflow-hidden lux-card rounded-[var(--radius-xl)] border border-rule bg-surface shadow-[0_30px_80px_-50px_rgb(20_24_22/0.55)]">
             {listing.cover && (
               <div className="relative aspect-[16/10] bg-surface-2">
                 <Image src={listing.cover.url} alt={listing.cover.alt} fill sizes="380px" className="object-cover" />
@@ -393,7 +393,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="rounded-[var(--radius-xl)] border border-rule bg-surface p-5 md:p-7">{children}</section>
+  return <section className="lux-card rounded-[var(--radius-xl)] border border-rule bg-surface p-5 md:p-7">{children}</section>
 }
 
 function DateBox({ label, value, active, border }: { label: string; value: string | null; active: boolean; border?: boolean }) {

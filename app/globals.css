@@ -96,7 +96,7 @@
   --color-pop: #496572; --color-focus: #2EA3F2; --color-nav: #2EA3F2;
   --color-deep: #496572; --color-deep-fg: #FFFFFF;
   --color-sel: #496572; --color-sel-fg: #FFFFFF; --color-range: #E4ECEF;
-  --radius-md: 8px; --radius-lg: 12px; --radius-xl: 10px;
+  --radius-md: 10px; --radius-lg: 16px; --radius-xl: 16px;
 }
 
 * { box-sizing: border-box; }
@@ -259,10 +259,20 @@ body:has(.skin-root) { background-color: #FFFFFF; }
   /* sticky header: outer box keeps its height (no layout shift), the bar shrinks */
   .site-bar-inner { height: 76px; transition: height 0.4s ease; }
   @media (min-width: 768px) { .site-bar-inner { height: 84px; } }
-  .site-bar { transition: box-shadow 0.4s ease; }
+  .site-bar { background-color: #FFFFFF; transition: box-shadow 0.4s ease, background-color 0.4s ease; }
   .site-logo > span { transform-origin: left center; transition: transform 0.4s ease; }
   .site-header[data-scrolled] .site-bar-inner { height: 60px; }
-  .site-header[data-scrolled] .site-bar { box-shadow: 0 0 7px rgba(0, 0, 0, 0.1); border-bottom-color: transparent; }
+  .site-header[data-scrolled] .site-bar { box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 10px 30px -18px rgb(0 0 0 / 0.35); border-bottom-color: transparent; }
+  /* frosted glass once the page scrolls (solid white without backdrop-filter support) */
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .site-header[data-scrolled] .site-bar { background-color: rgb(255 255 255 / 0.78); -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px); }
+  }
+
+  /* premium card: hairline border + layered soft shadow, lifts on hover where it is a link */
+  .lux-card { box-shadow: 0 1px 2px rgb(20 24 22 / 0.04), 0 18px 44px -28px rgb(20 24 22 / 0.28); }
+  a.lux-card, .lux-card:is(a, button) { transition: box-shadow 0.35s ease, transform 0.35s ease; }
+  @media (hover: hover) { a.lux-card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgb(20 24 22 / 0.05), 0 28px 60px -30px rgb(20 24 22 / 0.38); } }
+  .zoom-tile { box-shadow: 0 1px 2px rgb(20 24 22 / 0.05), 0 14px 34px -24px rgb(20 24 22 / 0.35); }
   .site-header[data-scrolled] .site-logo > span { transform: scale(0.8); }
 
   /* Divi-style button: a chevron fades in on hover, inside the right padding */

@@ -18,7 +18,7 @@ export function PhotoStrip({ strip, all }: { strip: LightboxItem[]; all: Lightbo
               type="button"
               onClick={() => setOpen(Math.max(0, items.findIndex((x) => x.id === p.id)))}
               aria-label={`${p.alt || 'Fotó'}, nagyítás`}
-              className="zoom-tile relative block aspect-[4/3] w-full cursor-zoom-in rounded-[12px] bg-surface-2 md:aspect-[4/5]"
+              className="zoom-tile relative block aspect-[4/3] w-full cursor-zoom-in rounded-2xl bg-surface-2 md:aspect-[4/5]"
             >
               <Image src={p.url} alt={p.alt} fill sizes="(min-width: 768px) 270px, 50vw" className="object-cover" />
             </button>

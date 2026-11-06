@@ -20,7 +20,7 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
             key={item.id}
             type="button"
             onClick={() => setOpen(idx)}
-            className="zoom-tile relative block aspect-[4/5] w-full cursor-zoom-in rounded-[12px] bg-surface-2"
+            className="zoom-tile relative block aspect-[4/5] w-full cursor-zoom-in rounded-2xl bg-surface-2"
             aria-label={`${item.alt || 'Fotó'}, nagyítás`}
           >
             <Image
