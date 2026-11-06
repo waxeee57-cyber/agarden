@@ -5,6 +5,7 @@ import type { Photo } from '@/lib/listing'
 import type { SiteCtx } from '@/lib/page'
 import { Icon, Mark, type IconName } from '@/components/property/ui'
 import { AvailabilityTeaser } from '@/components/property/AvailabilityTeaser'
+import { HeroBookingBar } from '@/components/property/HeroBookingBar'
 import { PhotoStrip } from '@/components/property/PhotoStrip'
 import { NotesSlider } from '@/components/property/NotesSlider'
 import { Parallax } from '@/components/property/Motion'
@@ -68,9 +69,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
             {c.hero_kicker && <p className="font-ui text-[12px] font-bold uppercase tracking-[0.3em] text-white md:text-[14px]">{c.hero_kicker}</p>}
             <h1 id="hero-title" className="mt-4 text-[clamp(1.85rem,5.4vw,4.5rem)] leading-[1.2] !text-white md:mt-5">{brand.fullName}</h1>
             {listing.address && <p className="mt-3 font-display text-[clamp(1rem,2vw,1.5rem)] text-white md:mt-5">{listing.address}</p>}
-            <div className="mt-8 flex flex-wrap justify-center gap-3 md:mt-10">
-              <Link href="/foglalas" className="btn btn-white">Foglalás</Link>
-            </div>
+            <HeroBookingBar capacity={listing.capacityMax ? `legfeljebb ${listing.capacityMax}${listing.capacityExtra ? `+${listing.capacityExtra}` : ''} fő` : null} />
           </div>
         </div>
       </section>
@@ -86,7 +85,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
       )}
 
       {/* ---------- 3. AVAILABILITY ---------- */}
-      <section aria-labelledby="foglaltsag-title" className={`${SECTION} py-20 md:py-28`} data-reveal>
+      <section id="foglaltsag" aria-labelledby="foglaltsag-title" className={`${SECTION} scroll-mt-24 py-20 md:py-28`} data-reveal>
         <AvailabilityTeaser
           phone={ctx.phone}
           email={listing.contactEmail}
