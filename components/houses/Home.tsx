@@ -92,7 +92,7 @@ export function Home({ ctx, photos, sisterCover }: { ctx: SiteCtx; photos: Photo
           email={listing.contactEmail}
           minNights={listing.minNights}
           intro={<>
-            <h2 id="foglaltsag-title" className={H2}>Foglaltság</h2>
+            <h2 id="foglaltsag-title" className={H2}>Naptár</h2>
             <p className="mt-4 max-w-[40ch] text-soft">Jelölje ki az érkezés és a távozás napját, a foglalásnál pedig már nem kell újra megadnia.</p>
           </>}
           facts={

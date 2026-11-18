@@ -139,7 +139,7 @@ export function Calendar({
     <div>
       {state === 'error' && (
         <div role="alert" className="mb-4 rounded-[var(--radius-md)] border border-bad/30 bg-bad/5 px-4 py-3 text-sm">
-          <p className="font-semibold text-bad">A foglaltságot most nem sikerült betölteni.</p>
+          <p className="font-semibold text-bad">A naptárt most nem sikerült betölteni.</p>
           <p className="mt-1 text-fg/85">
             Kérjük, hívjon minket: <a className="font-semibold underline underline-offset-2" href={telHref(contact.phone)}>{contact.phone}</a>
             {contact.email && <> · <a className="font-semibold underline underline-offset-2" href={`mailto:${contact.email}`}>{contact.email}</a></>}
@@ -172,7 +172,7 @@ export function Calendar({
           <span className="text-fg/90">
             {ci && co ? <><span className="font-semibold">{fmtRange(ci, co)}</span><span className="text-soft"> · {nights} éjszaka</span></>
               : ci ? <><span className="font-semibold">Érkezés: {fmtDay(ci)}</span><span className="text-soft"> · {guidance}</span></>
-              : <span className="text-soft">{state === 'loading' ? 'A foglaltság betöltése…' : 'Válassza ki az érkezés napját.'}</span>}
+              : <span className="text-soft">{state === 'loading' ? 'A naptár betöltése…' : 'Válassza ki az érkezés napját.'}</span>}
           </span>
           {(checkIn || checkOut) && (
             <button type="button" onClick={() => { setHover(null); onSelect(null, null) }} className="min-h-11 font-semibold underline underline-offset-4 hover:text-pop">

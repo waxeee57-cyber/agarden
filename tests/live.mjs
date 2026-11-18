@@ -39,8 +39,8 @@ try {
 
     // calendar: availability request succeeds and the loading text disappears
     await page.locator('#foglalas').scrollIntoViewIfNeeded()
-    await page.waitForFunction(() => !document.body.innerText.includes('foglaltság betöltése'), null, { timeout: 15000 })
-    assert.equal(await page.getByText('A foglaltságot most nem sikerült betölteni').count(), 0)
+    await page.waitForFunction(() => !document.body.innerText.includes('naptár betöltése'), null, { timeout: 15000 })
+    assert.equal(await page.getByText('A naptárt most nem sikerült betölteni').count(), 0)
     const avail = await page.evaluate(async () => (await fetch('/api/availability?from=2026-10-14&to=2027-12-31')).json())
     assert.equal(avail.ok, true)
     ok(slug, 'calendar loaded real availability', `${avail.ranges.length} occupied range(s)`)
@@ -117,7 +117,7 @@ try {
     if (BOOK) {
       const [ci, co] = DATES[slug]
       await page.goto(`${s.origin}/?checkIn=${ci}&checkOut=${co}#foglalas`, { waitUntil: 'networkidle' })
-      await page.waitForFunction(() => !document.body.innerText.includes('foglaltság betöltése'), null, { timeout: 15000 })
+      await page.waitForFunction(() => !document.body.innerText.includes('naptár betöltése'), null, { timeout: 15000 })
       await page.getByText('A dátumok szabadok').waitFor({ timeout: 15000 })
       await page.fill('#bw-name', 'Playwright Teszt (törölhető)')
       await page.fill('#bw-email', 'playwright-test@example.com')

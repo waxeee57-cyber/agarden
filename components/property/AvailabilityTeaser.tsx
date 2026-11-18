@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { fmtDay, fmtRange, parseISO } from './Calendar'
 
-// Homepage "Foglaltság", laid out like the big booking sites: the live
+// Homepage "Naptár", laid out like the big booking sites: the live
 // calendar on the right, and on the left one selection card that always says
 // what is picked and what comes next (Érkezés / Távozás slots, nights, one
 // button). The calendar loads only when it scrolls near (off the first paint).
