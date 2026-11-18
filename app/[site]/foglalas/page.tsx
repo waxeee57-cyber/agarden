@@ -12,7 +12,7 @@ export const revalidate = 86400 // content changes revalidate on save (admin); t
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)
   const l = ctx.listing
-  return pageMeta(ctx.site, '/foglalas', 'Foglalás', `Szabad dátumok és foglalási kérelem: ${BRANDS[ctx.site].fullName}, egyben bérelhető ${l.capacityMax}+${l.capacityExtra} főre. Online nem vonunk le pénzt.`)
+  return pageMeta(ctx.site, '/foglalas', 'Foglalás', `Szabad dátumok és foglalási kérelem: ${BRANDS[ctx.site].fullName}, egyben bérelhető ${l.capacityMax}+${l.capacityExtra} főre. Előleget nem kérünk, fizetés a helyszínen.`)
 }
 
 export default async function Page({ params }: { params: Promise<{ site: string }> }) {
@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
     <SitePage ctx={ctx} crumb={{ name: 'Foglalás', path: '/foglalas' }} sticky={false}>
       <PageHead
         title="Foglalás"
-        lead={`Két rövid lépés. Most nem vonunk le pénzt: ${t.confirmHours ? `${t.confirmHours} órán belül` : 'hamarosan'} e-mailben visszaigazoljuk kérését.`}
+        lead={`Két rövid lépés. ${t.confirmHours ? `${t.confirmHours} órán belül` : 'Hamarosan'} e-mailben visszaigazoljuk kérését; előleget nem kérünk, fizetés a helyszínen.`}
       />
       <div className="mx-auto max-w-6xl px-4 pb-20 md:px-8">
         <Suspense fallback={<div className="min-h-[720px] rounded-[var(--radius-xl)] bg-surface-2" aria-hidden="true" />}>

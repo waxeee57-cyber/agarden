@@ -75,7 +75,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
               <dl className="mt-6 space-y-5">
                 {c.wellness!.map((w) => (
                   <div key={w.t}>
-                    <dt className="text-xl font-display">{w.t} <span className="font-sans text-base font-semibold text-pop">{w.k}</span></dt>
+                    <dt className="text-xl font-display">{w.t}{w.k && <span className="font-sans text-base font-semibold text-pop"> · {/^[A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüű]/.test(w.k) ? w.k.charAt(0).toLowerCase() + w.k.slice(1) : w.k}</span>}</dt>
                     <dd className="mt-1 text-soft">{w.d}</dd>
                   </div>
                 ))}

@@ -90,7 +90,7 @@ export function SettingsForm({ initial }: { initial: AdminSettings }) {
 
       <fieldset className="card space-y-3 p-5">
         <legend className="px-1 text-lg font-semibold text-deep">Menüpontok</legend>
-        {([['menuGyik', 'GYIK (gyakori kérdések)'], ['menuKornyek', 'Környék & programok']] as const).map(([k, label]) => (
+        {([['menuGyik', 'GYIK (gyakori kérdések)'], ['menuKornyek', 'Környék és programok']] as const).map(([k, label]) => (
           <label key={k} className="flex min-h-12 cursor-pointer items-center gap-3">
             <input type="checkbox" className="h-6 w-6 accent-[var(--color-deep)]" checked={menu[k]} onChange={(e) => setMenu({ ...menu, [k]: e.target.checked })} />
             <span><strong>{label}</strong> megjelenik a menüben <span className="text-muted">(ha van szövege)</span></span>

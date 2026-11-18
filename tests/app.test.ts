@@ -250,7 +250,7 @@ async function main() {
     const labels = (s: { menuGyik: boolean; menuKornyek: boolean }, d: object) => buildNav({ settings: s }, d, 'https://x.test').map((n) => n.label)
     assert.deepEqual(labels({ menuGyik: true, menuKornyek: true }, docs), ['A ház', 'Foglalás', 'Képek', 'Házirend', 'ÁSZF', 'Kapcsolat', 'Foglalásom', 'GYIK', 'Testvérházunk'])
     assert.ok(!labels({ menuGyik: false, menuKornyek: true }, docs).includes('GYIK'))
-    assert.ok(labels({ menuGyik: true, menuKornyek: true }, { ...docs, kornyek: {} }).includes('Környék & programok'))
+    assert.ok(labels({ menuGyik: true, menuKornyek: true }, { ...docs, kornyek: {} }).includes('Környék és programok'))
     const base = { social: {}, menuKornyek: true, cancelDays: null, confirmHours: null, quoteValidDays: null, extraCosts: [] }
     assert.deepEqual(await actions.saveSettings(napsugar, { ...base, menuGyik: false }), { ok: true })
     assert.equal((await getListing('napsugar'))!.settings.menuGyik, false)
@@ -425,6 +425,18 @@ async function main() {
     assert.equal(typeof ops.ical.feeds, 'number')
     // the owner's verbatim Házirend/ÁSZF still describe a deposit; our cash-on-site GYIK must not be flagged
     assert.deepEqual(ops.depositDocs, ['aszf', 'hazirend'])
+  })
+
+  await t('copy audit: seeded titles and the payment FAQ are grammatical and cash-on-site; letters carry no "mailto:"', async () => {
+    const rows = await query<{ slug: string; title: string; faq: string }>("select slug, content #>> '{seo,title}' as title, content->>'faq' as faq from listings order by slug")
+    for (const r of rows) {
+      assert.ok(!/Velencei-tó szállás|szállás Velence,/.test(r.title), r.title)
+      assert.ok(!(r.faq ?? '').includes('Online nem vonunk le pénzt'), r.slug)
+    }
+    const docs = await query<{ body: string }>("select body from listing_documents where kind = 'gyik'")
+    assert.ok(docs.every((d) => !d.body.includes('Online nem vonunk le pénzt')))
+    const { toText } = await import('../lib/email/compose')
+    assert.equal(toText('<p>Írjon: <a href="mailto:a@b.hu">a@b.hu</a></p>'), 'Írjon: a@b.hu')
   })
 
   await t('self-contained mail: no sender module; admin gets a ready mailto per booking state; cash on site, never a bank account', async () => {

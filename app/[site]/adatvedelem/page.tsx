@@ -53,8 +53,8 @@ function TechnicalNotice({ listing, operator, heading: H }: { listing: Awaited<R
 
       <H>2. Milyen adatokat kezelünk</H>
       <ul>
-        <li><strong>Foglalási kérelem és ajánlatkérés:</strong> név, e-mail cím, telefonszám (nem kötelező), érkezés és távozás dátuma, létszám, kisállat és rendezvény jelzése, az üzenet szövege.</li>
-        <li><strong>Kapcsolati üzenet:</strong> név, e-mail cím, telefonszám (nem kötelező), az üzenet szövege. 90 nap után automatikusan töröljük.</li>
+        <li><strong>Foglalási kérelem és ajánlatkérés:</strong> név, e-mail-cím, telefonszám (nem kötelező), érkezés és távozás dátuma, létszám, kisállat és rendezvény jelzése, az üzenet szövege.</li>
+        <li><strong>Kapcsolati üzenet:</strong> név, e-mail-cím, telefonszám (nem kötelező), az üzenet szövege. 90 nap után automatikusan töröljük.</li>
         <li><strong>Visszaélés-megelőzés:</strong> az IP-címből képzett számláló a túl sok egymás utáni kérés kiszűrésére. Legfeljebb 24 óráig őrizzük.</li>
         <li><strong>Technikai naplók:</strong> a tárhelyszolgáltató a működéshez rövid ideig naplózza a kéréseket (pl. IP-cím, időpont, elért oldal).</li>
       </ul>
@@ -66,7 +66,7 @@ function TechnicalNotice({ listing, operator, heading: H }: { listing: Awaited<R
         <li>A szálláshely-szolgáltatáshoz kapcsolódó jogszabályi kötelezettségek (pl. NTAK-adatszolgáltatás, idegenforgalmi adó): jogi kötelezettség (GDPR 6. cikk (1) c) pont).</li>
         <li>Visszaélés-megelőzés és a rendszer biztonsága: jogos érdek (GDPR 6. cikk (1) f) pont).</li>
       </ul>
-      <p>Az adatok megadása önkéntes, de név és e-mail cím nélkül nem tudjuk a kérést visszaigazolni. Automatizált döntéshozatal és profilalkotás nem történik.</p>
+      <p>Az adatok megadása önkéntes, de név és e-mail-cím nélkül nem tudjuk a kérést visszaigazolni. Automatizált döntéshozatal és profilalkotás nem történik.</p>
 
       <H>4. Megőrzési idő</H>
       <p>Foglalási és ajánlatkérési adatok: {listing.legal.retention ?? <Pending>megőrzési idő</Pending>}{listing.legal.retention && !/[.!?]$/.test(listing.legal.retention) ? '.' : ''} A tulajdonos a nem teljesült kéréseket a kezelőfelületről bármikor törölheti.</p>

@@ -19,7 +19,7 @@ export function LoginForm() {
         window.location.href = '/admin'
         return
       }
-      setError(res.status === 429 ? 'Túl sok próbálkozás. Várj 15 percet.' : 'Hibás e-mail cím vagy jelszó.')
+      setError(res.status === 429 ? 'Túl sok próbálkozás. Várj 15 percet.' : 'Hibás e-mail-cím vagy jelszó.')
     } catch {
       setError('Nem sikerült kapcsolódni. Próbáld újra.')
     } finally {

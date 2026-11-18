@@ -10,7 +10,7 @@ export const revalidate = 86400 // content changes revalidate on save (admin); t
 
 export async function generateMetadata({ params }: { params: Promise<{ site: string }> }) {
   const ctx = await loadSite((await params).site)
-  const where = ctx.listing.address ?? 'Velence'
+  const where = (ctx.listing.address ?? 'Velence').replace(/\.$/, '') // the address ends in a dot; the sentence adds its own
   return pageMeta(ctx.site, '/kapcsolat', 'Kapcsolat és megközelítés', `${BRANDS[ctx.site].fullName}: ${where}. Telefon: ${ctx.phone}. Írjon üzenetet, vagy nézze meg a térképen.`)
 }
 
@@ -22,7 +22,7 @@ export default async function Page({ params }: { params: Promise<{ site: string 
   const route = listing.address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(listing.address)}` : null
   return (
     <SitePage ctx={ctx} crumb={{ name: 'Kapcsolat', path: '/kapcsolat' }}>
-      <PageHead title="Kapcsolat" lead="Hívjon, írjon, vagy küldjön üzenetet: hamarosan válaszolunk." />
+      <PageHead title="Kapcsolat" lead="Hívjon, írjon vagy küldjön üzenetet: hamarosan válaszolunk." />
       <div className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 md:px-8 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
         {/* The reference leads with a full-colour contact panel (large icons,
             bold lines). Ours: the house accent, every line a real link. */}

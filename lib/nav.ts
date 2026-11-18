@@ -15,7 +15,7 @@ export function buildNav(listing: { settings: SiteSettings }, docs: Partial<Reco
     { href: '/kapcsolat', label: 'Kapcsolat' },
     { href: '/foglalasom', label: 'Foglalásom' },
     listing.settings.menuGyik && !!docs.gyik && { href: '/gyik', label: 'GYIK' },
-    listing.settings.menuKornyek && !!docs.kornyek && { href: '/kornyek', label: 'Környék & programok' },
+    listing.settings.menuKornyek && !!docs.kornyek && { href: '/kornyek', label: 'Környék és programok' },
     { href: sisterOrigin, label: 'Testvérházunk', external: true },
   ]
   return items.filter((x): x is NavItem => !!x)

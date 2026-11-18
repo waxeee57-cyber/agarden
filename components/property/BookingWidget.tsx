@@ -151,7 +151,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
     }
     if (s === 1) {
       if (name.trim().length < 2) e.name = 'Kérjük, adja meg a nevét.'
-      if (!EMAIL_RE.test(email.trim())) e.email = 'Érvényes e-mail cím kell, ide küldjük a visszaigazolást.'
+      if (!EMAIL_RE.test(email.trim())) e.email = 'Érvényes e-mail-cím kell, ide küldjük a visszaigazolást.'
       if (phone.trim() && phone.trim().replace(/\D/g, '').length < 6) e.phone = 'Kérjük, ellenőrizze a telefonszámot.'
     }
     setErrors(e)
@@ -206,7 +206,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
         </span>
         <h2 className="mt-6 text-[clamp(1.9rem,4vw,2.6rem)]">{success.kind === 'book' ? 'Megkaptuk foglalási kérelmét' : 'Megkaptuk ajánlatkérését'}</h2>
         <p className="mx-auto mt-3 max-w-[46ch] text-soft">
-          {success.kind === 'book' ? 'A dátumokat fenntartjuk Önnek, pénzt nem vontunk le.' : 'Az ajánlatkérés még nem foglal le dátumot.'}{' '}
+          {success.kind === 'book' ? 'A dátumokat fenntartjuk Önnek.' : 'Az ajánlatkérés még nem foglal le dátumot.'}{' '}
           {listing.confirmHours ? `${listing.confirmHours} órán belül` : 'Hamarosan'} {success.kind === 'book' ? 'e-mailben visszaigazoljuk' : 'e-mailben vagy telefonon küldjük az ajánlatot'}: <strong className="text-fg">{email.trim()}</strong>
         </p>
         {code && <CodeBox code={code} />}
@@ -339,8 +339,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
               </Card>
 
               <ul className="grid gap-2 px-1 text-sm text-soft">
-                <Note>Most nem vonunk le pénzt, online fizetés nincs.</Note>
-                {mode === 'book' && <Note>{listing.paymentLine}</Note>}
+                                {mode === 'book' && <Note>{listing.paymentLine}</Note>}
                 {listing.extraCosts.map((x) => <Note key={x}>{x}</Note>)}
               </ul>
 
@@ -376,7 +375,7 @@ export function BookingWidget({ listing, sister }: { listing: WidgetListing; sis
                 onEdit={() => go(0)}
               />
               <button type="button" className="btn btn-act mt-6 w-full" onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</button>
-              <p className="mt-3 text-center text-xs text-soft">Most nem vonunk le pénzt</p>
+              <p className="mt-3 text-center text-xs text-soft">Előleget nem kérünk, fizetés a helyszínen</p>
             </div>
           </div>
           <div className="mt-4 flex justify-center"><CallLink phone={listing.phone} /></div>
@@ -561,7 +560,7 @@ function CodeBox({ code }: { code: string }) {
 function TrustRow({ confirmHours }: { confirmHours: number | null }) {
   const items: { t: string; d: string; icon: React.ReactNode }[] = [
     { t: 'Közvetlenül a háztól', d: 'Közvetítő és foglalási díj nélkül', icon: <path d="M3 10.5 12 3l9 7.5M5 9v11h14V9M10 20v-6h4v6" /> },
-    { t: 'Most nem fizet', d: 'Online nem vonunk le pénzt', icon: <><rect x="2.5" y="5.5" width="19" height="13" rx="2" /><path d="M2.5 10h19M6.5 15h4" /></> },
+    { t: 'Fizetés a helyszínen', d: 'Érkezéskor, készpénzben', icon: <><rect x="2.5" y="5.5" width="19" height="13" rx="2" /><path d="M2.5 10h19M6.5 15h4" /></> },
     { t: confirmHours ? `${confirmHours} órán belül` : 'Gyors visszaigazolás', d: 'E-mailben visszaigazoljuk', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> },
     { t: 'Biztonságos kapcsolat', d: 'Titkosított adatküldés (HTTPS)', icon: <><rect x="4.5" y="10.5" width="15" height="10" rx="2" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></> },
   ]

@@ -54,7 +54,7 @@ export const DOC_LABEL: Record<DocKind, string> = {
   hazirend: 'Házirend',
   aszf: 'ÁSZF',
   gyik: 'GYIK',
-  kornyek: 'Környék & programok',
+  kornyek: 'Környék és programok',
   adatvedelem: 'Adatkezelési tájékoztató',
 }
 

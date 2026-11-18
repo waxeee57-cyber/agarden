@@ -1,4 +1,12 @@
 import { DOC_LABEL } from '@/lib/terms'
+
+// "Az ÁSZF és a Házirend": definite article by the first sound, joined with "és"
+const art = (w: string) => (/^[aáeéiíoóöőuúüűAÁEÉIÍOÓÖŐUÚÜŰ]/.test(w) ? 'az' : 'a')
+const hunList = (xs: string[]) => {
+  const parts = xs.map((x) => `${art(x)} ${x}`)
+  const s = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} és ${parts[parts.length - 1]}` : parts[0]
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 import Link from 'next/link'
 import { requireAdminPage } from '@/lib/admin/guard'
 import { listBookings, bookingCounts, listMessages, getOpsAlerts, listEvents, FILTERS, type FilterKey } from '@/lib/admin/data'
@@ -39,7 +47,7 @@ export default async function AdminBookings({ params, searchParams }: { params: 
   if (unread) todos.push({ text: `${unread} megválaszolatlan üzenet a Kapcsolat oldalról.`, href: '#uzenetek', action: 'Elolvasom', urgent: true })
   for (const c of ops.icalConflicts) todos.push({ text: `Ütközés: a(z) ${c.label} naptár ${c.from} – ${c.to} között foglalt, de ugyanerre ${c.code ? `a(z) ${c.code} kódú ${c.status === 'confirmed' ? 'visszaigazolt foglalás' : 'foglalási kérelem'}` : 'egy kézi blokk'} is szól. ${c.status === 'pending' ? 'Ne igazold vissza, amíg nem tisztáztad.' : 'Egyeztess a vendéggel / a portállal.'}`, href: c.code ? '/admin?szuro=mind#foglalasok' : '/admin/naptar', action: 'Megnézem', urgent: true })
   if (ops.unnotified.length) todos.push({ text: `${ops.unnotified.length === 1 ? 'Egy döntésről' : `${ops.unnotified.length} döntésről`} még nincs jelölve, hogy a vendég megkapta a levelet: ${ops.unnotified.slice(0, 3).map((u) => `${u.guest} (${u.code}, ${u.status === 'confirmed' ? 'visszaigazolva' : 'lemondva/elutasítva'})`).join(', ')}${ops.unnotified.length > 3 ? '…' : ''}. Küldd el, majd nyomd meg az „Elküldtem a levelet” gombot.`, href: '/admin?szuro=mind#foglalasok', action: 'Megnézem', urgent: true })
-  if (ops.depositDocs.length) todos.push({ text: `A(z) ${ops.depositDocs.map((k) => DOC_LABEL[k]).join(', ')} szövege még előleget említ, a foglalás viszont helyszíni, készpénzes fizetéssel megy. Igazítsd a saját feltételeidhez.`, href: `/admin/szovegek?doc=${ops.depositDocs[0]}`, action: 'Átírom' })
+  if (ops.depositDocs.length) todos.push({ text: `${hunList(ops.depositDocs.map((k) => DOC_LABEL[k]))} szövege még előleget említ, a foglalás viszont helyszíni, készpénzes fizetéssel megy. Igazítsd a saját feltételeidhez.`, href: `/admin/szovegek?doc=${ops.depositDocs[0]}`, action: 'Átírom' })
   const missing = listing ? missingLegal(listing.legal, listing).length : 0
   if (missing) todos.push({ text: `${missing} üzemeltetői adat hiányzik a generált jogi oldalakból.`, href: '/admin/adatok', action: 'Kitöltöm' })
   const noAlt = photos.filter((p) => !p.alt.trim()).length

@@ -33,7 +33,10 @@ export function toText(html: string): string {
   return html
     .replace(/<(br|\/p|\/tr|\/h1|\/li)[^>]*>/gi, '\n')
     .replace(/<\/td>/gi, ' ')
-    .replace(/<a [^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/gi, (_, href, label) => (label && !href.includes(label) ? `${label} (${href})` : href))
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/gi, (_, href: string, label: string) => {
+      const target = href.replace(/^mailto:/i, '')
+      return label && !target.includes(label) ? `${label} (${target})` : target
+    })
     .replace(/<[^>]+>/g, '')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/[ \t]+/g, ' ')
